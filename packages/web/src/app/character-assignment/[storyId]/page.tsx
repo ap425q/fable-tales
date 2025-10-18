@@ -431,7 +431,7 @@ export default function CharacterAssignmentPage({
               </p>
 
               {/* Character Grid */}
-              <div className="grid grid-cols-2 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-6 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-visible pr-4 px-4 py-3">
                 {presetCharacters.map((character) => {
                   const isSelected = selectedCharacter === character.id
                   const isAssigned = isCharacterAssigned(character.id)
@@ -440,7 +440,9 @@ export default function CharacterAssignmentPage({
                   return (
                     <div
                       key={character.id}
-                      className="relative"
+                      className={`relative ${
+                        isSelected ? "z-10" : "z-0"
+                      } hover:z-10`}
                       draggable={!isAssigned}
                       onDragStart={() =>
                         !isAssigned && handleDragStart(character.id)
@@ -465,14 +467,24 @@ export default function CharacterAssignmentPage({
                         }`}
                       >
                         <div className="text-center">
-                          <p className="font-semibold text-gray-900">
-                            {character.name}
-                          </p>
-                          {isAssigned && assignedRole && (
-                            <p className="text-xs text-blue-600 mt-1 font-medium">
-                              ✓ Assigned
+                          <div className="flex items-center justify-center gap-1.5">
+                            <p className="font-semibold text-gray-900">
+                              {character.name}
                             </p>
-                          )}
+                            {isAssigned && assignedRole && (
+                              <svg
+                                className="w-4 h-4 text-green-600 flex-shrink-0"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
                         </div>
                       </Card>
                     </div>
