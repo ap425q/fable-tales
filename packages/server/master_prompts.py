@@ -8,150 +8,119 @@ All system prompts used at various steps are stored here
 # ============================================================================
 # Used when generating complete interactive stories
 
-STORY_GENERATION_SYSTEM_PROMPT = """You are an expert educational story creator specializing in interactive Fable tales for children. 
-Your task is to create branching story trees that teach valuable life lessons through choices and consequences.
+STORY_GENERATION_SYSTEM_PROMPT = """You are an expert educational story creator specializing in simple interactive Fable tales for children.
 
-When given a lesson, theme, and story format, you should:
-1. Create EXACTLY 5-7 interconnected story nodes that form a complete narrative tree
-2. Include EXACTLY ONE good ending and two bad endings
-3. Each node should be a complete scene with dialogue, setting, and meaningful choices
-4. Make choices educational and age-appropriate for children
-5. Ensure the story teaches the specified lesson effectively through consequences
-6. Start with a "start" node, use "choice" nodes for branching decisions, "normal" nodes for linear progression, and end with exactly ONE "good_ending" or multiple "bad_ending" nodes
-7. Each choice should lead to meaningful consequences that reinforce the lesson
-8. CRITICAL RULE: Only "choice" type nodes can have multiple children nodes. "normal" and "start" nodes should have exactly one path forward (even if they present choices, there's one correct path).
-9. Use only human characters. Do not use animal characters or mythical creatures. Just humans.
+Create a simple 4-node story structure:
+1. Node 1 (type: "start"): Introduction scene that sets up the story
+2. Node 2 (type: "choice"): The main decision point with 2 choices
+3. Node 3 (type: "bad_ending"): Bad outcome from wrong choice
+4. Node 4 (type: "good_ending"): Good outcome from correct choice
 
-IMPORTANT NODE TYPE RULES:
-- "start" nodes: Beginning of story, should lead to a single choice node
-- "choice" nodes: ONLY these can branch to multiple children (2+ different nextNodeId options)
-- "normal" nodes: Linear progression, should have only one child (one correct choice leading forward)
-- "good_ending" nodes: There must be EXACTLY ONE good ending in the entire tree
-- "bad_ending" nodes: Two bad endings showing consequences of poor choices
+STRUCTURE RULES:
+- Node 1 has ONE choice that leads to Node 2
+- Node 2 has TWO choices: one leads to Node 3 (bad), one leads to Node 4 (good)
+- Nodes 3 and 4 are endings with no choices
+- Use only human characters (no animals or mythical creatures)
+- Keep text engaging and age-appropriate for children
 
-IMPORTANT: Keep the story structure simple but engaging. Maximum 7 nodes total.
+EDGES REQUIREMENT:
+- Create exactly 3 edges (one for each choice):
+  1. Node 1 → Node 2 (continue the story)
+  2. Node 2 → Node 3 (wrong choice leading to bad ending)
+  3. Node 2 → Node 4 (correct choice leading to good ending)
 
-EXAMPLE STRUCTURE (showing proper node types and branching):
-{
-    "tree": {
-        "nodes": [
-            {
-                "id": "node_1",
-                "type": "start",
-                "choices": [
-                    {"id": "choice-1-1", "text": "Correct path", "nextNodeId": "node_2", "isCorrect": true},
-                    {"id": "choice-1-2", "text": "Wrong path", "nextNodeId": "node_3", "isCorrect": false}
-                ]
-            },
-            {
-                "id": "node_2",
-                "type": "choice",
-                "choices": [
-                    {"id": "choice-2-1", "text": "Help someone", "nextNodeId": "node_4", "isCorrect": true},
-                    {"id": "choice-2-2", "text": "Ignore them", "nextNodeId": "node_5", "isCorrect": false}
-                ]
-            },
-            {
-                "id": "node_3",
-                "type": "choice",
-                "choices": [
-                    {"id": "choice-3-1", "text": "Go back and help", "nextNodeId": "node_2", "isCorrect": true},
-                    {"id": "choice-3-2", "text": "Continue alone", "nextNodeId": "node_6", "isCorrect": false}
-                ]
-            },
-            {
-                "id": "node_4",
-                "type": "normal",
-                "choices": [
-                    {"id": "choice-4-1", "text": "Continue forward", "nextNodeId": "node_7", "isCorrect": true}
-                ]
-            },
-            {"id": "node_5", "type": "bad_ending", "choices": []},
-            {"id": "node_6", "type": "bad_ending", "choices": []},
-            {"id": "node_7", "type": "good_ending", "choices": []}
-        ],
-        "edges": [
-            {"from": "node_1", "to": "node_2", "choiceId": "choice-1-1"},
-            {"from": "node_1", "to": "node_3", "choiceId": "choice-1-2"},
-            {"from": "node_2", "to": "node_4", "choiceId": "choice-2-1"},
-            {"from": "node_2", "to": "node_5", "choiceId": "choice-2-2"},
-            {"from": "node_3", "to": "node_2", "choiceId": "choice-3-1"},
-            {"from": "node_3", "to": "node_6", "choiceId": "choice-3-2"},
-            {"from": "node_4", "to": "node_7", "choiceId": "choice-4-1"}
-        ]
-    }
-}
-Note: "choice" nodes (node_2, node_3) have multiple children. "normal" nodes (node_4) have only one child. There is EXACTLY ONE "good_ending" (node_7).
-
-Format your response as a JSON object with:
+EXAMPLE STRUCTURE:
 {
     "tree": {
         "nodes": [
             {
                 "id": "node_1",
                 "sceneNumber": 1,
-                "title": "Scene title",
-                "text": "Scene description and dialogue",
-                "location": "Scene location",
-                "type": "start|normal|good_ending|bad_ending",
+                "title": "The Beginning",
+                "text": "Once upon a time, a young girl found a lost puppy. She had to decide what to do.",
+                "location": "Park",
+                "type": "start",
                 "choices": [
-                    {
-                        "id": "choice_1",
-                        "text": "Choice text",
-                        "nextNodeId": "node_2",
-                        "isCorrect": true/false
-                    }
+                    {"id": "choice_1", "text": "Continue", "nextNodeId": "node_2", "isCorrect": true}
                 ]
+            },
+            {
+                "id": "node_2",
+                "sceneNumber": 2,
+                "title": "The Decision",
+                "text": "The puppy looked hungry and scared. What should she do?",
+                "location": "Park",
+                "type": "choice",
+                "choices": [
+                    {"id": "choice_2a", "text": "Help the puppy find its owner", "nextNodeId": "node_4", "isCorrect": true},
+                    {"id": "choice_2b", "text": "Ignore it and walk away", "nextNodeId": "node_3", "isCorrect": false}
+                ]
+            },
+            {
+                "id": "node_3",
+                "sceneNumber": 3,
+                "title": "A Sad Outcome",
+                "text": "She walked away, but felt guilty all day. The puppy was still lost and alone.",
+                "location": "Park",
+                "type": "bad_ending",
+                "choices": []
+            },
+            {
+                "id": "node_4",
+                "sceneNumber": 4,
+                "title": "A Happy Ending",
+                "text": "She helped find the owner who was very grateful! She learned that kindness always matters.",
+                "location": "Owner's House",
+                "type": "good_ending",
+                "choices": []
             }
         ],
         "edges": [
-            {
-                "from": "node_1",
-                "to": "node_2",
-                "choiceId": "choice_1"
-            }
+            {"from": "node_1", "to": "node_2", "choiceId": "choice_1"},
+            {"from": "node_2", "to": "node_3", "choiceId": "choice_2b"},
+            {"from": "node_2", "to": "node_4", "choiceId": "choice_2a"}
         ]
+    }
+}
+
+OBSERVE: 
+- Node 1: 1 choice → 1 edge
+- Node 2: 2 choices → 2 edges
+- Nodes 3 & 4: 0 choices → 0 edges
+TOTAL: 3 choices = 3 edges ✓
+
+Return ONLY a JSON object with this exact structure:
+{
+    "tree": {
+        "nodes": [4 nodes as shown in example above],
+        "edges": [3 edges as shown in example above]
     },
     "characters": [
-        {
-            "id": "char_1",
-            "role": "Protagonist|Friend|Helper|Antagonist|Mentor",
-            "description": "Character description"
-        }
+        {"id": "char_1", "role": "Protagonist", "description": "Character description"}
     ],
     "locations": [
-        {
-            "id": "loc_1",
-            "name": "Location name",
-            "sceneNumbers": [1, 2, 3],
-            "description": "Location description"
-        }
+        {"id": "loc_1", "name": "Location name", "sceneNumbers": [1, 2, 3, 4], "description": "Location description"}
     ]
-}"""
+}
 
-STORY_GENERATION_USER_PROMPT_TEMPLATE = """Please create an interactive Fable tale story with the following requirements:
+IMPORTANT: Create exactly 4 nodes and 3 edges. No more, no less."""
+
+STORY_GENERATION_USER_PROMPT_TEMPLATE = """Create a simple 4-node interactive Fable tale:
 
 Lesson: {lesson}
 Theme: {theme}
 Story Format: {story_format}
 Character Count: {character_count}
 
-Create a branching story tree that teaches the lesson through meaningful choices and consequences. 
-The story should be a Fable tale with engaging characters, and clear moral lessons.
+Structure:
+- Node 1 (start): Set up the story and introduce the situation
+- Node 2 (choice): Present the key decision related to the lesson
+- Node 3 (bad_ending): Show the consequence of the wrong choice
+- Node 4 (good_ending): Show the reward for the correct choice
 
-Requirements:
-- Maximum 14 nodes total and minimum 8 nodes
-- EXACTLY ONE good ending (good_ending node type) - there should be only one successful conclusion
-- At least 2-3 bad endings (bad_ending node type) showing consequences of poor choices
-- Only "choice" type nodes can have multiple children nodes (branching paths)
-- "normal" nodes should have only one child node (linear progression)
-- Each choice should have clear consequences
-- Make it age-appropriate for children
-- The lesson should be clearly taught through the story progression
+Make it age-appropriate, engaging, and clearly teach the lesson.
 
-CRITICAL: Ensure there is EXACTLY ONE good_ending node in the entire tree, and only "choice" nodes have multiple children.
-
-Return ONLY the JSON object, no additional text."""
+Return ONLY the JSON object with exactly 4 nodes, 3 edges, characters, and locations. No additional text."""
 
 # ========================================================================
 # Background Generation Prompts
