@@ -75,3 +75,11 @@ export enum ProgressBarSize {
   Medium = "medium",
   Large = "large",
 }
+
+// Toast enums
+export enum ToastVariant {
+  Success = "success",
+  Error = "error",
+  Info = "info",
+  Warning = "warning",
+}
