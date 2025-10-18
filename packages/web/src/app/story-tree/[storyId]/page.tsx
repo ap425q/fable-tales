@@ -598,8 +598,22 @@ function StoryTreeEditor() {
     try {
       setIsSaving(true)
 
+      // Convert location ID to location name for backend
+      let locationValue = formData.location
+      if (storyData) {
+        const location = storyData.locations.find(
+          (loc) => loc.id === formData.location
+        )
+        if (location) {
+          locationValue = location.name
+        }
+      }
+
       // Update node via API
-      await api.stories.updateNode(storyId, selectedNode, formData)
+      await api.stories.updateNode(storyId, selectedNode, {
+        ...formData,
+        location: locationValue,
+      })
 
       // Update local state
       setNodes((nds) =>
@@ -611,7 +625,7 @@ function StoryTreeEditor() {
                 ...node.data,
                 title: formData.title,
                 text: formData.text,
-                location: formData.location,
+                location: locationValue, // Use the location name, not ID
                 choices: formData.choices,
               },
             }
@@ -819,10 +833,22 @@ function StoryTreeEditor() {
     const node = nodes.find((n) => n.id === selectedNode)
     if (!node) return null
 
+    // Map location name to location ID if needed
+    let locationId = node.data.location
+    if (storyData) {
+      const matchingLocation = storyData.locations.find(
+        (loc) =>
+          loc.name === node.data.location || loc.id === node.data.location
+      )
+      if (matchingLocation) {
+        locationId = matchingLocation.id
+      }
+    }
+
     return {
       title: node.data.title,
       text: node.data.text,
-      location: node.data.location,
+      location: locationId,
       choices: node.data.choices,
     }
   }
