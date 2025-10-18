@@ -116,7 +116,7 @@ BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE = """Please analyze these story node
 
 {story_info}
 
-Create one background description per unique location. Group scenes by location and provide a rich, detailed description suitable for fairy tale illustration generation."""
+Create one background description per unique location. Group scenes by location and provide a rich, detailed description suitable for fable tale illustration generation."""
 
 # ============================================================================
 # STEP 2: Scene Generation Prompt

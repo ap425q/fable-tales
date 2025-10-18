@@ -110,17 +110,30 @@ class PresetCharacter(BaseModel):
     imageUrl: str
     category: Optional[str] = None
 
+class CharactersResponse(BaseModel):
+    """Response model for characters list"""
+    characters: List[PresetCharacter]
+
 class CharacterAssignment(BaseModel):
     """Character assignment for a story"""
     characterRoleId: str
     presetCharacterId: str
-    role: Optional[str] = None
+    roleName: Optional[str] = None
     characterName: Optional[str] = None
-    imageUrl: Optional[str] = None
+
+class CharacterAssignmentItem(BaseModel):
+    """Individual character assignment item"""
+    characterRoleId: str
+    presetCharacterId: str
 
 class CharacterAssignmentRequest(BaseModel):
     """Request to save character assignments"""
-    assignments: List[Dict[str, str]]  # characterRoleId -> presetCharacterId mapping
+    assignments: List[CharacterAssignmentItem]
+
+class CharacterAssignmentsResponse(BaseModel):
+    """Response model for character assignments"""
+    storyId: str
+    assignments: List[CharacterAssignment]
 
 # ============================================================================
 # Background Models
@@ -149,9 +162,19 @@ class BackgroundUpdateRequest(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
+class BackgroundItem(BaseModel):
+    """Individual background item"""
+    backgroundId: str
+    description: str
+
 class BackgroundGenerationRequest(BaseModel):
     """Request to generate backgrounds"""
-    backgrounds: List[Dict[str, str]]  # backgroundId -> description mapping
+    backgrounds: List[BackgroundItem]
+
+class BackgroundGenerationResponse(BaseModel):
+    """Response for background generation"""
+    success: bool
+    url: str
 
 class BackgroundGenerationStatus(BaseModel):
     """Background generation status response"""

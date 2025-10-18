@@ -395,11 +395,14 @@ class SupabaseDataManager:
             # Transform the data to match the expected format
             characters = []
             for char_data in result.data:
+                # Determine gender from ID (f_ = female, m_ = male)
+                gender = "Female" if char_data["id"].startswith("f_") else "Male"
+                
                 character = {
                     "id": char_data["id"],
                     "name": char_data["name"],
                     "imageUrl": char_data["image_url"],  # Convert snake_case to camelCase
-                    "category": char_data.get("category", "Animal")
+                    "category": gender
                 }
                 characters.append(character)
             
@@ -409,19 +412,57 @@ class SupabaseDataManager:
             print(f"Error getting preset characters from Supabase: {str(e)}")
             return []
     
+    def populate_preset_characters(self) -> bool:
+        """Populate preset characters table with default characters"""
+        try:
+            import json
+            import os
+            
+            # Load preset characters from JSON file
+            json_path = os.path.join("data", "characters", "preset_characters.json")
+            if not os.path.exists(json_path):
+                print(f"Preset characters file not found: {json_path}")
+                return False
+            
+            with open(json_path, 'r') as f:
+                characters_data = json.load(f)
+            
+            # Transform data for Supabase (convert camelCase to snake_case)
+            supabase_characters = []
+            for char in characters_data:
+                supabase_char = {
+                    "id": char["id"],
+                    "name": char["name"],
+                    "image_url": char["imageUrl"]
+                }
+                supabase_characters.append(supabase_char)
+            
+            # Insert characters into Supabase (upsert to handle duplicates)
+            result = self.supabase.table("preset_characters").upsert(supabase_characters).execute()
+            
+            print(f"Successfully populated {len(supabase_characters)} preset characters")
+            return True
+            
+        except Exception as e:
+            print(f"Error populating preset characters: {str(e)}")
+            return False
+    
     def save_character_assignments(self, story_id: str, assignments: List[Dict[str, Any]]):
         """Save character assignments to Supabase"""
         try:
             for assignment in assignments:
                 assignment_data = {
-                    "id": f"assignment_{story_id}_{assignment['characterRoleId']}",
                     "story_id": story_id,
                     "character_role_id": assignment["characterRoleId"],
                     "preset_character_id": assignment["presetCharacterId"],
                     "created_at": datetime.now().isoformat()
                 }
                 
-                self.supabase.table("character_assignments").upsert(assignment_data).execute()
+                # Use upsert with on_conflict to handle the unique constraint
+                self.supabase.table("character_assignments").upsert(
+                    assignment_data,
+                    on_conflict="story_id,character_role_id"
+                ).execute()
                 
         except Exception as e:
             print(f"Error saving character assignments to Supabase: {str(e)}")
@@ -444,9 +485,8 @@ class SupabaseDataManager:
                 assignment_data = {
                     "characterRoleId": assignment["character_role_id"],
                     "presetCharacterId": assignment["preset_character_id"],
-                    "role": char_role["role"],
-                    "characterName": preset_char["name"],
-                    "imageUrl": preset_char["image_url"]
+                    "roleName": char_role["role"],
+                    "characterName": preset_char["name"]
                 }
                 assignments.append(assignment_data)
             
@@ -956,3 +996,60 @@ class SupabaseDataManager:
             
         except Exception as e:
             print(f"Error creating scene regeneration job in Supabase: {str(e)}")
+    
+    def save_background(self, background_data: Dict[str, Any]):
+        """Save a single background to Supabase"""
+        try:
+            self.supabase.table("backgrounds").insert(background_data).execute()
+            print(f"✅ Background saved to database: {background_data['id']}")
+        except Exception as e:
+            print(f"❌ Error saving background to Supabase: {str(e)}")
+            raise e
+    
+    def save_location(self, location_data: Dict[str, Any]):
+        """Save a single location to Supabase"""
+        try:
+            self.supabase.table("locations").insert(location_data).execute()
+            print(f"✅ Location saved to database: {location_data['id']}")
+        except Exception as e:
+            print(f"❌ Error saving location to Supabase: {str(e)}")
+            raise e
+    
+    def upload_image_to_storage(self, image_url: str, filename: str) -> Optional[str]:
+        """Download image from URL and upload to Supabase storage"""
+        try:
+            import requests
+            from io import BytesIO
+            
+            # Download the image from the URL
+            print(f"📥 Downloading image from: {image_url}")
+            response = requests.get(image_url, timeout=30)
+            response.raise_for_status()
+            
+            # Upload to Supabase storage
+            print(f"📤 Uploading image to Supabase storage: {filename}")
+            result = self.supabase.storage.from_("frame-fable").upload(
+                filename,
+                response.content,
+                file_options={"content-type": "image/jpeg"}
+            )
+            
+            if result:
+                # Get the public URL
+                public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                print(f"✅ Image uploaded successfully: {public_url}")
+                return public_url
+            else:
+                print("❌ Failed to upload image to Supabase storage")
+                return None
+                
+        except requests.RequestException as e:
+            print(f"❌ Error downloading image: {str(e)}")
+            return None
+        except Exception as e:
+            print(f"❌ Error uploading image to Supabase storage: {str(e)}")
+            # Check if it's an RLS policy error
+            if "row-level security policy" in str(e).lower():
+                print("💡 This appears to be a Row Level Security (RLS) policy issue.")
+                print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
+            return None

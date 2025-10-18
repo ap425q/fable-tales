@@ -3,7 +3,7 @@ Story-based API routes
 Complete implementation of the new story API specification
 """
 
-from fastapi import APIRouter, HTTPException, status, Query, Path, File, UploadFile
+from fastapi import APIRouter, HTTPException, status, Query, Path
 from typing import List, Optional
 from datetime import datetime
 
@@ -13,10 +13,9 @@ from app.models.schemas import (
     StoryListResponse, StoryListItem,
     Story, StoryTree, StoryNode, StoryEdge,
     NodeUpdateRequest, NodeCreateRequest,
-    StoryFinalizeRequest, StoryCompleteRequest,
-    StoryDuplicateRequest,
-    CharacterAssignmentRequest, PresetCharacter,
-    BackgroundUpdateRequest, BackgroundGenerationRequest,
+    StoryCompleteRequest,
+    CharacterAssignmentRequest, CharacterAssignmentsResponse, PresetCharacter, CharactersResponse,
+    BackgroundUpdateRequest, BackgroundGenerationRequest, BackgroundGenerationResponse,
     BackgroundGenerationStatus, BackgroundRegenerateRequest,
     BackgroundVersionSelectRequest,
     SceneGenerationStatus, SceneRegenerateRequest,
@@ -24,7 +23,6 @@ from app.models.schemas import (
     ReadingProgressRequest, ReadingProgress,
     ReadingCompletionRequest, StoryForReading,
     ShareLinkRequest, ShareLinkResponse,
-    StoryStatistics, ImageUploadResponse,
     APIResponse, ERROR_CODES
 )
 
@@ -86,24 +84,6 @@ async def generate_story(request: StoryGenerateRequest):
 # 3️⃣ Story Tree Editing Page APIs
 # ============================================================================
 
-@router.get("/stories/completed", response_model=APIResponse)
-async def get_completed_stories(
-    limit: int = Query(10, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    sort_by: Optional[str] = Query(None, regex="^(recent|popular)$")
-):
-    """API 7-1: Retrieve Completed Stories List"""
-    try:
-        stories_data = story_service.get_completed_stories(limit, offset, sort_by)
-        return APIResponse(
-            success=True,
-            data=stories_data.model_dump()
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
-        )
 
 
 @router.get("/stories/{story_id}", response_model=APIResponse)
@@ -200,96 +180,107 @@ async def delete_node(
         )
 
 
-@router.post("/stories/{story_id}/finalize-structure", response_model=APIResponse)
-async def finalize_story_structure(
-    story_id: str = Path(..., description="Story ID"),
-    request: StoryFinalizeRequest = None
-):
-    """API 3-5: Finalize Story Structure"""
-    try:
-        result = story_service.finalize_story_structure(story_id, request.tree)
-        if not result:
-            return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
-            )
-        return APIResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
-        )
 
 
 # ============================================================================
 # 4️⃣ Character Role Assignment Page APIs
 # ============================================================================
 
-@router.get("/characters", response_model=APIResponse)
+@router.get("/characters", response_model=CharactersResponse)
 async def get_preset_characters():
-    """API 4-1: Retrieve Preset Characters List"""
+    """
+    API 4-1: Retrieve Preset Characters List
+    
+    Returns a list of available preset characters that can be assigned to story roles.
+    Characters are categorized by gender (Female/Male) based on their ID prefix.
+    
+    **Response Format:**
+    - `id`: Character identifier (f_<name> for female, m_<name> for male)
+    - `name`: Character display name
+    - `imageUrl`: Path to character image in /characters/ directory
+    - `category`: Gender category ("Female" or "Male")
+    
+    **Available Characters:**
+    - Female: Amelia, Ava, Emma, Olivia, Sophia
+    - Male: James, John, Joseph, Noah, William
+    """
     try:
         characters = story_service.get_preset_characters()
-        return APIResponse(
-            success=True,
-            data={"characters": [char.model_dump() for char in characters]}
-        )
+        return CharactersResponse(characters=characters)
     except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 
-@router.post("/stories/{story_id}/character-assignments", response_model=APIResponse)
+@router.post("/stories/{story_id}/character-assignments", response_model=CharacterAssignmentsResponse)
 async def save_character_assignments(
     story_id: str = Path(..., description="Story ID"),
     request: CharacterAssignmentRequest = None
 ):
-    """API 4-2: Save Character Assignments"""
+    """
+    API 4-2: Save Character Assignments
+    
+    Assigns preset characters to story roles. This updates the original generated story
+    by mapping character roles to specific preset characters.
+    
+    **Input:**
+    - `story_id`: The ID of the story to update
+    - `assignments`: List of character role to preset character mappings
+    
+    **Output:**
+    - `storyId`: The story ID that was updated
+    - `assignments`: List of assignments with role names and character names populated
+    """
     try:
         assignments = story_service.save_character_assignments(story_id, request.assignments)
         if not assignments:
-            return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "STORY_NOT_FOUND", "message": "Story not found"}
             )
-        return APIResponse(
-            success=True,
-            data={
-                "storyId": story_id,
-                "assignments": [assignment.model_dump() for assignment in assignments]
-            }
+        return CharacterAssignmentsResponse(
+            storyId=story_id,
+            assignments=assignments
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 
-@router.get("/stories/{story_id}/character-assignments", response_model=APIResponse)
+@router.get("/stories/{story_id}/character-assignments", response_model=CharacterAssignmentsResponse)
 async def get_character_assignments(story_id: str = Path(..., description="Story ID")):
-    """API 4-3: Retrieve Character Assignments"""
+    """
+    API 4-3: Retrieve Character Assignments
+    
+    Gets the current character assignments for a story, showing which preset characters
+    are assigned to which story roles.
+    
+    **Output:**
+    - `storyId`: The story ID
+    - `assignments`: List of current character assignments with role names and character names
+    """
     try:
         assignments = story_service.get_character_assignments(story_id)
         if assignments is None:
             # Return empty list if no assignments found
-            return APIResponse(
-                success=True,
-                data={"assignments": []}
+            return CharacterAssignmentsResponse(
+                storyId=story_id,
+                assignments=[]
             )
-        return APIResponse(
-            success=True,
-            data={"assignments": [assignment.model_dump() for assignment in assignments]}
+        return CharacterAssignmentsResponse(
+            storyId=story_id,
+            assignments=assignments
         )
     except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 
@@ -344,27 +335,42 @@ async def update_background_description(
         )
 
 
-@router.post("/stories/{story_id}/backgrounds/generate-all", response_model=APIResponse)
+@router.post("/stories/{story_id}/backgrounds/generate-all", response_model=BackgroundGenerationResponse)
 async def generate_all_backgrounds(
     story_id: str = Path(..., description="Story ID"),
     request: BackgroundGenerationRequest = None
 ):
-    """API 5-3: Generate All Background Images"""
+    """
+    API 5-3: Generate All Background Images
+    
+    Generates background images using FAL.ai based on the provided descriptions.
+    Returns the URL of the generated image.
+    
+    **Input:**
+    - `story_id`: The ID of the story
+    - `backgrounds`: List of background items with ID and description
+    
+    **Output:**
+    - `success`: Boolean indicating if generation was successful
+    - `url`: URL of the generated image
+    """
     try:
-        result = story_service.generate_all_backgrounds(story_id, request.backgrounds)
-        if not result:
-            return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
+        image_url = story_service.generate_all_backgrounds(story_id, request.backgrounds)
+        if not image_url:
+            raise HTTPException(
+                status_code=404,
+                detail={"code": "STORY_NOT_FOUND", "message": "Story not found"}
             )
-        return APIResponse(
+        return BackgroundGenerationResponse(
             success=True,
-            data=result
+            url=image_url
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "GENERATION_FAILED", "message": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail={"code": "GENERATION_FAILED", "message": str(e)}
         )
 
 
@@ -494,28 +500,6 @@ async def check_scene_image_generation_status(
         )
 
 
-@router.get("/stories/{story_id}/scenes/{scene_id}/image-versions", response_model=APIResponse)
-async def get_scene_image_version_history(
-    story_id: str = Path(..., description="Story ID"),
-    scene_id: str = Path(..., description="Scene ID")
-):
-    """API 6-3: Retrieve Scene Image Version History"""
-    try:
-        versions = story_service.get_scene_image_version_history(story_id, scene_id)
-        if versions is None:
-            return APIResponse(
-                success=False,
-                error={"code": "NODE_NOT_FOUND", "message": "Scene not found"}
-            )
-        return APIResponse(
-            success=True,
-            data=versions
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
-        )
 
 
 @router.post("/stories/{story_id}/scenes/{scene_id}/regenerate-image", response_model=APIResponse)
@@ -739,49 +723,8 @@ async def delete_story(story_id: str = Path(..., description="Story ID")):
         )
 
 
-@router.post("/stories/{story_id}/duplicate", response_model=APIResponse)
-async def duplicate_story(
-    story_id: str = Path(..., description="Story ID"),
-    request: StoryDuplicateRequest = None
-):
-    """API 9-3: Duplicate Story"""
-    try:
-        result = story_service.duplicate_story(story_id, request.newTitle if request else None)
-        if not result:
-            return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
-            )
-        return APIResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
-        )
 
 
-@router.get("/stories/{story_id}/statistics", response_model=APIResponse)
-async def get_story_statistics(story_id: str = Path(..., description="Story ID")):
-    """API 9-4: Retrieve Story Statistics"""
-    try:
-        stats = story_service.get_story_statistics(story_id)
-        if not stats:
-            return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
-            )
-        return APIResponse(
-            success=True,
-            data=stats.model_dump()
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "SERVER_ERROR", "message": str(e)}
-        )
 
 
 # ============================================================================
@@ -812,23 +755,6 @@ async def generate_share_link(
         )
 
 
-@router.post("/upload/image", response_model=APIResponse)
-async def upload_image(
-    file: UploadFile = File(...),
-    type: str = Query(..., regex="^(character|background)$")
-):
-    """API 10-2: Image Upload (For Custom Characters/Backgrounds)"""
-    try:
-        result = story_service.upload_image(file, type)
-        return APIResponse(
-            success=True,
-            data=result.model_dump()
-        )
-    except Exception as e:
-        return APIResponse(
-            success=False,
-            error={"code": "IMAGE_UPLOAD_FAILED", "message": str(e)}
-        )
 
 
 # ============================================================================
