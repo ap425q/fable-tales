@@ -1,7 +1,5 @@
 "use client"
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/Button"
 import { Input } from "@/components/Input"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
@@ -9,11 +7,17 @@ import {
   ButtonSize,
   ButtonVariant,
   InputVariant,
-  SpinnerSize,
   SpinnerColor,
+  SpinnerSize,
 } from "@/components/types"
-import { api } from "@/lib/api"
+import { useRouter } from "next/navigation"
+import React, { useState } from "react"
+// import { api } from "@/lib/api"
 import { ApiError } from "@/types"
+import {
+  mockStoryGenerateResponse,
+  simulateDelay,
+} from "./story-setup.page.mock"
 
 /**
  * Form data interface
@@ -126,13 +130,18 @@ export default function StorySetupPage() {
     setIsLoading(true)
 
     try {
+      // TODO: Uncomment the API call below when backend is ready
       // Call API to generate story
-      const response = await api.stories.generate({
-        lesson: formData.lesson.trim(),
-        theme: formData.theme.trim() || "General adventure",
-        storyFormat: formData.storyFormat.trim() || "Classic story",
-        characterCount: 4, // Fixed as per requirements
-      })
+      // const response = await api.stories.generate({
+      //   lesson: formData.lesson.trim(),
+      //   theme: formData.theme.trim() || "General adventure",
+      //   storyFormat: formData.storyFormat.trim() || "Classic story",
+      //   characterCount: 4, // Fixed as per requirements
+      // })
+
+      // MOCK: Using mock data for development
+      await simulateDelay(2000) // Simulate API delay
+      const response = mockStoryGenerateResponse
 
       if (response.success && response.data) {
         // Navigate to story tree editing page with story ID
@@ -140,9 +149,7 @@ export default function StorySetupPage() {
         router.push(`/story-tree/${storyId}`)
       } else {
         // Handle unexpected response format
-        setApiError(
-          "Failed to generate story. Please try again."
-        )
+        setApiError("Failed to generate story. Please try again.")
       }
     } catch (error) {
       // Handle API errors
@@ -248,7 +255,7 @@ export default function StorySetupPage() {
                 variant={InputVariant.Textarea}
                 value={formData.storyFormat}
                 onChange={(value) => handleFieldChange("storyFormat", value)}
-                placeholder="e.g., &quot;Good triumphs over evil&quot;, &quot;Aesop's fable style&quot;, &quot;Coming-of-age story&quot;, &quot;Friendship story&quot;"
+                placeholder='e.g., "Good triumphs over evil", "Aesop&apos;s fable style", "Coming-of-age story", "Friendship story"'
                 error={errors.storyFormat}
                 rows={2}
                 maxLength={CHARACTER_LIMITS.FORMAT}
@@ -413,4 +420,3 @@ export default function StorySetupPage() {
     </div>
   )
 }
-
