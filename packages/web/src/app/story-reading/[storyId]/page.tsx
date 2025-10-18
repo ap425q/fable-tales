@@ -328,14 +328,15 @@ export default function StoryReadingPage() {
     // If we're at the start node, don't go back
     if (currentNode.id === story.startNodeId) return
 
-    // Find previous node
+    // Find previous node from choice history
     let previousNodeId: string | undefined
 
-    if (visitedNodes.length > 0) {
-      // Go back in the visited history
-      previousNodeId = visitedNodes[visitedNodes.length - 1]
-    } else {
-      // Use the previousNodeId from currentNode (parent node)
+    // Look at the last choice made to find which node we were at before
+    if (choicesMade.length > 0) {
+      // The nodeId in the last choice is where we were before making that choice
+      previousNodeId = choicesMade[choicesMade.length - 1].nodeId
+    } else if (currentNode.previousNodeId) {
+      // Fallback to the parent node if no choices made yet
       previousNodeId = currentNode.previousNodeId
     }
 
@@ -346,15 +347,14 @@ export default function StoryReadingPage() {
       setTransitionDirection("backward")
       setCurrentNode(previousNode)
 
-      // Update visited nodes only if we were using history
-      if (visitedNodes.length > 0) {
-        setVisitedNodes(visitedNodes.slice(0, -1))
+      // Remove the current node from visited nodes
+      const currentNodeIndex = visitedNodes.indexOf(currentNode.id)
+      if (currentNodeIndex !== -1) {
+        setVisitedNodes(visitedNodes.slice(0, currentNodeIndex))
       }
 
       // Remove last choice
-      if (choicesMade.length > 0) {
-        setChoicesMade(choicesMade.slice(0, -1))
-      }
+      setChoicesMade(choicesMade.slice(0, -1))
 
       progressNeedsSaveRef.current = true
     }
@@ -611,7 +611,10 @@ export default function StoryReadingPage() {
                 >
                   {currentNode.choices.length === 0 ? (
                     // Ending node
-                    <div className="text-center py-6">
+                    <div
+                      className="text-center py-6"
+                      key={`ending-section-${currentNode.id}`}
+                    >
                       {currentNode.type === NodeType.GOOD_ENDING ? (
                         <motion.div
                           key={`ending-${currentNode.id}`}
@@ -634,18 +637,19 @@ export default function StoryReadingPage() {
                     </div>
                   ) : currentNode.choices.length === 1 ? (
                     // Single choice - Continue button
-                    <ContinueButton
-                      key={`continue-${currentNode.id}`}
-                      onClick={() =>
-                        handleChoiceSelect(
-                          currentNode.choices[0].id!,
-                          currentNode.choices[0].nextNodeId!
-                        )
-                      }
-                    />
+                    <div key={`single-choice-${currentNode.id}`}>
+                      <ContinueButton
+                        onClick={() =>
+                          handleChoiceSelect(
+                            currentNode.choices[0].id!,
+                            currentNode.choices[0].nextNodeId!
+                          )
+                        }
+                      />
+                    </div>
                   ) : (
                     // Multiple choices
-                    <>
+                    <div key={`multi-choices-${currentNode.id}`}>
                       <div className="text-center text-lg font-semibold text-text-primary mb-3 text-heading">
                         What should happen next?
                       </div>
@@ -659,7 +663,7 @@ export default function StoryReadingPage() {
                           }
                         />
                       ))}
-                    </>
+                    </div>
                   )}
                 </motion.div>
               </div>
