@@ -573,8 +573,7 @@ export default function SceneGenerationPage({
 
       // Navigate after confetti animation
       setTimeout(() => {
-        // For now, go back to story setup since we don't have a preview page yet
-        router.push(`/story-setup`)
+        router.push(`/`)
       }, 3000)
     } catch (err) {
       const apiErr = err as ApiError
