@@ -437,9 +437,9 @@ async def regenerate_individual_location_image(
 
 @router.post("/stories/{story_id}/locations/{location_id}/select-version", response_model=APIResponse)
 async def select_location_image_version(
+    request: LocationImageVersionSelectRequest,
     story_id: str = Path(..., description="Story ID"),
-    location_id: str = Path(..., description="Location ID"),
-    request: LocationImageVersionSelectRequest = None
+    location_id: str = Path(..., description="Location ID")
 ):
     """API 5-6: Select Location Image Version"""
     try:

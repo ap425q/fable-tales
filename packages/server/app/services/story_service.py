@@ -783,7 +783,7 @@ class StoryService:
                 for version in location.imageVersions:
                     if version.versionId == version_id:
                         location.selectedVersionId = version_id
-                        location.imageUrl = version.imageUrl
+                        location.imageUrl = version.url
                         
                         # Save updated location
                         self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
@@ -791,7 +791,7 @@ class StoryService:
                         return {
                             "locationId": location_id,
                             "selectedVersionId": version_id,
-                            "imageUrl": version.imageUrl
+                            "imageUrl": version.url
                         }
         
         return None
