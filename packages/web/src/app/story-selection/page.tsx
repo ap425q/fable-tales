@@ -114,7 +114,7 @@ export default function StorySelectionPage() {
             <div>
               <button
                 onClick={() => router.push("/")}
-                className="text-cream hover:text-parchment transition-colors mb-2 flex items-center gap-2 text-ui font-semibold"
+                className="text-cream hover:text-parchment transition-colors mb-2 flex items-center gap-2 text-ui font-semibold cursor-pointer"
               >
                 <span className="text-xl">←</span>
                 <span>Home</span>
@@ -171,7 +171,7 @@ export default function StorySelectionPage() {
                 <motion.button
                   key={story.id}
                   onClick={() => router.push(`/story-reading/${story.id}`)}
-                  className="group relative z-0 hover:z-10"
+                  className="group relative z-0 hover:z-10 cursor-pointer"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}

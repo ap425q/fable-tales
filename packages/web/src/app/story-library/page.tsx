@@ -165,7 +165,7 @@ export default function StoryLibraryPage() {
             <div>
               <button
                 onClick={() => router.push("/")}
-                className="text-cream hover:text-parchment transition-colors mb-2 flex items-center gap-2 text-ui font-semibold"
+                className="text-cream hover:text-parchment transition-colors mb-2 flex items-center gap-2 text-ui font-semibold cursor-pointer"
               >
                 <span className="text-xl">←</span>
                 <span>Home</span>
@@ -179,7 +179,7 @@ export default function StoryLibraryPage() {
             {/* Create New Story Button */}
             <motion.button
               onClick={() => router.push("/story-setup")}
-              className="px-6 py-4 rounded-xl font-bold text-lg text-ui flex items-center gap-2 self-start"
+              className="px-6 py-4 rounded-xl font-bold text-lg text-ui flex items-center gap-2 self-start cursor-pointer"
               style={{
                 background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
                 color: "#FFF",
@@ -274,7 +274,7 @@ export default function StoryLibraryPage() {
             </p>
             <motion.button
               onClick={() => router.push("/story-setup")}
-              className="px-8 py-4 rounded-xl font-bold text-lg text-ui"
+              className="px-8 py-4 rounded-xl font-bold text-lg text-ui cursor-pointer"
               style={{
                 background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
                 color: "#FFF",
@@ -315,7 +315,7 @@ export default function StoryLibraryPage() {
                           router.push(`/story-tree/${story.id}`)
                         }
                       }}
-                      className="relative group z-0 hover:z-10"
+                      className="relative group z-0 hover:z-10 cursor-pointer"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
