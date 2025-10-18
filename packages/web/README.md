@@ -240,14 +240,22 @@ Each scene card includes:
 
 ---
 
-## 9. **Common - Story Library Page** (Optional)
+## 9. **Common - Story Library Page**
 **Features:**
 - List of created stories
 - For each story:
   - Cover image, title, creation date
   - Moral tag
   - Status (completed/editing)
-- Read / Edit / Delete buttons
+  - Read count
+- **Available Actions**:
+  - Edit story (tree structure, characters, backgrounds, scenes)
+  - Delete story (single or bulk)
+  - Share completed stories (generates shareable link)
+- **Filters & Sort**:
+  - Filter by status (All / Completed / Drafts)
+  - Sort by: Recently Updated, Title, Most Read
+- **View Modes**: Grid or List view
 
 ---
 
