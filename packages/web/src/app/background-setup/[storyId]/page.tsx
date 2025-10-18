@@ -165,8 +165,8 @@ export default function BackgroundSetupPage({
       // Update backgrounds with new status
       setBackgrounds((prev) =>
         prev.map((bg) => {
-          const statusItem = mockStatus.backgrounds.find(
-            (s) => s.backgroundId === bg.id
+          const statusItem = mockStatus.locations.find(
+            (s) => s.locationId === bg.id
           )
           if (!statusItem) return bg
 
@@ -302,7 +302,7 @@ export default function BackgroundSetupPage({
       // const result = await api.locations.generateAll(
       //   storyId,
       //   backgrounds.map(bg => ({
-      //     backgroundId: bg.id,
+      //     locationId: bg.id,
       //     description: editingDescriptions[bg.id] || bg.description
       //   }))
       // )
