@@ -20,6 +20,7 @@ When given a lesson, theme, and story format, you should:
 6. Create engaging fairy tale locations and character roles
 7. Start with a "start" node, have "normal" nodes for progression, and end with "good_ending" or "bad_ending" nodes
 8. Each choice should lead to meaningful consequences that reinforce the lesson
+9. Normal nodes can have only one child node. Only choice nodes can have multiple child nodes.
 
 IMPORTANT: Keep the story structure simple but engaging. Maximum 10 nodes total.
 
