@@ -466,11 +466,16 @@ async def select_location_image_version(
 
 @router.post("/stories/{story_id}/scenes/generate-all-images", response_model=APIResponse)
 async def generate_all_scene_images(
-    story_id: str = Path(..., description="Story ID"),
-    scene_ids: Optional[List[str]] = None
+    request: SceneRegenerateMultipleRequest,
+    story_id: str = Path(..., description="Story ID")
 ):
     """API 6-1: Generate All Scene Images (Character + Background Composite)"""
     try:
+        # Extract sceneIds, handle None or empty list
+        scene_ids = None
+        if request and request.sceneIds:
+            scene_ids = request.sceneIds
+        
         result = story_service.generate_all_scene_images(story_id, scene_ids)
         if not result:
             return APIResponse(

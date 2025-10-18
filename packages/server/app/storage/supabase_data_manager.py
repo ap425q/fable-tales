@@ -535,7 +535,8 @@ class SupabaseDataManager:
                     "characterRoleId": assignment["character_role_id"],
                     "presetCharacterId": assignment["preset_character_id"],
                     "roleName": char_role["role"],
-                    "characterName": preset_char["name"]
+                    "characterName": preset_char["name"],
+                    "imageUrl": preset_char["image_url"]
                 }
                 assignments.append(assignment_data)
             

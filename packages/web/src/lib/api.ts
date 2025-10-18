@@ -308,9 +308,15 @@ export const api = {
       storyId: string,
       sceneIds?: string[]
     ): Promise<ApiResponse<SceneGenerationResponse>> {
+      // Build request body - only include sceneIds if it's a valid array
+      const requestBody =
+        sceneIds && Array.isArray(sceneIds) && sceneIds.length > 0
+          ? { sceneIds }
+          : { sceneIds: [] }
+
       const response = await apiClient.post(
         `/v1/stories/${storyId}/scenes/generate-all-images`,
-        { sceneIds }
+        requestBody
       )
       return response.data
     },

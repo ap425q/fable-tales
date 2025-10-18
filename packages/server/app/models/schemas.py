@@ -214,7 +214,7 @@ class SceneVersionSelectRequest(BaseModel):
 
 class SceneRegenerateMultipleRequest(BaseModel):
     """Request to regenerate multiple scenes"""
-    sceneIds: List[str]
+    sceneIds: Optional[List[str]] = None
 
 # ============================================================================
 # Reading Progress Models

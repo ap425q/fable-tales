@@ -603,6 +603,58 @@ Style: Cartoon/comic book illustration, bright colors, clear expressions,
 educational and engaging for children. High quality art with clear panel composition."""
         
         return prompt
+    
+    def describe_characters_from_images(self, image_urls: List[str]) -> str:
+        """
+        Use OpenAI Vision API to describe people in character images
+        
+        Args:
+            image_urls: List of image URLs to analyze
+            
+        Returns:
+            String description of the characters
+        """
+        if not self.client:
+            raise Exception("OpenAI API key is not configured")
+        
+        try:
+            print(f"🔍 Analyzing {len(image_urls)} character images with OpenAI Vision...")
+            
+            # Build the content array with text and images
+            content = [
+                {
+                    "type": "text",
+                    "text": "Please describe the people in these images in detail. Focus on their physical appearance, clothing, age, expressions, and any distinctive features. This description will be used to generate consistent character art."
+                }
+            ]
+            
+            # Add each image to the content
+            for url in image_urls:
+                content.append({
+                    "type": "image_url",
+                    "image_url": {"url": url}
+                })
+            
+            # Call OpenAI Vision API
+            response = self.client.chat.completions.create(
+                model="gpt-4o",  # GPT-4o supports vision
+                messages=[
+                    {
+                        "role": "user",
+                        "content": content
+                    }
+                ],
+                max_tokens=1000
+            )
+            
+            description = response.choices[0].message.content
+            print(f"✅ Character description generated: {description[:100]}...")
+            
+            return description
+            
+        except Exception as e:
+            print(f"❌ Error describing characters: {str(e)}")
+            raise Exception(f"OpenAI Vision API failed: {str(e)}")
 
 
 class FALAIService:

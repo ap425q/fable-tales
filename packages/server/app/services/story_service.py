@@ -9,6 +9,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
+import config
 from app.models.schemas import (CharacterAssignment, CharacterRole,
                                 GenerationStatus, ImageVersion, Location,
                                 LocationImageGenerationStatus, NodeType,
@@ -21,6 +22,7 @@ from app.models.schemas import (CharacterAssignment, CharacterRole,
                                 StoryTree)
 from app.storage.supabase_data_manager import SupabaseDataManager
 from external_services import FALAIService, OpenAIService
+from gemini_service import GeminiService
 from master_prompts import (STORY_GENERATION_SYSTEM_PROMPT,
                             STORY_GENERATION_USER_PROMPT_TEMPLATE)
 
@@ -36,6 +38,11 @@ class StoryService:
         self.data_manager = SupabaseDataManager()
         self.openai_service = OpenAIService()
         self.fal_ai_service = FALAIService()
+        self.gemini_service = GeminiService()
+        
+        # Get frontend URL from config (use first CORS origin)
+        cors_origins = config.CORS_ORIGINS
+        self.frontend_url = cors_origins[0] if cors_origins else "http://localhost:3000"
         
         # Initialize preset characters
         self._initialize_preset_characters()
@@ -801,17 +808,165 @@ class StoryService:
     # ========================================================================
     
     def generate_all_scene_images(self, story_id: str, scene_ids: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-        """Generate all scene images"""
-        job_id = str(uuid.uuid4())
+        """
+        Generate all scene images using OpenAI Vision + Gemini
         
-        # Start scene generation job
-        self.data_manager.create_scene_generation_job(story_id, job_id, scene_ids)
-        
-        return {
-            "jobId": job_id,
-            "message": "Scene image generation started",
-            "sceneCount": len(scene_ids) if scene_ids else 0
-        }
+        Flow:
+        1. Get character assignments and their selected images
+        2. Use OpenAI Vision to describe the characters
+        3. Get story nodes (scenes) and their backgrounds
+        4. For each scene, combine character description + background + scene details
+        5. Generate image with Gemini
+        6. Save the results
+        """
+        try:
+            print(f"🎬 Starting scene generation for story {story_id}")
+            
+            # Get the story
+            story = self.data_manager.get_story(story_id)
+            if not story:
+                raise Exception("Story not found")
+            
+            # Get character assignments
+            character_assignments = self.data_manager.get_character_assignments(story_id)
+            if not character_assignments:
+                raise Exception("No character assignments found. Please assign characters first.")
+            
+            # Collect character image URLs from selected characters
+            character_image_urls = []
+            character_descriptions_map = {}
+            
+            for assignment in character_assignments:
+                image_url = assignment.get("imageUrl")
+                if image_url:
+                    # Convert relative URLs to absolute URLs for OpenAI Vision API
+                    if image_url.startswith("/"):
+                        absolute_url = f"{self.frontend_url}{image_url}"
+                        print(f"🔗 Converting relative URL: {image_url} -> {absolute_url}")
+                        character_image_urls.append(absolute_url)
+                    else:
+                        character_image_urls.append(image_url)
+                    
+                    # Map character role to image for later reference
+                    character_descriptions_map[assignment.get("characterRoleId")] = {
+                        "name": assignment.get("characterName", "Unknown"),
+                        "imageUrl": image_url
+                    }
+            
+            if not character_image_urls:
+                raise Exception("No character images found. Please ensure all characters have images assigned.")
+            
+            print(f"📸 Found {len(character_image_urls)} character images")
+            
+            # Use OpenAI Vision to describe the characters
+            print("🔍 Analyzing characters with OpenAI Vision...")
+            character_description = self.openai_service.describe_characters_from_images(character_image_urls)
+            
+            # Get locations/backgrounds
+            locations = self.get_story_locations(story_id)
+            location_map = {}
+            if locations:
+                for loc in locations:
+                    for scene_num in loc.sceneNumbers:
+                        location_map[scene_num] = {
+                            "name": loc.name,
+                            "description": loc.description,
+                            "imageUrl": loc.imageUrl
+                        }
+            
+            # Get story tree nodes
+            nodes = story.tree.nodes if story.tree else []
+            if not nodes:
+                raise Exception("No story nodes found")
+            
+            # Filter nodes by scene_ids if provided
+            if scene_ids:
+                nodes = [node for node in nodes if node.id in scene_ids]
+            
+            print(f"📝 Generating images for {len(nodes)} scenes")
+            
+            # Generate image for each scene
+            generated_scenes = []
+            
+            for node in nodes:
+                try:
+                    scene_num = node.sceneNumber
+                    location_info = location_map.get(scene_num, {})
+                    
+                    # Build comprehensive prompt for Gemini
+                    prompt = f"""Create a children's storybook illustration for this scene:
+
+CHARACTERS IN THE SCENE:
+{character_description}
+
+SCENE DETAILS:
+Scene Number: {scene_num}
+Scene Text: {node.text}
+Location: {location_info.get('name', 'Unknown location')}
+Location Description: {location_info.get('description', 'A story setting')}
+
+STYLE REQUIREMENTS:
+- Children's storybook illustration style
+- Bright, vibrant colors
+- Clear, friendly character expressions
+- Educational and age-appropriate
+- Consistent with the character descriptions above
+- Include the location/background described
+- Warm, inviting atmosphere
+
+Generate a single illustration that captures this scene with the characters described above in the specified location."""
+                    
+                    print(f"🎨 Generating scene {scene_num}...")
+                    
+                    # Generate image with Gemini
+                    image_data = self.gemini_service.generate_image(prompt)
+                    
+                    # Create version ID
+                    version_id = str(uuid.uuid4())
+                    
+                    # Save scene image data
+                    scene_data = {
+                        "sceneId": node.id,
+                        "sceneNumber": scene_num,
+                        "imageUrl": image_data,
+                        "versionId": version_id,
+                        "generatedAt": datetime.now().isoformat(),
+                        "prompt": prompt[:500]  # Save truncated prompt for reference
+                    }
+                    
+                    generated_scenes.append(scene_data)
+                    
+                    print(f"✅ Scene {scene_num} generated successfully")
+                    
+                except Exception as e:
+                    print(f"❌ Error generating scene {scene_num}: {str(e)}")
+                    # Continue with other scenes
+                    generated_scenes.append({
+                        "sceneId": node.id,
+                        "sceneNumber": scene_num,
+                        "error": str(e),
+                        "status": "failed"
+                    })
+            
+            # Create job ID for tracking
+            job_id = str(uuid.uuid4())
+            
+            # Save generation job with results
+            self.data_manager.create_scene_generation_job(story_id, job_id, scene_ids)
+            
+            print(f"✅ Scene generation completed! Generated {len(generated_scenes)} scenes")
+            
+            return {
+                "jobId": job_id,
+                "message": "Scene image generation completed",
+                "sceneCount": len(generated_scenes),
+                "scenes": generated_scenes,
+                "characterDescription": character_description[:200] + "..."  # Truncated for response
+            }
+            
+        except Exception as e:
+            print(f"❌ Error in generate_all_scene_images: {str(e)}")
+            raise Exception(f"Scene generation failed: {str(e)}")
     
     def check_scene_image_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[SceneGenerationStatus]:
         """Check scene image generation status"""

@@ -3,70 +3,70 @@
     "id": "f_amelia",
     "name": "Amelia",
     "gender": "female",
-    "imageUrl": "/characters/f_amelia.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/f_amelia.png",
     "description": "A kind and adventurous young girl"
   },
   {
     "id": "f_ava",
     "name": "Ava",
-    "gender": "female", 
-    "imageUrl": "/characters/f_ava.png",
+    "gender": "female",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/f_ava.png",
     "description": "A brave and curious young girl"
   },
   {
     "id": "f_emma",
     "name": "Emma",
     "gender": "female",
-    "imageUrl": "/characters/f_emma.png", 
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/f_emma.png",
     "description": "A smart and creative young girl"
   },
   {
     "id": "f_olivia",
     "name": "Olivia",
     "gender": "female",
-    "imageUrl": "/characters/f_olivia.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/f_olivia.png",
     "description": "A gentle and caring young girl"
   },
   {
     "id": "f_sophia",
     "name": "Sophia",
     "gender": "female",
-    "imageUrl": "/characters/f_sophia.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/f_sophia.png",
     "description": "A wise and thoughtful young girl"
   },
   {
     "id": "m_james",
     "name": "James",
     "gender": "male",
-    "imageUrl": "/characters/m_james.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/m_james.png",
     "description": "A brave and adventurous young boy"
   },
   {
     "id": "m_john",
     "name": "John",
     "gender": "male",
-    "imageUrl": "/characters/m_john.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/m_john.png",
     "description": "A kind and helpful young boy"
   },
   {
     "id": "m_joseph",
     "name": "Joseph",
     "gender": "male",
-    "imageUrl": "/characters/m_joseph.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/m_joseph.png",
     "description": "A smart and curious young boy"
   },
   {
     "id": "m_noah",
     "name": "Noah",
     "gender": "male",
-    "imageUrl": "/characters/m_noah.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/m_noah.png",
     "description": "A gentle and caring young boy"
   },
   {
     "id": "m_william",
     "name": "William",
     "gender": "male",
-    "imageUrl": "/characters/m_william.png",
+    "imageUrl": "https://ecikiueohylxghlgouyb.supabase.co/storage/v1/object/public/frame-fable/m_william.png",
     "description": "A wise and thoughtful young boy"
   }
 ]
