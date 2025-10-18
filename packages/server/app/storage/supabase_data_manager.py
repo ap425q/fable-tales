@@ -163,6 +163,36 @@ class SupabaseDataManager:
                     }
                     
                     self.supabase.table("location_scene_numbers").insert(scene_data).execute()
+                
+                # Also save to backgrounds table for image generation tracking
+                background_data = {
+                    "id": loc_uuid,
+                    "story_id": story.id,
+                    "location_id": loc_uuid,
+                    "name": loc.name,
+                    "description": loc.description,
+                    "image_url": None,
+                    "status": "pending",
+                    "selected_version_id": None,
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
+                }
+                
+                self.supabase.table("backgrounds").upsert(background_data).execute()
+                
+                # Delete existing background scene numbers for this location
+                self.supabase.table("background_scene_numbers").delete().eq("background_id", loc_uuid).execute()
+                
+                # Save background scene numbers
+                for scene_num in loc.sceneNumbers:
+                    bg_scene_data = {
+                        "id": str(uuid.uuid4()),
+                        "background_id": loc_uuid,
+                        "scene_number": scene_num,
+                        "created_at": datetime.now().isoformat()
+                    }
+                    
+                    self.supabase.table("background_scene_numbers").insert(bg_scene_data).execute()
             
         except Exception as e:
             raise Exception(f"Failed to save story to Supabase: {str(e)}")
