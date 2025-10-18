@@ -22,7 +22,7 @@ export const mockStoryGenerateResponse: ApiResponse<StoryGenerateResponse> = {
           id: "node-1",
           sceneNumber: 1,
           title: "The Beginning of an Adventure",
-          text: "Once upon a time, in a magical forest, there lived a brave young hero who discovered something unexpected...",
+          text: "Once upon a time, in a magical forest, there lived a brave young hero who discovered something unexpected. A mysterious sound echoed through the trees, calling for help.",
           location: "location-1",
           type: NodeType.START,
           choices: [
@@ -45,19 +45,19 @@ export const mockStoryGenerateResponse: ApiResponse<StoryGenerateResponse> = {
           id: "node-2",
           sceneNumber: 2,
           title: "A Discovery",
-          text: "Following the sound, you discover a small creature in need of help.",
+          text: "Following the sound, you discover a small magical creature trapped under a fallen log. The creature looks up at you with hopeful eyes.",
           location: "location-1",
           type: NodeType.CHOICE,
           choices: [
             {
               id: "choice-2-1",
-              text: "Help the creature",
+              text: "Help the creature immediately",
               nextNodeId: "node-4",
               isCorrect: true,
             },
             {
               id: "choice-2-2",
-              text: "Walk away",
+              text: "Walk away, it might be dangerous",
               nextNodeId: "node-5",
               isCorrect: false,
             },
@@ -67,28 +67,84 @@ export const mockStoryGenerateResponse: ApiResponse<StoryGenerateResponse> = {
         {
           id: "node-3",
           sceneNumber: 3,
-          title: "Missed Opportunity",
-          text: "By ignoring the sound, you missed a chance to help someone in need.",
+          title: "A Lonely Path",
+          text: "By ignoring the sound, you continue on the dark path alone. Soon you come across a fork in the road.",
+          location: "location-2",
+          type: NodeType.CHOICE,
+          choices: [
+            {
+              id: "choice-3-1",
+              text: "Go back and help whoever was calling",
+              nextNodeId: "node-2",
+              isCorrect: true,
+            },
+            {
+              id: "choice-3-2",
+              text: "Take the shortcut through the dark woods",
+              nextNodeId: "node-6",
+              isCorrect: false,
+            },
+          ],
+          images: [],
+        },
+        {
+          id: "node-4",
+          sceneNumber: 4,
+          title: "Gratitude and Friendship",
+          text: "You carefully lift the log and free the creature. It's a tiny fairy who sparkles with joy! She thanks you and offers to guide you through the forest.",
+          location: "location-1",
+          type: NodeType.NORMAL,
+          choices: [
+            {
+              id: "choice-4-1",
+              text: "Accept her help gratefully",
+              nextNodeId: "node-7",
+              isCorrect: true,
+            },
+            {
+              id: "choice-4-2",
+              text: "Decline and go on your own",
+              nextNodeId: "node-8",
+              isCorrect: false,
+            },
+          ],
+          images: [],
+        },
+        {
+          id: "node-5",
+          sceneNumber: 5,
+          title: "Lost in Darkness",
+          text: "You walk away from the creature, but guilt weighs heavy on your heart. Soon you find yourself lost in the darkest part of the forest.",
           location: "location-2",
           type: NodeType.BAD_ENDING,
           choices: [],
           images: [],
         },
         {
-          id: "node-4",
-          sceneNumber: 4,
-          title: "A Rewarding Friendship",
-          text: "Your kindness was rewarded with a wonderful new friend and valuable life lesson.",
+          id: "node-6",
+          sceneNumber: 6,
+          title: "Missed Opportunity",
+          text: "Taking the shortcut, you get lost in the dark woods. You realize too late that helping others might have been the better choice.",
+          location: "location-2",
+          type: NodeType.BAD_ENDING,
+          choices: [],
+          images: [],
+        },
+        {
+          id: "node-7",
+          sceneNumber: 7,
+          title: "The Magical Clearing",
+          text: "The fairy leads you to a beautiful clearing where all the forest creatures gather. They celebrate your kindness with a grand feast. You've learned that helping others brings joy to everyone!",
           location: "location-3",
           type: NodeType.GOOD_ENDING,
           choices: [],
           images: [],
         },
         {
-          id: "node-5",
-          sceneNumber: 5,
-          title: "Regret",
-          text: "You later regretted not helping when you had the chance.",
+          id: "node-8",
+          sceneNumber: 8,
+          title: "Pride Before a Fall",
+          text: "Without the fairy's guidance, you get lost and never find your way. You learn that accepting help is important too.",
           location: "location-2",
           type: NodeType.BAD_ENDING,
           choices: [],
@@ -100,6 +156,10 @@ export const mockStoryGenerateResponse: ApiResponse<StoryGenerateResponse> = {
         { from: "node-1", to: "node-3", choiceId: "choice-1-2" },
         { from: "node-2", to: "node-4", choiceId: "choice-2-1" },
         { from: "node-2", to: "node-5", choiceId: "choice-2-2" },
+        { from: "node-3", to: "node-2", choiceId: "choice-3-1" },
+        { from: "node-3", to: "node-6", choiceId: "choice-3-2" },
+        { from: "node-4", to: "node-7", choiceId: "choice-4-1" },
+        { from: "node-4", to: "node-8", choiceId: "choice-4-2" },
       ],
     },
     characters: [
@@ -158,6 +218,53 @@ export const mockStoryGenerateError = {
     message: "Failed to generate story. Please try again.",
   },
 }
+
+/**
+ * Mock form examples for quick testing
+ * These are pre-filled examples that users can select to quickly try the app
+ */
+export const mockFormExamples = [
+  {
+    id: "example-1",
+    title: "Honesty Story",
+    description: "Magical forest • Aesop's fable style",
+    formData: {
+      lesson: "Honesty is always the best policy",
+      theme: "Magical forest with talking animals",
+      storyFormat: "Aesop's fable style with clear moral",
+    },
+  },
+  {
+    id: "example-2",
+    title: "Sharing Story",
+    description: "Space adventure • Sci-fi style",
+    formData: {
+      lesson: "Sharing makes everyone happier",
+      theme: "Space station with friendly aliens",
+      storyFormat: "Science fiction adventure",
+    },
+  },
+  {
+    id: "example-3",
+    title: "Courage Story",
+    description: "Medieval kingdom • Hero's journey",
+    formData: {
+      lesson: "Courage means facing your fears",
+      theme: "Medieval kingdom with dragons",
+      storyFormat: "Classic hero's journey",
+    },
+  },
+  {
+    id: "example-4",
+    title: "Friendship Story",
+    description: "School setting • Realistic style",
+    formData: {
+      lesson: "True friends support each other",
+      theme: "School playground and neighborhood",
+      storyFormat: "Everyday life, realistic story",
+    },
+  },
+]
 
 /**
  * Simulate API delay for more realistic testing

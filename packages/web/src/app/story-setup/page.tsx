@@ -15,6 +15,7 @@ import React, { useState } from "react"
 // import { api } from "@/lib/api"
 import { ApiError } from "@/types"
 import {
+  mockFormExamples,
   mockStoryGenerateResponse,
   simulateDelay,
 } from "./story-setup.page.mock"
@@ -343,77 +344,22 @@ export default function StorySetupPage() {
             Need inspiration? Try these examples:
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Honesty is always the best policy",
-                  theme: "Magical forest with talking animals",
-                  storyFormat: "Aesop's fable style with clear moral",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Honesty Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Magical forest • Aesop's fable style
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Sharing makes everyone happier",
-                  theme: "Space station with friendly aliens",
-                  storyFormat: "Science fiction adventure",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Sharing Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Space adventure • Sci-fi style
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Courage means facing your fears",
-                  theme: "Medieval kingdom with dragons",
-                  storyFormat: "Classic hero's journey",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Courage Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Medieval kingdom • Hero's journey
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "True friends support each other",
-                  theme: "School playground and neighborhood",
-                  storyFormat: "Everyday life, realistic story",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Friendship Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                School setting • Realistic style
-              </p>
-            </button>
+            {mockFormExamples.map((example) => (
+              <button
+                key={example.id}
+                type="button"
+                onClick={() => {
+                  setFormData(example.formData)
+                }}
+                disabled={isLoading}
+                className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <p className="font-medium text-gray-900">{example.title}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {example.description}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
       </div>
