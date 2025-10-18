@@ -8,15 +8,15 @@ import { API_BASE_URL } from "@/constants"
 import { ApiError, ApiResponse, ErrorCode, Story } from "@/types"
 import axios, { AxiosError, AxiosInstance } from "axios"
 import type {
-  BackgroundGenerateItem,
-  BackgroundGenerationResponse,
-  BackgroundRegenerateResponse,
-  BackgroundsListResponse,
-  BackgroundUpdateRequest,
   BulkSceneRegenerateResponse,
   CharacterAssignmentData,
   CharacterAssignmentsResponse,
   CharactersListResponse,
+  LocationImageGenerateItem,
+  LocationImageGenerationResponse,
+  LocationImageRegenerateResponse,
+  LocationsListResponse,
+  LocationUpdateRequest,
   NodeAddRequest,
   NodeUpdateRequest,
   ReadingCompletionRequest,
@@ -242,73 +242,71 @@ export const api = {
   },
 
   /**
-   * Background endpoints
+   * Location endpoints
    */
-  backgrounds: {
+  locations: {
     /**
-     * Get backgrounds for a story
+     * Get locations for a story
      */
-    async getAll(
-      storyId: string
-    ): Promise<ApiResponse<BackgroundsListResponse>> {
-      const response = await apiClient.get(`/v1/stories/${storyId}/backgrounds`)
+    async getAll(storyId: string): Promise<ApiResponse<LocationsListResponse>> {
+      const response = await apiClient.get(`/v1/stories/${storyId}/locations`)
       return response.data
     },
 
     /**
-     * Update background description
+     * Update location description
      */
     async update(
       storyId: string,
-      backgroundId: string,
-      data: BackgroundUpdateRequest
-    ): Promise<ApiResponse<{ background: unknown }>> {
+      locationId: string,
+      data: LocationUpdateRequest
+    ): Promise<ApiResponse<{ location: unknown }>> {
       const response = await apiClient.patch(
-        `/v1/stories/${storyId}/backgrounds/${backgroundId}`,
+        `/v1/stories/${storyId}/locations/${locationId}`,
         data
       )
       return response.data
     },
 
     /**
-     * Generate all backgrounds
+     * Generate all location images
      */
     async generateAll(
       storyId: string,
-      backgrounds: BackgroundGenerateItem[]
-    ): Promise<ApiResponse<BackgroundGenerationResponse>> {
+      locations: LocationImageGenerateItem[]
+    ): Promise<ApiResponse<LocationImageGenerationResponse>> {
       const response = await apiClient.post(
-        `/v1/stories/${storyId}/backgrounds/generate-all`,
-        { backgrounds }
+        `/v1/stories/${storyId}/locations/generate-all`,
+        { locations }
       )
       return response.data
     },
 
     /**
-     * Regenerate individual background
+     * Regenerate individual location image
      */
     async regenerate(
       storyId: string,
-      backgroundId: string,
+      locationId: string,
       description?: string
-    ): Promise<ApiResponse<BackgroundRegenerateResponse>> {
+    ): Promise<ApiResponse<LocationImageRegenerateResponse>> {
       const response = await apiClient.post(
-        `/v1/stories/${storyId}/backgrounds/${backgroundId}/regenerate`,
+        `/v1/stories/${storyId}/locations/${locationId}/regenerate`,
         { description }
       )
       return response.data
     },
 
     /**
-     * Select background version
+     * Select location image version
      */
     async selectVersion(
       storyId: string,
-      backgroundId: string,
+      locationId: string,
       versionId: string
     ): Promise<ApiResponse<VersionSelectionResponse>> {
       const response = await apiClient.post(
-        `/v1/stories/${storyId}/backgrounds/${backgroundId}/select-version`,
+        `/v1/stories/${storyId}/locations/${locationId}/select-version`,
         { versionId }
       )
       return response.data

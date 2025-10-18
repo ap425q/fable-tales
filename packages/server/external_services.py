@@ -2,11 +2,12 @@
 External API service layer for OpenAI and FAL.ai integration
 """
 
-import os
 import json
-from typing import List, Dict, Any, Optional
-from dotenv import load_dotenv
+import os
+from typing import Any, Dict, List, Optional
+
 import openai
+from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -199,8 +200,10 @@ class OpenAIService:
         
         try:
             # Import prompts from master_prompts
-            from master_prompts import BACKGROUND_DESCRIPTION_SYSTEM_PROMPT, BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE
-            
+            from master_prompts import (
+                BACKGROUND_DESCRIPTION_SYSTEM_PROMPT,
+                BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE)
+
             # Create user prompt with story information
             story_info = []
             for node in story_nodes:
@@ -303,7 +306,7 @@ class OpenAIService:
     def _generate_mock_branched_story(self, lesson: str, theme: str, story_format: str, character_count: int) -> Dict[str, Any]:
         """Generate a mock branched story for development"""
         import uuid
-        
+
         # Create a more complex branched story structure
         nodes = [
             {

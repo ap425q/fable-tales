@@ -14,14 +14,12 @@ import { SortOption, Story } from "@/types"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { mockCompletedStories } from "./StorySelection.page.mock"
 
 export default function StorySelectionPage() {
   const router = useRouter()
   const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>(SortOption.RECENT)
-  const [useMockData] = useState(true)
 
   /**
    * Fetch stories
@@ -30,18 +28,13 @@ export default function StorySelectionPage() {
     const fetchStories = async () => {
       try {
         setIsLoading(true)
-        if (useMockData) {
-          await new Promise((resolve) => setTimeout(resolve, 500))
-          setStories(mockCompletedStories.filter((s) => s.isPublished))
-        } else {
-          const response = await api.stories.getAll({
-            limit: 100,
-            offset: 0,
-            status: "completed",
-          })
-          if (response.success && response.data) {
-            setStories(response.data.stories.filter((s) => s.isPublished))
-          }
+        const response = await api.stories.getAll({
+          limit: 100,
+          offset: 0,
+          status: "completed",
+        })
+        if (response.success && response.data) {
+          setStories(response.data.stories.filter((s) => s.isPublished))
         }
       } catch (err) {
         console.error("Error fetching stories:", err)
@@ -51,7 +44,7 @@ export default function StorySelectionPage() {
     }
 
     fetchStories()
-  }, [useMockData])
+  }, [])
 
   // Sort stories
   const sortedStories = [...stories].sort((a, b) => {

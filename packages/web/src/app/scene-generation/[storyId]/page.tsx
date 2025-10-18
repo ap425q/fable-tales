@@ -12,17 +12,29 @@ import {
   SpinnerColor,
   SpinnerSize,
 } from "@/components/types"
+import { api } from "@/lib/api"
 import { ApiError, GenerationStatus, ImageVersion } from "@/types"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  MockCharacter,
-  mockCharacters,
-  mockSceneImages,
-  SceneWithImages,
-  simulateDelay,
-  simulateGenerationPolling,
-} from "./scene-generation.page.mock"
+import { use, useCallback, useEffect, useRef, useState } from "react"
+
+interface MockCharacter {
+  id: string
+  name: string
+  imageUrl: string
+}
+
+interface SceneWithImages {
+  id: string
+  sceneNumber: number
+  title: string
+  text: string
+  type: string
+  location: string
+  characterIds: string[]
+  imageVersions: ImageVersion[]
+  selectedVersionId?: string
+  generationStatus: GenerationStatus
+}
 
 /**
  * Scene Image Generation Page (Parent Mode)
@@ -34,10 +46,10 @@ import {
 export default function SceneGenerationPage({
   params,
 }: {
-  params: { storyId: string }
+  params: Promise<{ storyId: string }>
 }) {
   const router = useRouter()
-  const { storyId } = params
+  const { storyId } = use(params)
 
   // State management
   const [scenes, setScenes] = useState<SceneWithImages[]>([])
@@ -67,6 +79,7 @@ export default function SceneGenerationPage({
   const [jobId, setJobId] = useState<string | null>(null)
   const pollCountRef = useRef(0)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const storyTitleInputRef = useRef<HTMLInputElement>(null)
 
   /**
    * Load scenes on mount
@@ -77,24 +90,44 @@ export default function SceneGenerationPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API call
-        // const result = await api.scenes.getAllImages(storyId)
-        // if (result.success && result.data) {
-        //   setScenes(result.data.scenes)
-        // }
+        // Fetch story with scenes and characters
+        const storyResult = await api.stories.getById(storyId)
+        if (storyResult.success && storyResult.data) {
+          const storyData = storyResult.data as any
 
-        // MOCK: Using mock data
-        await simulateDelay(800)
-        setScenes(mockSceneImages)
-        setCharacters(mockCharacters)
+          // Extract scenes with image data
+          if (storyData.tree?.nodes) {
+            const sceneData: SceneWithImages[] = storyData.tree.nodes.map(
+              (node: any) => ({
+                id: node.id,
+                sceneNumber: node.sceneNumber,
+                title: node.title || `Scene ${node.sceneNumber}`,
+                text: node.text,
+                type: node.type || "narrative",
+                location: node.location || "Unknown",
+                characterIds: node.characters || [],
+                imageVersions: node.imageVersions || [],
+                selectedVersionId: node.selectedVersionId,
+                generationStatus:
+                  node.imageVersions?.length > 0
+                    ? GenerationStatus.COMPLETED
+                    : GenerationStatus.PENDING,
+              })
+            )
+            setScenes(sceneData)
+          }
 
-        // Auto-generate if no scenes have images yet
-        const hasAnyImages = mockSceneImages.some(
-          (scene) => scene.imageVersions.length > 0
-        )
-        if (!hasAnyImages) {
-          // Uncomment to auto-generate on load
-          // handleGenerateAll()
+          // Extract characters with assignments
+          if (storyData.characters) {
+            const characterData: MockCharacter[] = storyData.characters.map(
+              (char: any) => ({
+                id: char.id,
+                name: char.name,
+                imageUrl: char.imageUrl || char.presetImageUrl,
+              })
+            )
+            setCharacters(characterData)
+          }
         }
       } catch (err) {
         const apiErr = err as ApiError
@@ -125,66 +158,60 @@ export default function SceneGenerationPage({
    */
   const pollGenerationStatus = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.getGenerationStatus(storyId, jobId || undefined)
-      // if (!result.success || !result.data) return
+      // Fetch updated story data to check scene generation status
+      const storyResult = await api.stories.getById(storyId)
+      if (!storyResult.success || !storyResult.data) return
 
-      // MOCK: Simulate polling
-      pollCountRef.current += 1
-      const mockStatus = simulateGenerationPolling(pollCountRef.current)
+      const storyData = storyResult.data as any
 
-      // Update scenes with new status
-      setScenes((prev) =>
-        prev.map((scene) => {
-          const statusItem = mockStatus.scenes.find(
-            (s) => s.sceneId === scene.id
-          )
-          if (!statusItem) return scene
-
-          let newStatus = GenerationStatus.PENDING
-          if (statusItem.status === "generating") {
-            newStatus = GenerationStatus.GENERATING
-          } else if (statusItem.status === "completed") {
-            newStatus = GenerationStatus.COMPLETED
-          }
-
-          const newVersions = [...scene.imageVersions]
-          if (
-            statusItem.status === "completed" &&
-            statusItem.currentImageUrl &&
-            statusItem.currentVersionId
-          ) {
-            // Add new version if not already present
-            const versionExists = newVersions.some(
-              (v) => v.versionId === statusItem.currentVersionId
+      if (storyData.tree?.nodes) {
+        // Update scenes with new data
+        setScenes((prev) =>
+          prev.map((scene) => {
+            const nodeData = storyData.tree.nodes.find(
+              (n: any) => n.id === scene.id
             )
-            if (!versionExists && statusItem.currentVersionId) {
-              newVersions.push({
-                versionId: statusItem.currentVersionId,
-                url: statusItem.currentImageUrl,
-                generatedAt: new Date().toISOString(),
-              })
+            if (!nodeData) return scene
+
+            const hasImage =
+              nodeData.imageVersions && nodeData.imageVersions.length > 0
+            let newStatus = GenerationStatus.PENDING
+
+            if (nodeData.generationStatus === "generating") {
+              newStatus = GenerationStatus.GENERATING
+            } else if (hasImage) {
+              newStatus = GenerationStatus.COMPLETED
+            } else if (nodeData.generationStatus === "failed") {
+              newStatus = GenerationStatus.FAILED
             }
-          }
 
-          return {
-            ...scene,
-            generationStatus: newStatus,
-            imageVersions: newVersions,
-            selectedVersionId:
-              statusItem.currentVersionId || scene.selectedVersionId,
-          }
-        })
-      )
+            return {
+              ...scene,
+              generationStatus: newStatus,
+              imageVersions: nodeData.imageVersions || scene.imageVersions,
+              selectedVersionId:
+                nodeData.selectedVersionId ||
+                (nodeData.imageVersions?.length > 0
+                  ? nodeData.imageVersions[nodeData.imageVersions.length - 1]
+                      .versionId
+                  : scene.selectedVersionId),
+            }
+          })
+        )
 
-      // Check if all completed
-      if (mockStatus.status === "completed") {
-        setIsBulkGenerating(false)
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          pollIntervalRef.current = null
+        // Check if all completed
+        const allCompleted = storyData.tree.nodes.every(
+          (node: any) => node.imageVersions && node.imageVersions.length > 0
+        )
+
+        if (allCompleted) {
+          setIsBulkGenerating(false)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          pollCountRef.current = 0
         }
-        pollCountRef.current = 0
       }
     } catch (err) {
       console.error("Error polling generation status:", err)
@@ -221,15 +248,11 @@ export default function SceneGenerationPage({
         }))
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.generateAllImages(storyId)
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      // }
-
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
-      setJobId("mock-job-id")
+      // Call API to generate all scene images
+      const result = await api.scenes.generateAll(storyId, {})
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+      }
 
       // Start polling
       startPolling()
@@ -270,47 +293,29 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.regenerateImage(storyId, sceneId)
-      // if (result.success && result.data) {
-      //   // Add new version
-      //   setScenes(prev => prev.map(scene => {
-      //     if (scene.id === sceneId) {
-      //       return {
-      //         ...scene,
-      //         generationStatus: GenerationStatus.COMPLETED,
-      //         imageVersions: [...scene.imageVersions, {
-      //           versionId: result.data.versionId,
-      //           url: result.data.imageUrl,
-      //           generatedAt: new Date().toISOString()
-      //         }],
-      //         selectedVersionId: result.data.versionId
-      //       }
-      //     }
-      //     return scene
-      //   }))
-      // }
+      // Call API to regenerate scene image
+      const result = await api.scenes.regenerate(storyId, sceneId, {})
 
-      // MOCK: Simulate regeneration
-      await simulateDelay(3000)
-      const newVersion: ImageVersion = {
-        versionId: `v${Date.now()}`,
-        url: `https://picsum.photos/seed/scene-${sceneId}-${Date.now()}/1200/800`,
-        generatedAt: new Date().toISOString(),
-      }
+      if (result.success && result.data) {
+        const newVersion: ImageVersion = {
+          versionId: result.data.versionId,
+          url: result.data.imageUrl,
+          generatedAt: new Date().toISOString(),
+        }
 
-      setScenes((prev) =>
-        prev.map((scene) =>
-          scene.id === sceneId
-            ? {
-                ...scene,
-                generationStatus: GenerationStatus.COMPLETED,
-                imageVersions: [...scene.imageVersions, newVersion],
-                selectedVersionId: newVersion.versionId,
-              }
-            : scene
+        setScenes((prev) =>
+          prev.map((scene) =>
+            scene.id === sceneId
+              ? {
+                  ...scene,
+                  generationStatus: GenerationStatus.COMPLETED,
+                  imageVersions: [...scene.imageVersions, newVersion],
+                  selectedVersionId: newVersion.versionId,
+                }
+              : scene
+          )
         )
-      )
+      }
     } catch (err) {
       const apiErr = err as ApiError
       setError(
@@ -360,39 +365,11 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.regenerateMultiple(storyId, idsArray)
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      //   startPolling()
-      // }
-
-      // MOCK: Simulate bulk regeneration
-      await simulateDelay(2000)
-
-      // Simulate completion for each selected scene
-      for (const sceneId of idsArray) {
-        const newVersion: ImageVersion = {
-          versionId: `v${Date.now()}-${sceneId}`,
-          url: `https://picsum.photos/seed/scene-${sceneId}-${Date.now()}/1200/800`,
-          generatedAt: new Date().toISOString(),
-        }
-
-        setScenes((prev) =>
-          prev.map((scene) =>
-            scene.id === sceneId
-              ? {
-                  ...scene,
-                  generationStatus: GenerationStatus.COMPLETED,
-                  imageVersions: [...scene.imageVersions, newVersion],
-                  selectedVersionId: newVersion.versionId,
-                }
-              : scene
-          )
-        )
-
-        // Stagger updates for visual effect
-        await simulateDelay(500)
+      // Call API to regenerate multiple scenes
+      const result = await api.scenes.bulkRegenerate(storyId, idsArray)
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+        startPolling()
       }
 
       // Clear selection
@@ -421,11 +398,8 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // await api.scenes.selectVersion(storyId, sceneId, versionId)
-
-      // MOCK: Log selection (in production, this would be saved to backend)
-      console.log(`Selected version ${versionId} for scene ${sceneId}`)
+      // Save selected version to API
+      await api.scenes.selectVersion(storyId, sceneId, versionId)
     } catch (err) {
       console.error("Error selecting version:", err)
     }
@@ -558,24 +532,19 @@ export default function SceneGenerationPage({
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.stories.complete(storyId, { title: storyTitle })
-      // if (result.success && result.data) {
-      //   setShowConfetti(true)
-      //   setTimeout(() => {
-      //     router.push(`/story-preview/${storyId}`)
-      //   }, 2000)
-      // }
+      // Update story with title and mark as complete
+      await api.stories.update(storyId, {
+        title: storyTitle,
+        status: "completed",
+        isPublished: true,
+      })
 
-      // MOCK: Simulate completion
-      await simulateDelay(1000)
       setIsCompletionModalOpen(false)
       setShowConfetti(true)
 
       // Navigate after confetti animation
       setTimeout(() => {
-        // For now, go back to story setup since we don't have a preview page yet
-        router.push(`/story-setup`)
+        router.push(`/story-selection`)
       }, 3000)
     } catch (err) {
       const apiErr = err as ApiError
@@ -593,14 +562,14 @@ export default function SceneGenerationPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
             centered
           />
-          <p className="mt-4 text-gray-700 text-lg font-medium">
+          <p className="mt-6 text-xl text-gray-700 font-semibold">
             Loading scenes...
           </p>
         </div>
@@ -613,27 +582,42 @@ export default function SceneGenerationPage({
   const hasSelection = selectedSceneIds.size > 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-6 shadow-xl">
+              <svg
+                className="w-10 h-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-4 font-heading">
               Scene Images
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Generate and review images for all your story scenes
             </p>
           </div>
 
           {/* Progress Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-amber-200 p-6">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-gray-700">
                   Progress
                 </span>
-                <span className="text-2xl font-bold text-purple-600">
+                <span className="text-2xl font-bold text-amber-600">
                   {
                     scenes.filter(
                       (scene) =>
@@ -646,7 +630,7 @@ export default function SceneGenerationPage({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${
                       (scenes.filter(
@@ -662,7 +646,7 @@ export default function SceneGenerationPage({
                 />
               </div>
               {isReady && (
-                <div className="mt-3 flex items-center justify-center text-green-600 font-medium">
+                <div className="mt-3 flex items-center justify-center text-green-600 font-bold">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="currentColor"
@@ -713,18 +697,16 @@ export default function SceneGenerationPage({
         )}
 
         {/* Action Bar */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-white rounded-xl shadow-md p-4">
+        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-white rounded-xl shadow-lg border-2 border-amber-200 p-5">
           {/* Generate All Button */}
           <div>
-            <Button
-              variant={ButtonVariant.Primary}
-              size={ButtonSize.Medium}
+            <button
               onClick={handleGenerateAll}
               disabled={isBulkGenerating || isReady}
-              loading={isBulkGenerating}
+              className="px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-2"
             >
               <svg
-                className="w-5 h-5 mr-2 inline"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -741,7 +723,7 @@ export default function SceneGenerationPage({
                 : isReady
                 ? "✓ All Generated"
                 : "Generate All Scene Images"}
-            </Button>
+            </button>
           </div>
 
           {/* Filter and Bulk Actions */}
@@ -1130,15 +1112,14 @@ export default function SceneGenerationPage({
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t border-gray-200">
-          <Button
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Large}
+        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t-2 border-amber-200">
+          <button
             onClick={handleBack}
             disabled={isBulkGenerating}
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1151,17 +1132,16 @@ export default function SceneGenerationPage({
               />
             </svg>
             Back to Backgrounds
-          </Button>
+          </button>
 
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleCompleteStory}
             disabled={!isReady || isBulkGenerating}
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
           >
-            Complete Story
+            <span>Complete Story</span>
             <svg
-              className="w-5 h-5 ml-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1173,7 +1153,7 @@ export default function SceneGenerationPage({
                 d="M5 13l4 4L19 7"
               />
             </svg>
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -1189,16 +1169,7 @@ export default function SceneGenerationPage({
             <h3 className="mt-6 text-2xl font-bold text-gray-900">
               Bringing Your Story to Life...
             </h3>
-            <div className="mt-4 text-4xl font-bold text-purple-600">
-              {
-                scenes.filter(
-                  (scene) =>
-                    scene.generationStatus === GenerationStatus.COMPLETED
-                ).length
-              }{" "}
-              / {scenes.length}
-            </div>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-4 text-gray-600">
               AI is creating magic moments...
             </p>
             <p className="mt-2 text-sm text-gray-500">
@@ -1435,9 +1406,16 @@ export default function SceneGenerationPage({
               Story Title
             </label>
             <input
+              ref={storyTitleInputRef}
               type="text"
               value={storyTitle}
-              onChange={(e) => setStoryTitle(e.target.value)}
+              onChange={(e) => {
+                setStoryTitle(e.target.value)
+                // Restore focus after state update
+                setTimeout(() => {
+                  storyTitleInputRef.current?.focus()
+                }, 0)
+              }}
               placeholder="Enter a captivating title..."
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-gray-700"
               maxLength={100}

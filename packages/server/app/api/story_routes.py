@@ -15,9 +15,9 @@ from app.models.schemas import (
     NodeUpdateRequest, NodeCreateRequest,
     StoryCompleteRequest,
     CharacterAssignmentRequest, CharacterAssignmentsResponse, PresetCharacter, CharactersResponse,
-    BackgroundUpdateRequest, BackgroundGenerationRequest, BackgroundGenerationResponse,
-    BackgroundGenerationStatus, BackgroundRegenerateRequest,
-    BackgroundVersionSelectRequest,
+    LocationUpdateRequest, LocationImageGenerationRequest, LocationImageGenerationResponse,
+    LocationImageGenerationStatus, LocationImageRegenerateRequest,
+    LocationImageVersionSelectRequest,
     SceneGenerationStatus, SceneRegenerateRequest,
     SceneVersionSelectRequest, SceneRegenerateMultipleRequest,
     ReadingProgressRequest, ReadingProgress,
@@ -285,23 +285,23 @@ async def get_character_assignments(story_id: str = Path(..., description="Story
 
 
 # ============================================================================
-# 5️⃣ Background Setup and Generation Page APIs
+# 5️⃣ Location Background Setup and Generation Page APIs
 # ============================================================================
 
-@router.get("/stories/{story_id}/backgrounds", response_model=APIResponse)
-async def get_story_backgrounds(story_id: str = Path(..., description="Story ID")):
-    """API 5-1: Retrieve Backgrounds List"""
+@router.get("/stories/{story_id}/locations", response_model=APIResponse)
+async def get_story_locations(story_id: str = Path(..., description="Story ID")):
+    """API 5-1: Retrieve Location Backgrounds List"""
     try:
-        backgrounds = story_service.get_story_backgrounds(story_id)
-        if backgrounds is None:
-            # Return empty list if no backgrounds found
+        locations = story_service.get_story_locations(story_id)
+        if locations is None:
+            # Return empty list if no locations found
             return APIResponse(
                 success=True,
-                data={"backgrounds": []}
+                data={"locations": []}
             )
         return APIResponse(
             success=True,
-            data={"backgrounds": [bg.model_dump() for bg in backgrounds]}
+            data={"locations": [loc.model_dump() for loc in locations]}
         )
     except Exception as e:
         return APIResponse(
@@ -310,23 +310,23 @@ async def get_story_backgrounds(story_id: str = Path(..., description="Story ID"
         )
 
 
-@router.patch("/stories/{story_id}/backgrounds/{background_id}", response_model=APIResponse)
-async def update_background_description(
+@router.patch("/stories/{story_id}/locations/{location_id}", response_model=APIResponse)
+async def update_location_description(
     story_id: str = Path(..., description="Story ID"),
-    background_id: str = Path(..., description="Background ID"),
-    request: BackgroundUpdateRequest = None
+    location_id: str = Path(..., description="Location ID"),
+    request: LocationUpdateRequest = None
 ):
-    """API 5-2: Update Background Description"""
+    """API 5-2: Update Location Description"""
     try:
-        background = story_service.update_background_description(story_id, background_id, request)
-        if not background:
+        location = story_service.update_location_description(story_id, location_id, request)
+        if not location:
             return APIResponse(
                 success=False,
-                error={"code": "BACKGROUND_NOT_FOUND", "message": "Background not found"}
+                error={"code": "LOCATION_NOT_FOUND", "message": "Location not found"}
             )
         return APIResponse(
             success=True,
-            data={"background": background.model_dump()}
+            data={"location": location.model_dump()}
         )
     except Exception as e:
         return APIResponse(
@@ -335,33 +335,33 @@ async def update_background_description(
         )
 
 
-@router.post("/stories/{story_id}/backgrounds/generate-all", response_model=BackgroundGenerationResponse)
-async def generate_all_backgrounds(
+@router.post("/stories/{story_id}/locations/generate-all", response_model=LocationImageGenerationResponse)
+async def generate_all_location_images(
     story_id: str = Path(..., description="Story ID"),
-    request: BackgroundGenerationRequest = None
+    request: LocationImageGenerationRequest = None
 ):
     """
-    API 5-3: Generate All Background Images
+    API 5-3: Generate All Location Images
     
-    Generates background images using FAL.ai based on the provided descriptions.
+    Generates location background images using FAL.ai based on the provided descriptions.
     Returns the URL of the generated image.
     
     **Input:**
     - `story_id`: The ID of the story
-    - `backgrounds`: List of background items with ID and description
+    - `locations`: List of location items with ID and description
     
     **Output:**
     - `success`: Boolean indicating if generation was successful
     - `url`: URL of the generated image
     """
     try:
-        image_url = story_service.generate_all_backgrounds(story_id, request.backgrounds)
+        image_url = story_service.generate_all_location_images(story_id, request.locations)
         if not image_url:
             raise HTTPException(
                 status_code=404,
                 detail={"code": "STORY_NOT_FOUND", "message": "Story not found"}
             )
-        return BackgroundGenerationResponse(
+        return LocationImageGenerationResponse(
             success=True,
             url=image_url
         )
@@ -374,14 +374,14 @@ async def generate_all_backgrounds(
         )
 
 
-@router.get("/stories/{story_id}/backgrounds/generation-status", response_model=APIResponse)
-async def check_background_generation_status(
+@router.get("/stories/{story_id}/locations/generation-status", response_model=APIResponse)
+async def check_location_image_generation_status(
     story_id: str = Path(..., description="Story ID"),
     job_id: Optional[str] = Query(None, description="Job ID")
 ):
-    """API 5-4: Check Background Generation Status"""
+    """API 5-4: Check Location Image Generation Status"""
     try:
-        status_data = story_service.check_background_generation_status(story_id, job_id)
+        status_data = story_service.check_location_image_generation_status(story_id, job_id)
         if not status_data:
             return APIResponse(
                 success=False,
@@ -398,19 +398,19 @@ async def check_background_generation_status(
         )
 
 
-@router.post("/stories/{story_id}/backgrounds/{background_id}/regenerate", response_model=APIResponse)
-async def regenerate_individual_background(
+@router.post("/stories/{story_id}/locations/{location_id}/regenerate", response_model=APIResponse)
+async def regenerate_individual_location_image(
     story_id: str = Path(..., description="Story ID"),
-    background_id: str = Path(..., description="Background ID"),
-    request: BackgroundRegenerateRequest = None
+    location_id: str = Path(..., description="Location ID"),
+    request: LocationImageRegenerateRequest = None
 ):
-    """API 5-5: Regenerate Individual Background"""
+    """API 5-5: Regenerate Individual Location Image"""
     try:
-        result = story_service.regenerate_individual_background(story_id, background_id, request.description)
+        result = story_service.regenerate_individual_location_image(story_id, location_id, request.description)
         if not result:
             return APIResponse(
                 success=False,
-                error={"code": "BACKGROUND_NOT_FOUND", "message": "Background not found"}
+                error={"code": "LOCATION_NOT_FOUND", "message": "Location not found"}
             )
         return APIResponse(
             success=True,
@@ -423,19 +423,19 @@ async def regenerate_individual_background(
         )
 
 
-@router.post("/stories/{story_id}/backgrounds/{background_id}/select-version", response_model=APIResponse)
-async def select_background_version(
+@router.post("/stories/{story_id}/locations/{location_id}/select-version", response_model=APIResponse)
+async def select_location_image_version(
     story_id: str = Path(..., description="Story ID"),
-    background_id: str = Path(..., description="Background ID"),
-    request: BackgroundVersionSelectRequest = None
+    location_id: str = Path(..., description="Location ID"),
+    request: LocationImageVersionSelectRequest = None
 ):
-    """API 5-6: Select Background Version"""
+    """API 5-6: Select Location Image Version"""
     try:
-        result = story_service.select_background_version(story_id, background_id, request.versionId)
+        result = story_service.select_location_image_version(story_id, location_id, request.versionId)
         if not result:
             return APIResponse(
                 success=False,
-                error={"code": "BACKGROUND_NOT_FOUND", "message": "Background not found"}
+                error={"code": "LOCATION_NOT_FOUND", "message": "Location not found"}
             )
         return APIResponse(
             success=True,

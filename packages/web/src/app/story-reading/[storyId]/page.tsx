@@ -24,7 +24,6 @@ import { NodeType } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { mockReadingProgress, mockStoryReadData } from "./page.mock"
 
 // Reading assistance preferences
 interface ReadingPreferences {
@@ -80,68 +79,29 @@ export default function StoryReadingPage() {
       setIsLoading(true)
       setError(null)
 
-      // In development, use mock data
-      const useMockData = process.env.NODE_ENV === "development"
+      // Load from API
+      const [storyResponse, progressResponse] = await Promise.all([
+        api.reading.getStory(storyId),
+        api.reading.getProgress(storyId).catch(() => null),
+      ])
 
-      if (useMockData) {
-        // Use mock data
-        setStory(mockStoryReadData as StoryForReading)
+      if (!storyResponse.success || !storyResponse.data) {
+        throw new Error("Failed to load story")
+      }
 
-        // Load saved progress or start from beginning
-        const savedProgress = mockReadingProgress
-        if (savedProgress && savedProgress.currentNodeId) {
-          const node = mockStoryReadData.nodes.find(
-            (n) => n.id === savedProgress.currentNodeId
-          )
-          if (node) {
-            setCurrentNode(node as ReadingNode)
-            setVisitedNodes(savedProgress.visitedNodeIds)
-            setChoicesMade(savedProgress.choicesMade as ChoiceMade[])
-          } else {
-            // Start from beginning
-            const startNode = mockStoryReadData.nodes.find(
-              (n) => n.id === mockStoryReadData.startNodeId
-            )
-            setCurrentNode(startNode as ReadingNode)
-          }
-        } else {
-          // Start from beginning
-          const startNode = mockStoryReadData.nodes.find(
-            (n) => n.id === mockStoryReadData.startNodeId
-          )
-          setCurrentNode(startNode as ReadingNode)
-        }
-      } else {
-        // Load from API
-        const [storyResponse, progressResponse] = await Promise.all([
-          api.reading.getStory(storyId),
-          api.reading.getProgress(storyId).catch(() => null),
-        ])
+      const storyData = storyResponse.data
+      setStory(storyData)
 
-        if (!storyResponse.success || !storyResponse.data) {
-          throw new Error("Failed to load story")
-        }
-
-        const storyData = storyResponse.data
-        setStory(storyData)
-
-        // Load progress or start from beginning
-        if (progressResponse?.success && progressResponse.data) {
-          const progress = progressResponse.data
-          const node = storyData.nodes.find(
-            (n) => n.id === progress.currentNodeId
-          )
-          if (node) {
-            setCurrentNode(node)
-            setVisitedNodes(progress.visitedNodeIds)
-            setChoicesMade(progress.choicesMade)
-          } else {
-            // Start from beginning
-            const startNode = storyData.nodes.find(
-              (n) => n.id === storyData.startNodeId
-            )
-            setCurrentNode(startNode || null)
-          }
+      // Load progress or start from beginning
+      if (progressResponse?.success && progressResponse.data) {
+        const progress = progressResponse.data
+        const node = storyData.nodes.find(
+          (n) => n.id === progress.currentNodeId
+        )
+        if (node) {
+          setCurrentNode(node)
+          setVisitedNodes(progress.visitedNodeIds)
+          setChoicesMade(progress.choicesMade)
         } else {
           // Start from beginning
           const startNode = storyData.nodes.find(
@@ -149,6 +109,12 @@ export default function StoryReadingPage() {
           )
           setCurrentNode(startNode || null)
         }
+      } else {
+        // Start from beginning
+        const startNode = storyData.nodes.find(
+          (n) => n.id === storyData.startNodeId
+        )
+        setCurrentNode(startNode || null)
       }
     } catch (err) {
       console.error("Error loading story:", err)
@@ -240,12 +206,7 @@ export default function StoryReadingPage() {
         choicesMade: choicesMade,
       }
 
-      // In development, just log
-      if (process.env.NODE_ENV === "development") {
-        console.log("Progress saved (mock):", progressData)
-      } else {
-        await api.reading.saveProgress(storyId, progressData)
-      }
+      await api.reading.saveProgress(storyId, progressData)
 
       progressNeedsSaveRef.current = false
     } catch (err) {
@@ -378,11 +339,7 @@ export default function StoryReadingPage() {
    */
   const recordCompletion = async (endingNodeId: string) => {
     try {
-      if (process.env.NODE_ENV === "development") {
-        console.log("Story completed (mock):", endingNodeId)
-      } else {
-        await api.reading.complete(storyId, { endingNodeId })
-      }
+      await api.reading.complete(storyId, { endingNodeId })
     } catch (err) {
       console.error("Error recording completion:", err)
     }

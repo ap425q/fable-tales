@@ -8,14 +8,10 @@ import {
   SpinnerColor,
   SpinnerSize,
 } from "@/components/types"
+import { api } from "@/lib/api"
 import { ApiError, GenerationStatus, ImageVersion, Location } from "@/types"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  mockBackgrounds,
-  simulateDelay,
-  simulateGenerationPolling,
-} from "./background-setup.page.mock"
+import { use, useCallback, useEffect, useRef, useState } from "react"
 
 /**
  * Background Setup Page
@@ -30,10 +26,10 @@ import {
 export default function BackgroundSetupPage({
   params,
 }: {
-  params: { storyId: string }
+  params: Promise<{ storyId: string }>
 }) {
   const router = useRouter()
-  const { storyId } = params
+  const { storyId } = use(params)
 
   // State management
   const [backgrounds, setBackgrounds] = useState<Location[]>([])
@@ -71,55 +67,38 @@ export default function BackgroundSetupPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API call
-        // const result = await api.backgrounds.getAll(storyId)
-        // if (result.success && result.data) {
-        //   setBackgrounds(result.data.backgrounds)
-        // }
+        // Fetch locations from API
+        const result = await api.locations.getAll(storyId)
+        if (result.success && result.data) {
+          setBackgrounds(result.data.locations)
 
-        // MOCK: Using mock data
-        await simulateDelay(800)
-        setBackgrounds(mockBackgrounds)
-
-        // Initialize editing state
-        const descriptions: { [key: string]: string } = {}
-        const selectedVersions: { [key: string]: string } = {}
-        mockBackgrounds.forEach((bg) => {
-          descriptions[bg.id] = bg.description
-          // Set latest version as selected by default
-          if (bg.imageVersions.length > 0) {
-            selectedVersions[bg.id] =
-              bg.imageVersions[bg.imageVersions.length - 1].versionId
-          }
-        })
-        setEditingDescriptions(descriptions)
-        setSelectedVersionIds(selectedVersions)
-
-        // TODO: Load scene content for tooltips from story tree
-        // const storyResult = await api.stories.getById(storyId)
-        // if (storyResult.success && storyResult.data) {
-        //   const tooltips: { [sceneNumber: number]: string } = {}
-        //   storyResult.data.nodes.forEach(node => {
-        //     tooltips[node.sceneNumber] = node.text
-        //   })
-        //   setSceneTooltips(tooltips)
-        // }
-
-        // MOCK: Simulate scene tooltips
-        const mockTooltips: { [sceneNumber: number]: string } = {
-          1: "The journey begins in the enchanted forest...",
-          2: "The royal castle towers before you...",
-          3: "Deep in the magical woods, a path appears...",
-          4: "The peaceful village welcomes weary travelers...",
-          5: "Ancient trees whisper secrets of old...",
-          6: "Inside the castle, grand halls echo with history...",
-          7: "By the riverside, children play and laugh...",
-          8: "The forest grows darker as night approaches...",
-          9: "The throne room awaits your arrival...",
-          10: "A mysterious cave entrance beckons...",
-          11: "Deep within the cavern, treasures glimmer...",
+          // Initialize editing state
+          const descriptions: { [key: string]: string } = {}
+          const selectedVersions: { [key: string]: string } = {}
+          result.data.locations.forEach((bg) => {
+            descriptions[bg.id] = bg.description
+            // Set latest version as selected by default
+            if (bg.imageVersions && bg.imageVersions.length > 0) {
+              selectedVersions[bg.id] =
+                bg.imageVersions[bg.imageVersions.length - 1].versionId
+            }
+          })
+          setEditingDescriptions(descriptions)
+          setSelectedVersionIds(selectedVersions)
         }
-        setSceneTooltips(mockTooltips)
+
+        // Load scene content for tooltips from story tree
+        const storyResult = await api.stories.getById(storyId)
+        if (storyResult.success && storyResult.data) {
+          const storyData = storyResult.data as any
+          if (storyData.tree?.nodes) {
+            const tooltips: { [sceneNumber: number]: string } = {}
+            storyData.tree.nodes.forEach((node: any) => {
+              tooltips[node.sceneNumber] = node.text
+            })
+            setSceneTooltips(tooltips)
+          }
+        }
       } catch (err) {
         const apiErr = err as ApiError
         setError(
@@ -154,63 +133,36 @@ export default function BackgroundSetupPage({
    */
   const pollGenerationStatus = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.backgrounds.getGenerationStatus(storyId, jobId || undefined)
-      // if (!result.success || !result.data) return
+      // Fetch updated location data to check generation status
+      const result = await api.locations.getAll(storyId)
+      if (!result.success || !result.data) return
 
-      // MOCK: Simulate polling
-      pollCountRef.current += 1
-      const mockStatus = simulateGenerationPolling(pollCountRef.current)
+      const locationData = result.data.locations
 
-      // Update backgrounds with new status
-      setBackgrounds((prev) =>
-        prev.map((bg) => {
-          const statusItem = mockStatus.backgrounds.find(
-            (s) => s.backgroundId === bg.id
-          )
-          if (!statusItem) return bg
+      // Update backgrounds with new data
+      setBackgrounds(locationData)
 
-          let newStatus = GenerationStatus.PENDING
-          if (statusItem.status === "generating") {
-            newStatus = GenerationStatus.GENERATING
-          } else if (statusItem.status === "completed") {
-            newStatus = GenerationStatus.COMPLETED
-          }
-
-          const newVersions = [...bg.imageVersions]
-          if (
-            statusItem.status === "completed" &&
-            statusItem.imageUrl &&
-            statusItem.versionId
-          ) {
-            // Add new version if not already present
-            const versionExists = newVersions.some(
-              (v) => v.versionId === statusItem.versionId
-            )
-            if (!versionExists && statusItem.versionId) {
-              newVersions.push({
-                versionId: statusItem.versionId,
-                url: statusItem.imageUrl,
-                generatedAt: new Date().toISOString(),
-              })
-              // Auto-select the newly generated version
-              setSelectedVersionIds((prev) => ({
-                ...prev,
-                [bg.id]: statusItem.versionId!,
-              }))
-            }
-          }
-
-          return {
-            ...bg,
-            generationStatus: newStatus,
-            imageVersions: newVersions,
-          }
-        })
-      )
+      // Auto-select newly generated versions
+      locationData.forEach((location) => {
+        if (location.imageVersions && location.imageVersions.length > 0) {
+          const latestVersion =
+            location.imageVersions[location.imageVersions.length - 1]
+          setSelectedVersionIds((prev) => ({
+            ...prev,
+            [location.id]: latestVersion.versionId,
+          }))
+        }
+      })
 
       // Check if all completed
-      if (mockStatus.status === "completed") {
+      const allCompleted = locationData.every(
+        (loc) =>
+          loc.generationStatus === GenerationStatus.COMPLETED &&
+          loc.imageVersions &&
+          loc.imageVersions.length > 0
+      )
+
+      if (allCompleted) {
         setIsBulkGenerating(false)
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
@@ -265,10 +217,11 @@ export default function BackgroundSetupPage({
     newDescription: string
   ) => {
     try {
-      // TODO: Replace with actual API call
-      // await api.backgrounds.update(storyId, backgroundId, { description: newDescription })
+      await api.locations.update(storyId, backgroundId, {
+        description: newDescription,
+      })
 
-      // MOCK: Update local state
+      // Update local state
       setBackgrounds((prev) =>
         prev.map((bg) =>
           bg.id === backgroundId ? { ...bg, description: newDescription } : bg
@@ -298,21 +251,17 @@ export default function BackgroundSetupPage({
         }))
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.backgrounds.generateAll(
-      //   storyId,
-      //   backgrounds.map(bg => ({
-      //     backgroundId: bg.id,
-      //     description: editingDescriptions[bg.id] || bg.description
-      //   }))
-      // )
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      // }
-
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
-      setJobId("mock-job-id")
+      // Call API to generate all location images
+      const result = await api.locations.generateAll(
+        storyId,
+        backgrounds.map((bg) => ({
+          locationId: bg.id,
+          description: editingDescriptions[bg.id] || bg.description,
+        }))
+      )
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+      }
 
       // Start polling
       startPolling()
@@ -353,51 +302,39 @@ export default function BackgroundSetupPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.backgrounds.regenerate(storyId, backgroundId, description)
-      // if (result.success && result.data) {
-      //   // Add new version
-      //   setBackgrounds(prev => prev.map(bg => {
-      //     if (bg.id === backgroundId) {
-      //       return {
-      //         ...bg,
-      //         generationStatus: GenerationStatus.COMPLETED,
-      //         imageVersions: [...bg.imageVersions, {
-      //           versionId: result.data.versionId,
-      //           url: result.data.imageUrl,
-      //           generatedAt: new Date().toISOString()
-      //         }]
-      //       }
-      //     }
-      //     return bg
-      //   }))
-      // }
-
-      // MOCK: Simulate regeneration
-      await simulateDelay(2000)
-      const newVersion: ImageVersion = {
-        versionId: `v${Date.now()}`,
-        url: `https://picsum.photos/seed/${backgroundId}-${Date.now()}/800/600`,
-        generatedAt: new Date().toISOString(),
-      }
-
-      setBackgrounds((prev) =>
-        prev.map((bg) =>
-          bg.id === backgroundId
-            ? {
-                ...bg,
-                generationStatus: GenerationStatus.COMPLETED,
-                imageVersions: [...bg.imageVersions, newVersion],
-              }
-            : bg
-        )
+      // Call API to regenerate location image
+      const result = await api.locations.regenerate(
+        storyId,
+        backgroundId,
+        editingDescriptions[backgroundId]
       )
 
-      // Auto-select the newly generated version
-      setSelectedVersionIds((prev) => ({
-        ...prev,
-        [backgroundId]: newVersion.versionId,
-      }))
+      if (result.success && result.data) {
+        const newVersion: ImageVersion = {
+          versionId: result.data.versionId,
+          url: result.data.imageUrl,
+          generatedAt: new Date().toISOString(),
+        }
+
+        // Add new version to backgrounds
+        setBackgrounds((prev) =>
+          prev.map((bg) =>
+            bg.id === backgroundId
+              ? {
+                  ...bg,
+                  generationStatus: GenerationStatus.COMPLETED,
+                  imageVersions: [...(bg.imageVersions || []), newVersion],
+                }
+              : bg
+          )
+        )
+
+        // Auto-select the newly generated version
+        setSelectedVersionIds((prev) => ({
+          ...prev,
+          [backgroundId]: newVersion.versionId,
+        }))
+      }
     } catch (err) {
       const apiErr = err as ApiError
       setError(
@@ -441,13 +378,8 @@ export default function BackgroundSetupPage({
         [backgroundId]: versionId,
       }))
 
-      // TODO: Replace with actual API call
-      // await api.backgrounds.selectVersion(storyId, backgroundId, versionId)
-
-      // MOCK: Log selection (in production, this would be saved to backend)
-      console.log(
-        `Selected version ${versionId} for background ${backgroundId}`
-      )
+      // Save selected version to API
+      await api.locations.selectVersion(storyId, backgroundId, versionId)
     } catch (err) {
       console.error("Error selecting version:", err)
     }
@@ -533,14 +465,14 @@ export default function BackgroundSetupPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
             centered
           />
-          <p className="mt-4 text-gray-700 text-lg font-medium">
+          <p className="mt-6 text-xl text-gray-700 font-semibold">
             Loading backgrounds...
           </p>
         </div>
@@ -552,27 +484,42 @@ export default function BackgroundSetupPage({
   const isReady = isAllReady()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-6 shadow-xl">
+              <svg
+                className="w-10 h-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </div>
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-4 font-heading">
               Story Backgrounds
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Create stunning backgrounds for your story locations
             </p>
           </div>
 
           {/* Progress Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-amber-200 p-6">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-gray-700">
                   Progress
                 </span>
-                <span className="text-2xl font-bold text-indigo-600">
+                <span className="text-2xl font-bold text-amber-600">
                   {
                     backgrounds.filter(
                       (bg) =>
@@ -585,7 +532,7 @@ export default function BackgroundSetupPage({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${
                       (backgrounds.filter(
@@ -600,7 +547,7 @@ export default function BackgroundSetupPage({
                 />
               </div>
               {isReady && (
-                <div className="mt-3 flex items-center justify-center text-green-600 font-medium">
+                <div className="mt-3 flex items-center justify-center text-green-600 font-bold">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="currentColor"
@@ -644,15 +591,13 @@ export default function BackgroundSetupPage({
 
         {/* Generate All Button */}
         <div className="mb-10 text-center">
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleGenerateAll}
             disabled={isBulkGenerating || generationCount === 0}
-            loading={isBulkGenerating}
+            className="px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-3"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-6 h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -671,7 +616,7 @@ export default function BackgroundSetupPage({
               : `Generate ${generationCount} Background${
                   generationCount !== 1 ? "s" : ""
                 }`}
-          </Button>
+          </button>
         </div>
 
         {/* Background Cards */}
@@ -1005,15 +950,14 @@ export default function BackgroundSetupPage({
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t border-gray-200">
-          <Button
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Large}
+        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t-2 border-amber-200">
+          <button
             onClick={handleBack}
             disabled={isBulkGenerating}
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1026,17 +970,16 @@ export default function BackgroundSetupPage({
               />
             </svg>
             Back to Characters
-          </Button>
+          </button>
 
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleNext}
             disabled={!isReady || isBulkGenerating}
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
           >
-            Generate Scene Images
+            <span>Generate Scene Images</span>
             <svg
-              className="w-5 h-5 ml-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1048,7 +991,7 @@ export default function BackgroundSetupPage({
                 d="M9 5l7 7-7 7"
               />
             </svg>
-          </Button>
+          </button>
         </div>
 
         {/* Help Banner */}
@@ -1118,15 +1061,7 @@ export default function BackgroundSetupPage({
             <h3 className="mt-6 text-2xl font-bold text-gray-900">
               Creating Your Backgrounds
             </h3>
-            <div className="mt-4 text-4xl font-bold text-indigo-600">
-              {
-                backgrounds.filter(
-                  (bg) => bg.generationStatus === GenerationStatus.COMPLETED
-                ).length
-              }{" "}
-              / {backgrounds.length}
-            </div>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-6 text-gray-600">
               AI is painting your story&apos;s world...
             </p>
             <p className="mt-2 text-sm text-gray-500">

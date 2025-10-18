@@ -497,12 +497,13 @@ class SupabaseDataManager:
             return None
     
     # ========================================================================
-    # Background Management
+    # Location Image Management
     # ========================================================================
     
-    def get_story_backgrounds(self, story_id: str) -> Optional[List[Dict[str, Any]]]:
-        """Get backgrounds for a story from Supabase"""
+    def get_story_locations(self, story_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Get locations with background images for a story from Supabase"""
         try:
+            # Database tables may still be called "backgrounds" but we treat them as locations
             result = self.supabase.table("backgrounds").select(
                 "*, background_versions(*), background_scene_numbers(scene_number)"
             ).eq("story_id", story_id).execute()
@@ -510,14 +511,14 @@ class SupabaseDataManager:
             if not result.data:
                 return None
             
-            backgrounds = []
-            for bg_data in result.data:
+            locations = []
+            for loc_data in result.data:
                 # Get scene numbers
-                scene_numbers = [sn["scene_number"] for sn in bg_data["background_scene_numbers"]]
+                scene_numbers = [sn["scene_number"] for sn in loc_data["background_scene_numbers"]]
                 
                 # Get versions
                 versions = []
-                for version in bg_data["background_versions"]:
+                for version in loc_data["background_versions"]:
                     version_data = {
                         "versionId": version["version_id"],
                         "imageUrl": version["image_url"],
@@ -525,48 +526,47 @@ class SupabaseDataManager:
                     }
                     versions.append(version_data)
                 
-                background = {
-                    "id": bg_data["id"],
-                    "locationId": bg_data["location_id"],
-                    "name": bg_data["name"],
-                    "description": bg_data["description"],
+                location = {
+                    "id": loc_data["id"],
+                    "name": loc_data["name"],
+                    "description": loc_data["description"],
                     "sceneNumbers": scene_numbers,
-                    "imageUrl": bg_data["image_url"],
-                    "status": bg_data["status"],
-                    "versions": versions
+                    "imageUrl": loc_data["image_url"],
+                    "status": loc_data["status"],
+                    "versions": versions,
+                    "selectedVersionId": loc_data.get("selected_version_id")
                 }
-                backgrounds.append(background)
+                locations.append(location)
             
-            return backgrounds
+            return locations
             
         except Exception as e:
-            print(f"Error getting story backgrounds from Supabase: {str(e)}")
+            print(f"Error getting story locations from Supabase: {str(e)}")
             return None
     
-    def save_story_backgrounds(self, story_id: str, backgrounds: List[Dict[str, Any]]):
-        """Save backgrounds for a story to Supabase"""
+    def save_story_locations(self, story_id: str, locations: List[Dict[str, Any]]):
+        """Save locations with background images for a story to Supabase"""
         try:
-            for bg in backgrounds:
-                bg_data = {
-                    "id": bg["id"],
+            for loc in locations:
+                loc_data = {
+                    "id": loc["id"],
                     "story_id": story_id,
-                    "location_id": bg["locationId"],
-                    "name": bg["name"],
-                    "description": bg["description"],
-                    "image_url": bg.get("imageUrl"),
-                    "status": bg["status"],
-                    "selected_version_id": bg.get("selectedVersionId"),
+                    "name": loc["name"],
+                    "description": loc["description"],
+                    "image_url": loc.get("imageUrl"),
+                    "status": loc["status"],
+                    "selected_version_id": loc.get("selectedVersionId"),
                     "created_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat()
                 }
                 
-                self.supabase.table("backgrounds").upsert(bg_data).execute()
+                self.supabase.table("backgrounds").upsert(loc_data).execute()
                 
                 # Save versions
-                for version in bg.get("versions", []):
+                for version in loc.get("versions", []):
                     version_data = {
-                        "id": f"bg_version_{bg['id']}_{version['versionId']}",
-                        "background_id": bg["id"],
+                        "id": f"bg_version_{loc['id']}_{version['versionId']}",
+                        "background_id": loc["id"],
                         "version_id": version["versionId"],
                         "image_url": version["imageUrl"],
                         "created_at": version["createdAt"]
@@ -575,10 +575,10 @@ class SupabaseDataManager:
                     self.supabase.table("background_versions").upsert(version_data).execute()
                 
                 # Save scene numbers
-                for scene_num in bg.get("sceneNumbers", []):
+                for scene_num in loc.get("sceneNumbers", []):
                     scene_data = {
-                        "id": f"bg_scene_{bg['id']}_{scene_num}",
-                        "background_id": bg["id"],
+                        "id": f"bg_scene_{loc['id']}_{scene_num}",
+                        "background_id": loc["id"],
                         "scene_number": scene_num,
                         "created_at": datetime.now().isoformat()
                     }
@@ -586,7 +586,7 @@ class SupabaseDataManager:
                     self.supabase.table("background_scene_numbers").upsert(scene_data).execute()
                     
         except Exception as e:
-            print(f"Error saving story backgrounds to Supabase: {str(e)}")
+            print(f"Error saving story locations to Supabase: {str(e)}")
     
     # ========================================================================
     # Reading Progress Management
@@ -678,15 +678,15 @@ class SupabaseDataManager:
     # Generation Jobs Management
     # ========================================================================
     
-    def create_background_generation_job(self, story_id: str, job_id: str, backgrounds: List[Dict[str, str]]):
-        """Create background generation job in Supabase"""
+    def create_location_image_generation_job(self, story_id: str, job_id: str, locations: List[Dict[str, str]]):
+        """Create location image generation job in Supabase"""
         try:
             job_data = {
                 "id": job_id,
                 "story_id": story_id,
-                "job_type": "background_generation",
+                "job_type": "location_image_generation",
                 "status": "in_progress",
-                "job_data": {"backgrounds": backgrounds},
+                "job_data": {"locations": locations},
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
@@ -694,12 +694,12 @@ class SupabaseDataManager:
             self.supabase.table("generation_jobs").insert(job_data).execute()
             
         except Exception as e:
-            print(f"Error creating background generation job in Supabase: {str(e)}")
+            print(f"Error creating location image generation job in Supabase: {str(e)}")
     
-    def get_background_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Get background generation status from Supabase"""
+    def get_location_image_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get location image generation status from Supabase"""
         try:
-            query = self.supabase.table("generation_jobs").select("*").eq("story_id", story_id).eq("job_type", "background_generation")
+            query = self.supabase.table("generation_jobs").select("*").eq("story_id", story_id).eq("job_type", "location_image_generation")
             
             if job_id:
                 query = query.eq("id", job_id)
@@ -712,7 +712,7 @@ class SupabaseDataManager:
             job_data = result.data[0]
             return {
                 "status": job_data["status"],
-                "backgrounds": [],  # This would be populated based on actual generation status
+                "locations": [],  # This would be populated based on actual generation status
                 "progress": {
                     "completed": 0,
                     "total": 0
@@ -720,7 +720,7 @@ class SupabaseDataManager:
             }
             
         except Exception as e:
-            print(f"Error getting background generation status from Supabase: {str(e)}")
+            print(f"Error getting location image generation status from Supabase: {str(e)}")
             return None
     
     def create_scene_generation_job(self, story_id: str, job_id: str, scene_ids: Optional[List[str]] = None):
@@ -997,19 +997,21 @@ class SupabaseDataManager:
         except Exception as e:
             print(f"Error creating scene regeneration job in Supabase: {str(e)}")
     
-    def save_background(self, background_data: Dict[str, Any]):
-        """Save a single background to Supabase"""
+    def update_location_image(self, location_data: Dict[str, Any]):
+        """Update a location's image in Supabase (stored in backgrounds table)"""
         try:
-            self.supabase.table("backgrounds").insert(background_data).execute()
-            print(f"✅ Background saved to database: {background_data['id']}")
+            self.supabase.table("backgrounds").upsert(location_data).execute()
+            print(f"✅ Location image updated in database: {location_data['id']}")
         except Exception as e:
-            print(f"❌ Error saving background to Supabase: {str(e)}")
+            print(f"❌ Error updating location image in Supabase: {str(e)}")
             raise e
     
     def save_location(self, location_data: Dict[str, Any]):
         """Save a single location to Supabase"""
         try:
-            self.supabase.table("locations").insert(location_data).execute()
+            # For now, locations with images are stored in backgrounds table
+            # This maintains database compatibility
+            self.supabase.table("backgrounds").insert(location_data).execute()
             print(f"✅ Location saved to database: {location_data['id']}")
         except Exception as e:
             print(f"❌ Error saving location to Supabase: {str(e)}")

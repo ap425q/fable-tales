@@ -14,7 +14,6 @@ import { Story, StoryStatus } from "@/types"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
-import { mockAllStories } from "./StoryLibrary.page.mock"
 
 export default function StoryLibraryPage() {
   const router = useRouter()
@@ -22,7 +21,6 @@ export default function StoryLibraryPage() {
   // State
   const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [useMockData] = useState(true)
 
   /**
    * Fetch stories
@@ -30,21 +28,16 @@ export default function StoryLibraryPage() {
   const fetchStories = useCallback(async () => {
     try {
       setIsLoading(true)
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setStories(mockAllStories)
-      } else {
-        const response = await api.stories.getAll({ limit: 100, offset: 0 })
-        if (response.success && response.data) {
-          setStories(response.data.stories)
-        }
+      const response = await api.stories.getAll({ limit: 100, offset: 0 })
+      if (response.success && response.data) {
+        setStories(response.data.stories)
       }
     } catch (err) {
       console.error("Error fetching stories:", err)
     } finally {
       setIsLoading(false)
     }
-  }, [useMockData])
+  }, [])
 
   useEffect(() => {
     fetchStories()

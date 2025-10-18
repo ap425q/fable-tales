@@ -96,36 +96,36 @@ export interface CharacterAssignmentResponse {
 }
 
 /**
- * Background update request
+ * Location update request
  */
-export interface BackgroundUpdateRequest {
+export interface LocationUpdateRequest {
   name?: string
   description?: string
 }
 
 /**
- * Background for generation
+ * Location for image generation
  */
-export interface BackgroundGenerateItem {
-  backgroundId: string
+export interface LocationImageGenerateItem {
+  locationId: string
   description: string
 }
 
 /**
- * Background generation response
+ * Location image generation response
  */
-export interface BackgroundGenerationResponse {
+export interface LocationImageGenerationResponse {
   jobId: string
   message: string
-  backgroundIds: string[]
+  locationIds: string[]
 }
 
 /**
- * Background generation status
+ * Location image generation status
  */
-export interface BackgroundGenerationStatus {
+export interface LocationImageGenerationStatus {
   status: string
-  backgrounds: BackgroundStatusItem[]
+  locations: LocationStatusItem[]
   progress: {
     completed: number
     total: number
@@ -133,20 +133,20 @@ export interface BackgroundGenerationStatus {
 }
 
 /**
- * Individual background status
+ * Individual location status
  */
-export interface BackgroundStatusItem {
-  backgroundId: string
+export interface LocationStatusItem {
+  locationId: string
   status: string
   imageUrl: string | null
   versionId?: string
 }
 
 /**
- * Background regeneration response
+ * Location image regeneration response
  */
-export interface BackgroundRegenerateResponse {
-  backgroundId: string
+export interface LocationImageRegenerateResponse {
+  locationId: string
   versionId: string
   imageUrl: string
   status: string
@@ -156,7 +156,7 @@ export interface BackgroundRegenerateResponse {
  * Version selection response
  */
 export interface VersionSelectionResponse {
-  backgroundId?: string
+  locationId?: string
   sceneId?: string
   selectedVersionId: string
   imageUrl: string
@@ -248,10 +248,10 @@ export interface CharactersListResponse {
 }
 
 /**
- * Backgrounds list response
+ * Locations list response
  */
-export interface BackgroundsListResponse {
-  backgrounds: Location[]
+export interface LocationsListResponse {
+  locations: Location[]
 }
 
 /**

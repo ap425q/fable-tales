@@ -1,24 +1,12 @@
 "use client"
 
-import { Button } from "@/components/Button"
-import { Card } from "@/components/Card"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  SpinnerColor,
-  SpinnerSize,
-} from "@/components/types"
+import { SpinnerColor, SpinnerSize } from "@/components/types"
+import { api } from "@/lib/api"
 import { CharacterRole } from "@/lib/apiTypes"
 import { ApiError, PresetCharacter } from "@/types"
 import { useRouter } from "next/navigation"
 import React, { use, useEffect, useState } from "react"
-import {
-  mockCharactersResponse,
-  mockStoryRoles,
-  simulateDelay,
-} from "./character-assignment.page.mock"
 
 /**
  * Character assignment state
@@ -69,25 +57,34 @@ export default function CharacterAssignmentPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API calls
-        // const charactersResult = await api.characters.getPresetCharacters()
-        // const rolesResult = await api.stories.getCharacterRoles(storyId)
-        // const assignmentsResult = await api.stories.getCharacterAssignments(storyId)
-
-        // MOCK: Using mock data
-        await simulateDelay(800)
-        const charactersResult = mockCharactersResponse
-        const rolesResult = {
-          success: true,
-          data: { characters: mockStoryRoles },
-        }
+        // Fetch preset characters and story roles
+        const [charactersResult, storyResult, assignmentsResult] =
+          await Promise.all([
+            api.characters.getAll(),
+            api.stories.getById(storyId),
+            api.characters.getAssignments(storyId).catch(() => null), // Optional: may not exist yet
+          ])
 
         if (charactersResult.success && charactersResult.data) {
           setPresetCharacters(charactersResult.data.characters)
         }
 
-        if (rolesResult.success && rolesResult.data) {
-          setStoryRoles(rolesResult.data.characters)
+        if (storyResult.success && storyResult.data) {
+          // Extract character roles from story data
+          const storyData = storyResult.data as any
+          if (storyData.characters) {
+            setStoryRoles(storyData.characters)
+          }
+        }
+
+        // Load existing assignments if available
+        if (assignmentsResult?.success && assignmentsResult.data) {
+          const existingAssignments: AssignmentMap = {}
+          assignmentsResult.data.assignments.forEach((assignment: any) => {
+            existingAssignments[assignment.characterRoleId] =
+              assignment.presetCharacterId
+          })
+          setAssignments(existingAssignments)
         }
       } catch (err) {
         const apiErr = err as ApiError
@@ -260,21 +257,18 @@ export default function CharacterAssignmentPage({
       setIsSaving(true)
       setError("")
 
-      // TODO: Replace with actual API call when backend is ready
       // Format assignments for API
-      // const assignmentData = Object.entries(assignments).map(
-      //   ([roleId, characterId]) => ({
-      //     characterRoleId: roleId,
-      //     presetCharacterId: characterId,
-      //   })
-      // )
-      // await api.characters.saveAssignments(storyId, assignmentData)
+      const assignmentData = Object.entries(assignments).map(
+        ([roleId, characterId]) => ({
+          characterRoleId: roleId,
+          presetCharacterId: characterId,
+        })
+      )
 
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
+      // Save assignments to API
+      await api.characters.saveAssignments(storyId, assignmentData)
 
       // Navigate to background setup page
-      // TODO: Update route when background setup page is created
       router.push(`/background-setup/${storyId}`)
     } catch (err) {
       const apiErr = err as ApiError
@@ -296,14 +290,14 @@ export default function CharacterAssignmentPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
             centered
           />
-          <p className="mt-4 text-gray-600 text-lg">
+          <p className="mt-6 text-xl text-gray-700 font-semibold">
             Loading character gallery...
           </p>
         </div>
@@ -314,45 +308,70 @@ export default function CharacterAssignmentPage({
   const progress = getProgress()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
+        <div className="text-center mb-12">
+          {/* Icon */}
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 mb-6 shadow-xl">
+            <svg
+              className="w-10 h-10 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-4 font-heading">
             Choose Your Characters
           </h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-4">
-            Select preset characters for each role in your story. You can click
-            on a character and then click on a role, or drag and drop characters
-            onto role slots.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
+            Select preset characters for each role in your story. Click a
+            character and then click a role, or drag and drop characters onto
+            role slots.
           </p>
 
           {/* Progress Indicator */}
-          <div className="inline-flex items-center bg-white rounded-full px-6 py-3 shadow-md">
-            <div className="flex items-center space-x-2">
-              <svg
-                className="w-5 h-5 text-blue-600"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-              </svg>
-              <span className="font-semibold text-gray-900">
-                {progress.completed} / {progress.total} Characters Assigned
-              </span>
+          <div className="inline-flex items-center bg-white rounded-2xl px-8 py-4 shadow-xl border-2 border-teal-200">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white">
+                <svg
+                  className="w-7 h-7"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <div className="text-sm text-gray-600 font-semibold">
+                  Assignment Progress
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {progress.completed} / {progress.total} Assigned
+                </div>
+              </div>
             </div>
             {isComplete() && (
-              <svg
-                className="ml-3 w-6 h-6 text-green-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <div className="ml-6 flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 shadow-lg">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
             )}
           </div>
         </div>
@@ -360,11 +379,11 @@ export default function CharacterAssignmentPage({
         {/* Error Display */}
         {error && (
           <div
-            className="max-w-3xl mx-auto mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start"
+            className="max-w-4xl mx-auto mb-8 bg-red-50 border-l-4 border-red-500 rounded-r-xl shadow-md p-5 flex items-start animate-slide-in-right"
             role="alert"
           >
             <svg
-              className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5"
+              className="w-6 h-6 text-red-600 mr-4 flex-shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -374,7 +393,7 @@ export default function CharacterAssignmentPage({
                 clipRule="evenodd"
               />
             </svg>
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 font-medium text-lg">{error}</p>
           </div>
         )}
 
@@ -382,16 +401,31 @@ export default function CharacterAssignmentPage({
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Section - Character Gallery (40%) */}
           <div className="lg:w-2/5">
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Character Gallery
-              </h2>
-              <p className="text-sm text-gray-600 mb-6">
-                Click or drag a character to assign them to a role
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-teal-200 p-6 sticky top-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-lg">
+                  <svg
+                    className="w-7 h-7"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 font-heading">
+                  Character Gallery
+                </h2>
+              </div>
+              <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                Click or drag a character to assign them to a role below
               </p>
 
               {/* Character Grid */}
-              <div className="grid grid-cols-2 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+              <div className="grid grid-cols-2 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-visible pr-2 py-2">
                 {presetCharacters.map((character) => {
                   const isSelected = selectedCharacter === character.id
                   const isAssigned = isCharacterAssigned(character.id)
@@ -400,41 +434,98 @@ export default function CharacterAssignmentPage({
                   return (
                     <div
                       key={character.id}
-                      className="relative"
+                      className={`relative group ${
+                        isSelected ? "z-10" : "z-0"
+                      } hover:z-10 transition-all duration-200`}
                       draggable={!isAssigned}
                       onDragStart={() =>
                         !isAssigned && handleDragStart(character.id)
                       }
                       onDragEnd={handleDragEnd}
+                      onClick={() =>
+                        !isAssigned && handleCharacterSelect(character.id)
+                      }
                     >
-                      <Card
-                        image={character.imageUrl}
-                        imageAlt={character.name}
-                        padding={CardPadding.Small}
-                        hoverable={!isAssigned}
-                        selected={isSelected}
-                        onClick={() =>
-                          !isAssigned && handleCharacterSelect(character.id)
-                        }
-                        className={`${
+                      <div
+                        className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
                           isAssigned
-                            ? "opacity-50 cursor-not-allowed"
-                            : "cursor-pointer"
+                            ? "opacity-60 cursor-not-allowed"
+                            : "cursor-grab active:cursor-grabbing hover:scale-105 hover:shadow-2xl"
                         } ${
-                          draggedCharacter === character.id ? "opacity-50" : ""
+                          isSelected
+                            ? "ring-4 ring-purple-500 shadow-2xl scale-105"
+                            : "shadow-lg"
+                        } ${
+                          draggedCharacter === character.id
+                            ? "opacity-40 scale-95"
+                            : ""
                         }`}
                       >
-                        <div className="text-center">
-                          <p className="font-semibold text-gray-900">
+                        {/* Character Image */}
+                        <div className="aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={character.imageUrl}
+                            alt={character.name}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                          {/* Selected Indicator */}
+                          {isSelected && !isAssigned && (
+                            <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                              <svg
+                                className="w-5 h-5 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
+
+                          {/* Assigned Badge */}
+                          {isAssigned && assignedRole && (
+                            <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2 shadow-lg">
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Character Name */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
+                          <p className="font-bold text-white text-sm drop-shadow-lg">
                             {character.name}
                           </p>
-                          {isAssigned && assignedRole && (
-                            <p className="text-xs text-blue-600 mt-1 font-medium">
-                              ✓ Assigned
+                          {isAssigned && (
+                            <p className="text-xs text-green-300 font-semibold mt-0.5 drop-shadow">
+                              Assigned
                             </p>
                           )}
                         </div>
-                      </Card>
+
+                        {/* Hover Effect Border */}
+                        {!isAssigned && (
+                          <div className="absolute inset-0 border-2 border-transparent group-hover:border-purple-400 rounded-2xl transition-colors duration-300 pointer-events-none" />
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -456,118 +547,120 @@ export default function CharacterAssignmentPage({
                 return (
                   <div
                     key={role.id}
-                    className={`bg-white rounded-xl shadow-lg p-6 transition-all duration-200 ${
+                    className={`bg-white rounded-xl border-2 shadow-lg p-5 transition-colors duration-200 ring-4 ring-offset-0 ${
                       isHovered
-                        ? "ring-4 ring-blue-400 shadow-xl scale-105"
-                        : ""
-                    } ${isRoleSelected ? "ring-2 ring-purple-400" : ""}`}
+                        ? "ring-purple-400 border-purple-400 shadow-xl"
+                        : isRoleSelected
+                        ? "ring-purple-300 border-purple-300"
+                        : "ring-transparent border-gray-100"
+                    }`}
                     onDragOver={(e) => handleDragOver(e, role.id)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, role.id)}
                   >
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      {/* Role Information */}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {role.role}
-                          </h3>
-                          {assignedCharacter && (
-                            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded">
-                              Assigned
-                            </span>
-                          )}
+                    {/* Assignment Display */}
+                    {assignedCharacter ? (
+                      <div className="flex items-center gap-5 h-28">
+                        {/* Character Image */}
+                        <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={assignedCharacter.imageUrl}
+                            alt={assignedCharacter.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <p className="text-gray-600 mb-4">{role.description}</p>
 
-                        {/* Assignment Display */}
-                        {assignedCharacter ? (
-                          <div className="flex items-center space-x-4">
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={assignedCharacter.imageUrl}
-                                alt={assignedCharacter.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900 text-lg">
-                                {assignedCharacter.name}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {assignedCharacter.description}
-                              </p>
-                            </div>
+                        {/* Role & Character Info */}
+                        <div className="flex-1 min-w-0 py-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900 truncate">
+                              {role.role}
+                            </h3>
+                            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded shrink-0">
+                              ✓
+                            </span>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => handleRoleClick(role.id)}
-                            className={`w-full border-2 border-dashed rounded-lg p-6 transition-all duration-200 ${
-                              selectedCharacter
-                                ? "border-blue-400 bg-blue-50 hover:bg-blue-100"
-                                : "border-gray-300 bg-gray-50 hover:border-gray-400"
-                            }`}
-                          >
-                            <div className="flex flex-col items-center space-y-2">
-                              <svg
-                                className={`w-12 h-12 ${
-                                  selectedCharacter
-                                    ? "text-blue-500"
-                                    : "text-gray-400"
-                                }`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                              </svg>
-                              <p
-                                className={`font-medium ${
-                                  selectedCharacter
-                                    ? "text-blue-700"
-                                    : "text-gray-600"
-                                }`}
-                              >
-                                {selectedCharacter
-                                  ? "Click to assign selected character"
-                                  : "Click to select or drag a character here"}
-                              </p>
-                            </div>
-                          </button>
-                        )}
+                          <p className="text-base text-gray-600 line-clamp-2 mb-2">
+                            {role.description}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-purple-700 text-base">
+                              {assignedCharacter.name}
+                            </p>
+                            <span className="text-gray-400">•</span>
+                            <p className="text-sm text-gray-500 line-clamp-1">
+                              {assignedCharacter.description}
+                            </p>
+                          </div>
+                        </div>
 
-                        {/* Action Buttons */}
-                        {assignedCharacter && (
-                          <div className="mt-4 flex space-x-2">
-                            <Button
-                              variant={ButtonVariant.Secondary}
-                              size={ButtonSize.Small}
-                              onClick={() => {
-                                handleRemoveAssignment(role.id)
-                              }}
-                            >
-                              Remove
-                            </Button>
-                            <Button
-                              variant={ButtonVariant.Secondary}
-                              size={ButtonSize.Small}
-                              onClick={() => {
-                                handleRemoveAssignment(role.id)
-                                setSelectedRole(role.id)
-                              }}
-                            >
-                              Change
-                            </Button>
-                          </div>
-                        )}
+                        {/* Action Button */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleRemoveAssignment(role.id)
+                            setSelectedRole(role.id)
+                          }}
+                          className="shrink-0 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          Change
+                        </button>
                       </div>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => handleRoleClick(role.id)}
+                        className={`w-full border-2 border-dashed rounded-xl transition-colors duration-200 ${
+                          selectedCharacter
+                            ? "border-purple-400 bg-purple-50 hover:bg-purple-100"
+                            : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-5 h-28 px-2">
+                          {/* Icon */}
+                          <div className="shrink-0 w-28 h-28 flex items-center justify-center">
+                            <svg
+                              className={`w-14 h-14 ${
+                                selectedCharacter
+                                  ? "text-purple-500"
+                                  : "text-gray-400"
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
+                          </div>
+
+                          {/* Text Content */}
+                          <div className="flex-1 text-left py-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">
+                              {role.role}
+                            </h3>
+                            <p className="text-base text-gray-600 line-clamp-2 mb-2">
+                              {role.description}
+                            </p>
+                            <p
+                              className={`text-sm font-medium ${
+                                selectedCharacter
+                                  ? "text-purple-700"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedCharacter
+                                ? "Click to assign selected character"
+                                : "Click or drag character here"}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 )
               })}
@@ -577,10 +670,26 @@ export default function CharacterAssignmentPage({
 
         {/* Assignment Preview */}
         {isComplete() && (
-          <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
-              Your Story Characters
-            </h3>
+          <div className="mt-8 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg border-2 border-purple-100 p-8">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500 mb-3">
+                <svg
+                  className="w-7 h-7 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Your Story Characters
+              </h3>
+              <p className="text-gray-600">All roles have been assigned!</p>
+            </div>
             <div className="flex flex-wrap justify-center gap-6">
               {storyRoles.map((role) => {
                 const character = getCharacterById(assignments[role.id])
@@ -608,58 +717,164 @@ export default function CharacterAssignmentPage({
         )}
 
         {/* Navigation Buttons */}
-        <div className="mt-8 flex justify-between items-center max-w-3xl mx-auto">
-          <Button
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Large}
+        <div className="mt-12 flex justify-between items-center max-w-4xl mx-auto">
+          <button
             onClick={handleBack}
             disabled={isSaving}
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
-            ← Back to Story Editor
-          </Button>
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back to Story Editor
+          </button>
 
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleSaveAndContinue}
             disabled={!isComplete() || isSaving}
-            loading={isSaving}
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
           >
-            {isSaving ? "Saving..." : "Next: Background Setup →"}
-          </Button>
+            {isSaving ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <span>Next: Background Setup</span>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </>
+            )}
+          </button>
         </div>
 
         {/* Instructions Card */}
         {!isComplete() && (
-          <div className="mt-6 max-w-3xl mx-auto bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mt-8 max-w-4xl mx-auto bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 rounded-2xl p-8 shadow-lg">
             <div className="flex items-start">
-              <svg
-                className="w-6 h-6 text-blue-600 mr-3 flex-shrink-0 mt-0.5"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div>
-                <p className="text-blue-800 font-medium mb-2">
+              <div className="flex-shrink-0">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white">
+                  <svg
+                    className="w-7 h-7"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-5">
+                <p className="text-teal-900 font-bold text-xl mb-4">
                   How to assign characters:
                 </p>
-                <ul className="text-blue-700 text-sm space-y-1">
-                  <li>
-                    • <strong>Method 1:</strong> Click a character, then click a
-                    role slot
+                <ul className="text-teal-800 space-y-3">
+                  <li className="flex items-start">
+                    <svg
+                      className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5 text-teal-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>
+                      <strong>Method 1:</strong> Click a character, then click a
+                      role slot
+                    </span>
                   </li>
-                  <li>
-                    • <strong>Method 2:</strong> Drag a character and drop it
-                    onto a role
+                  <li className="flex items-start">
+                    <svg
+                      className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5 text-teal-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>
+                      <strong>Method 2:</strong> Drag a character and drop it
+                      onto a role
+                    </span>
                   </li>
-                  <li>• Each character can only be assigned to one role</li>
-                  <li>
-                    • All {storyRoles.length} roles must be assigned to continue
+                  <li className="flex items-start">
+                    <svg
+                      className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5 text-teal-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>Each character can only be assigned to one role</span>
+                  </li>
+                  <li className="flex items-start">
+                    <svg
+                      className="w-5 h-5 mr-3 flex-shrink-0 mt-0.5 text-teal-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>
+                      All {storyRoles.length} roles must be assigned to continue
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -670,17 +885,17 @@ export default function CharacterAssignmentPage({
 
       {/* Saving Overlay */}
       {isSaving && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md mx-4 text-center">
+        <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg mx-4 text-center animate-scale-in">
             <LoadingSpinner
               size={SpinnerSize.Large}
               color={SpinnerColor.Primary}
               centered
             />
-            <h3 className="mt-6 text-xl font-semibold text-gray-900">
+            <h3 className="mt-8 text-2xl font-bold text-gray-900 font-heading">
               Saving Character Assignments...
             </h3>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-4 text-lg text-gray-600">
               Your characters are being saved to the story.
             </p>
           </div>

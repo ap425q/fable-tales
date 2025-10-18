@@ -395,11 +395,11 @@ GET /stories/{storyId}/character-assignments
 
 ---
 
-## 5️⃣ Background Setup and Generation Page
+## 5️⃣ Location Background Setup and Generation Page
 
-### API 5-1: Retrieve Backgrounds List
+### API 5-1: Retrieve Location Backgrounds List
 ```
-GET /stories/{storyId}/backgrounds
+GET /stories/{storyId}/locations
 ```
 
 **Response:**
@@ -407,41 +407,41 @@ GET /stories/{storyId}/backgrounds
 {
   "success": true,
   "data": {
-    "backgrounds": [
+    "locations": [
       {
-        "id": "bg_1",
-        "locationId": "loc_1",
+        "id": "loc_1",
         "name": "Magical Forest",
         "description": "Bright forest with sunshine",
         "sceneNumbers": [1, 2, 5, 7, 15],
         "imageUrl": null, // Not yet generated
-        "status": "pending", // 'pending' | 'generating' | 'completed'
-        "versions": []
+        "status": "pending", // 'pending' | 'generating' | 'completed' | 'failed'
+        "versions": [],
+        "selectedVersionId": null
       },
       {
-        "id": "bg_2",
-        "locationId": "loc_2",
+        "id": "loc_2",
         "name": "Riverside",
         "description": "Riverside with clear flowing water",
         "sceneNumbers": [3, 4],
-        "imageUrl": "https://cdn.../background_river_v1.png",
+        "imageUrl": "https://cdn.../location_river_v1.png",
         "status": "completed",
         "versions": [
           {
-            "versionId": "bg_2_v1",
-            "imageUrl": "https://cdn.../background_river_v1.png",
+            "versionId": "loc_2_v1",
+            "imageUrl": "https://cdn.../location_river_v1.png",
             "createdAt": "2025-10-15T11:30:00Z"
           }
-        ]
+        ],
+        "selectedVersionId": "loc_2_v1"
       }
     ]
   }
 }
 ```
 
-### API 5-2: Update Background Description
+### API 5-2: Update Location Description
 ```
-PATCH /stories/{storyId}/backgrounds/{backgroundId}
+PATCH /stories/{storyId}/locations/{locationId}
 ```
 
 **Request Body:**
@@ -457,31 +457,34 @@ PATCH /stories/{storyId}/backgrounds/{backgroundId}
 {
   "success": true,
   "data": {
-    "background": {
-      "id": "bg_1",
+    "location": {
+      "id": "loc_1",
       "name": "Mysterious Forest",
       "description": "Mysterious forest shrouded in mist",
-      // ... rest
+      "sceneNumbers": [1, 2, 5, 7, 15],
+      "imageUrl": null,
+      "status": "pending",
+      "versions": []
     }
   }
 }
 ```
 
-### API 5-3: Generate All Background Images
+### API 5-3: Generate All Location Images
 ```
-POST /stories/{storyId}/backgrounds/generate-all
+POST /stories/{storyId}/locations/generate-all
 ```
 
 **Request Body:**
 ```json
 {
-  "backgrounds": [
+  "locations": [
     {
-      "backgroundId": "bg_1",
+      "locationId": "loc_1",
       "description": "Bright forest with sunshine"
     },
     {
-      "backgroundId": "bg_2",
+      "locationId": "loc_2",
       "description": "Riverside with clear flowing water"
     }
     // ...
@@ -495,15 +498,15 @@ POST /stories/{storyId}/backgrounds/generate-all
   "success": true,
   "data": {
     "jobId": "job_789",
-    "message": "Background generation started",
-    "backgroundIds": ["bg_1", "bg_2", "bg_3"]
+    "message": "Location image generation started",
+    "locationIds": ["loc_1", "loc_2", "loc_3"]
   }
 }
 ```
 
-### API 5-4: Check Background Generation Status
+### API 5-4: Check Location Image Generation Status
 ```
-GET /stories/{storyId}/backgrounds/generation-status
+GET /stories/{storyId}/locations/generation-status
 ```
 
 **Query Params:**
@@ -517,20 +520,20 @@ jobId: string (optional)
   "success": true,
   "data": {
     "status": "in_progress", // 'pending' | 'in_progress' | 'completed' | 'failed'
-    "backgrounds": [
+    "locations": [
       {
-        "backgroundId": "bg_1",
+        "locationId": "loc_1",
         "status": "completed",
-        "imageUrl": "https://cdn.../bg_forest_v1.png",
-        "versionId": "bg_1_v1"
+        "imageUrl": "https://cdn.../location_forest_v1.png",
+        "versionId": "loc_1_v1"
       },
       {
-        "backgroundId": "bg_2",
+        "locationId": "loc_2",
         "status": "generating",
         "imageUrl": null
       },
       {
-        "backgroundId": "bg_3",
+        "locationId": "loc_3",
         "status": "pending",
         "imageUrl": null
       }
@@ -543,9 +546,9 @@ jobId: string (optional)
 }
 ```
 
-### API 5-5: Regenerate Individual Background
+### API 5-5: Regenerate Individual Location Image
 ```
-POST /stories/{storyId}/backgrounds/{backgroundId}/regenerate
+POST /stories/{storyId}/locations/{locationId}/regenerate
 ```
 
 **Request Body:**
@@ -560,23 +563,23 @@ POST /stories/{storyId}/backgrounds/{backgroundId}/regenerate
 {
   "success": true,
   "data": {
-    "backgroundId": "bg_1",
-    "versionId": "bg_1_v2",
-    "imageUrl": "https://cdn.../bg_forest_v2.png",
+    "locationId": "loc_1",
+    "versionId": "loc_1_v2",
+    "imageUrl": "https://cdn.../location_forest_v2.png",
     "status": "completed"
   }
 }
 ```
 
-### API 5-6: Select Background Version
+### API 5-6: Select Location Image Version
 ```
-POST /stories/{storyId}/backgrounds/{backgroundId}/select-version
+POST /stories/{storyId}/locations/{locationId}/select-version
 ```
 
 **Request Body:**
 ```json
 {
-  "versionId": "bg_1_v2"
+  "versionId": "loc_1_v2"
 }
 ```
 
@@ -585,9 +588,9 @@ POST /stories/{storyId}/backgrounds/{backgroundId}/select-version
 {
   "success": true,
   "data": {
-    "backgroundId": "bg_1",
-    "selectedVersionId": "bg_1_v2",
-    "imageUrl": "https://cdn.../bg_forest_v2.png"
+    "locationId": "loc_1",
+    "selectedVersionId": "loc_1_v2",
+    "imageUrl": "https://cdn.../location_forest_v2.png"
   }
 }
 ```
@@ -1065,7 +1068,7 @@ type: string ('character' | 'background')
 {
   "STORY_NOT_FOUND": "Story not found",
   "NODE_NOT_FOUND": "Node not found",
-  "BACKGROUND_NOT_FOUND": "Background not found",
+  "LOCATION_NOT_FOUND": "Location not found",
   "INVALID_TREE_STRUCTURE": "Invalid tree structure",
   "GENERATION_FAILED": "Generation failed",
   "GENERATION_IN_PROGRESS": "Generation in progress",
@@ -1105,17 +1108,17 @@ Complete Parent Mode Flow:
 5. POST /stories/{storyId}/character-assignments
    → Assign characters to story roles
 
-6. GET /stories/{storyId}/backgrounds
-   → Retrieve backgrounds list
+6. GET /stories/{storyId}/locations
+   → Retrieve locations list with background image info
 
-7. PATCH /stories/{storyId}/backgrounds/{backgroundId}
-   → Modify background descriptions (as needed)
+7. PATCH /stories/{storyId}/locations/{locationId}
+   → Modify location descriptions (as needed)
 
-8. POST /stories/{storyId}/backgrounds/generate-all
-   → Generate all background images
+8. POST /stories/{storyId}/locations/generate-all
+   → Generate all location background images
 
-9. GET /stories/{storyId}/backgrounds/generation-status (polling)
-   → Check background generation status
+9. GET /stories/{storyId}/locations/generation-status (polling)
+   → Check location image generation status
 
 10. POST /stories/{storyId}/scenes/generate-all-images
     → Generate all scene images (character + background composite)
