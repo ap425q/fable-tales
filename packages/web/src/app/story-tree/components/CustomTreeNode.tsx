@@ -112,6 +112,17 @@ export function CustomTreeNode(props: NodeProps<any>) {
 
   const opacity = getOpacity()
 
+  // Get ring color based on state (priority: hovered > parent > child > selected)
+  const getRingColor = (): string => {
+    if (data.isHovered) return "#3B82F6" // Blue for hovered node
+    if (data.isParent) return "#A855F7" // Purple for parent node
+    if (data.isChild) return "#10B981" // Green for child node
+    if (selected) return "#D4AF37" // Gold for selected node
+    return "" // No ring
+  }
+
+  const ringColor = getRingColor()
+
   return (
     <div
       className="relative transition-all duration-200 cursor-pointer group"
@@ -143,8 +154,7 @@ export function CustomTreeNode(props: NodeProps<any>) {
             0 6px 20px rgba(44, 36, 22, 0.4),
             inset 0 1px 0 rgba(255, 255, 255, 0.2),
             inset 0 -2px 0 rgba(0, 0, 0, 0.2)
-            ${selected ? ", 0 0 0 3px #D4AF37" : ""}
-            ${data.isHovered ? ", 0 0 0 3px #5B7C99" : ""}
+            ${ringColor ? `, 0 0 0 5px ${ringColor}` : ""}
           `,
         }}
       >

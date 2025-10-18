@@ -948,16 +948,16 @@ function StoryTreeEditor() {
                     <strong>"Add Node"</strong> to create child nodes
                   </p>
                   <p className="mt-2 pt-2 border-t border-gray-200">
-                    <span className="inline-block w-3 h-3 rounded-full bg-purple-400 mr-1"></span>
+                    <span className="inline-block w-3 h-3 rounded-full bg-purple-500 mr-1"></span>
                     Purple ring = Parent node
                   </p>
                   <p>
-                    <span className="inline-block w-3 h-3 rounded-full bg-green-400 mr-1"></span>
+                    <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span>
                     Green ring = Child node
                   </p>
                   <p>
                     <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
-                    Blue highlight = Current node
+                    Blue ring = Hovered node
                   </p>
                 </div>
               </Card>
