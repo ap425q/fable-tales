@@ -258,6 +258,7 @@ export interface LocationsListResponse {
  * Character assignments list response
  */
 export interface CharacterAssignmentsResponse {
+  storyId: string
   assignments: CharacterAssignmentResponse[]
 }
 

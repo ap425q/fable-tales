@@ -5,6 +5,7 @@ import { SpinnerColor, SpinnerSize } from "@/components/types"
 import { api } from "@/lib/api"
 import { CharacterRole } from "@/lib/apiTypes"
 import { ApiError, PresetCharacter } from "@/types"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import React, { use, useEffect, useState } from "react"
 
@@ -67,6 +68,7 @@ export default function CharacterAssignmentPage({
 
         if (charactersResult.success && charactersResult.data) {
           setPresetCharacters(charactersResult.data.characters)
+          console.log(charactersResult)
         }
 
         if (storyResult.success && storyResult.data) {
@@ -463,12 +465,13 @@ export default function CharacterAssignmentPage({
                       >
                         {/* Character Image */}
                         <div className="aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          <Image
                             src={character.imageUrl}
                             alt={character.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
                             draggable={false}
+                            sizes="(max-width: 768px) 50vw, 20vw"
                           />
 
                           {/* Gradient Overlay */}
@@ -562,12 +565,13 @@ export default function CharacterAssignmentPage({
                     {assignedCharacter ? (
                       <div className="flex items-center gap-5 h-28">
                         {/* Character Image */}
-                        <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                        <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 flex-shrink-0 relative">
+                          <Image
                             src={assignedCharacter.imageUrl}
                             alt={assignedCharacter.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            sizes="112px"
                           />
                         </div>
 
@@ -602,7 +606,7 @@ export default function CharacterAssignmentPage({
                             handleRemoveAssignment(role.id)
                             setSelectedRole(role.id)
                           }}
-                          className="shrink-0 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                          className="shrink-0 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
                         >
                           Change
                         </button>
@@ -610,7 +614,7 @@ export default function CharacterAssignmentPage({
                     ) : (
                       <button
                         onClick={() => handleRoleClick(role.id)}
-                        className={`w-full border-2 border-dashed rounded-xl transition-colors duration-200 ${
+                        className={`w-full border-2 border-dashed rounded-xl transition-colors duration-200 cursor-pointer ${
                           selectedCharacter
                             ? "border-purple-400 bg-purple-50 hover:bg-purple-100"
                             : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
@@ -696,12 +700,13 @@ export default function CharacterAssignmentPage({
                 return (
                   character && (
                     <div key={role.id} className="text-center">
-                      <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-blue-200 mb-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                      <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-blue-200 mb-2 relative">
+                        <Image
                           src={character.imageUrl}
                           alt={character.name}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="128px"
                         />
                       </div>
                       <p className="font-semibold text-gray-900">
@@ -721,7 +726,7 @@ export default function CharacterAssignmentPage({
           <button
             onClick={handleBack}
             disabled={isSaving}
-            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -742,7 +747,7 @@ export default function CharacterAssignmentPage({
           <button
             onClick={handleSaveAndContinue}
             disabled={!isComplete() || isSaving}
-            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-3"
           >
             {isSaving ? (
               <>

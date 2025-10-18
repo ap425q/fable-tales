@@ -8,8 +8,6 @@ from typing import List, Optional
 
 from app.models.schemas import (ERROR_CODES, APIResponse,
                                 CharacterAssignmentRequest,
-                                CharacterAssignmentsResponse,
-                                CharactersResponse,
                                 LocationImageGenerationRequest,
                                 LocationImageGenerationResponse,
                                 LocationImageGenerationStatus,
@@ -190,7 +188,7 @@ async def delete_node(
 # 4️⃣ Character Role Assignment Page APIs
 # ============================================================================
 
-@router.get("/characters", response_model=CharactersResponse)
+@router.get("/characters", response_model=APIResponse)
 async def get_preset_characters():
     """
     API 4-1: Retrieve Preset Characters List
@@ -210,15 +208,18 @@ async def get_preset_characters():
     """
     try:
         characters = story_service.get_preset_characters()
-        return CharactersResponse(characters=characters)
+        return APIResponse(
+            success=True,
+            data={"characters": [char.model_dump(by_alias=True) for char in characters]}
+        )
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": "SERVER_ERROR", "message": str(e)}
+        return APIResponse(
+            success=False,
+            error={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 
-@router.post("/stories/{story_id}/character-assignments", response_model=CharacterAssignmentsResponse)
+@router.post("/stories/{story_id}/character-assignments", response_model=APIResponse)
 async def save_character_assignments(
     story_id: str = Path(..., description="Story ID"),
     request: CharacterAssignmentRequest = None
@@ -240,24 +241,25 @@ async def save_character_assignments(
     try:
         assignments = story_service.save_character_assignments(story_id, request.assignments)
         if not assignments:
-            raise HTTPException(
-                status_code=404,
-                detail={"code": "STORY_NOT_FOUND", "message": "Story not found"}
+            return APIResponse(
+                success=False,
+                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
             )
-        return CharacterAssignmentsResponse(
-            storyId=story_id,
-            assignments=assignments
+        return APIResponse(
+            success=True,
+            data={
+                "storyId": story_id,
+                "assignments": [assignment.model_dump(by_alias=True) for assignment in assignments]
+            }
         )
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": "SERVER_ERROR", "message": str(e)}
+        return APIResponse(
+            success=False,
+            error={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 
-@router.get("/stories/{story_id}/character-assignments", response_model=CharacterAssignmentsResponse)
+@router.get("/stories/{story_id}/character-assignments", response_model=APIResponse)
 async def get_character_assignments(story_id: str = Path(..., description="Story ID")):
     """
     API 4-3: Retrieve Character Assignments
@@ -273,18 +275,24 @@ async def get_character_assignments(story_id: str = Path(..., description="Story
         assignments = story_service.get_character_assignments(story_id)
         if assignments is None:
             # Return empty list if no assignments found
-            return CharacterAssignmentsResponse(
-                storyId=story_id,
-                assignments=[]
+            return APIResponse(
+                success=True,
+                data={
+                    "storyId": story_id,
+                    "assignments": []
+                }
             )
-        return CharacterAssignmentsResponse(
-            storyId=story_id,
-            assignments=assignments
+        return APIResponse(
+            success=True,
+            data={
+                "storyId": story_id,
+                "assignments": [assignment.model_dump(by_alias=True) for assignment in assignments]
+            }
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"code": "SERVER_ERROR", "message": str(e)}
+        return APIResponse(
+            success=False,
+            error={"code": "SERVER_ERROR", "message": str(e)}
         )
 
 

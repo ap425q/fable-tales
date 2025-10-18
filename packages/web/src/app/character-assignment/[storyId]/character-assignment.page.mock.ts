@@ -163,6 +163,7 @@ export const mockStoryRolesResponse = {
 export const mockAssignmentsResponse = {
   success: true,
   data: {
+    storyId: "story_12345",
     assignments: Object.values(mockExistingAssignments),
   },
 }
@@ -173,8 +174,37 @@ export const mockAssignmentsResponse = {
 export const mockSaveAssignmentsResponse = {
   success: true,
   data: {
-    message: "Character assignments saved successfully",
-    assignmentCount: 4,
+    storyId: "story_12345",
+    assignments: [
+      {
+        characterRoleId: "role_001",
+        presetCharacterId: "char_f_amelia",
+        role: "Protagonist",
+        characterName: "Amelia",
+        imageUrl: "/characters/f_amelia.png",
+      },
+      {
+        characterRoleId: "role_002",
+        presetCharacterId: "char_f_ava",
+        role: "Best Friend",
+        characterName: "Ava",
+        imageUrl: "/characters/f_ava.png",
+      },
+      {
+        characterRoleId: "role_003",
+        presetCharacterId: "char_m_joseph",
+        role: "Wise Helper",
+        characterName: "Joseph",
+        imageUrl: "/characters/m_joseph.png",
+      },
+      {
+        characterRoleId: "role_004",
+        presetCharacterId: "char_m_john",
+        role: "Antagonist",
+        characterName: "John",
+        imageUrl: "/characters/m_john.png",
+      },
+    ],
   },
 }
 
