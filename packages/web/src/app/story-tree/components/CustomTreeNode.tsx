@@ -4,8 +4,9 @@
  */
 
 import { NodeType } from "@/types"
-import { Handle, Position } from "@xyflow/react"
+import { Handle, NodeProps, Position } from "@xyflow/react"
 import React from "react"
+import { TreeNodeData } from "../types"
 
 /**
  * Get node styling based on type (parchment/medallion colors)
@@ -82,8 +83,10 @@ const getTypeLabel = (type: NodeType): string => {
 /**
  * Custom Tree Node Component - Medallion/Seal Style
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
+export const CustomTreeNode: React.FC<NodeProps<TreeNodeData>> = ({
+  data,
+  selected,
+}) => {
   const nodeStyle = getNodeStyles(data.type)
   const typeLabel = getTypeLabel(data.type)
   const [showAddButton, setShowAddButton] = React.useState(false)
@@ -101,14 +104,22 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
     }
   }
 
-  // Opacity based on hover state
-  const opacity = data.isHovered
-    ? 1
-    : data.isParent || data.isChild
-    ? 0.9
-    : data.isParent === false && !data.isHovered
-    ? 0.3
-    : 1
+  // Opacity based on hover state - always show nodes clearly when nothing is hovered
+  const getOpacity = () => {
+    // If this node is hovered, show at full opacity
+    if (data.isHovered) return 1
+    // If this node is a parent or child of hovered node, show clearly
+    if (data.isParent || data.isChild) return 1
+    // If any node is hovered (but this isn't related), dim slightly
+    if (data.isParent === false && data.isChild === false && !data.isHovered) {
+      // Check if we're in a hover state by looking at isParent/isChild being explicitly false
+      return 0.4
+    }
+    // Default: show at full opacity when nothing is hovered
+    return 1
+  }
+
+  const opacity = getOpacity()
 
   return (
     <div
@@ -254,12 +265,14 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
       {hasOutgoing && showAddButton && (
         <button
           onClick={handleAddNodeClick}
-          className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 text-xs font-bold px-4 py-2 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 z-50 hover:scale-105"
+          className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 text-xs font-bold px-4 py-2 rounded-full shadow-lg transition-all duration-200 flex items-center gap-2 hover:scale-105"
           style={{
             background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
             color: "#FFF",
-            boxShadow: "0 4px 12px rgba(74, 103, 65, 0.5)",
+            boxShadow: "0 8px 20px rgba(74, 103, 65, 0.6)",
             fontFamily: "var(--font-ui)",
+            zIndex: 1000,
+            pointerEvents: "auto",
           }}
           title="Add child node"
         >

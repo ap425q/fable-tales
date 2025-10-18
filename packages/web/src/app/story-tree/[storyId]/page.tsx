@@ -12,6 +12,9 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Edge,
+  Node,
+  NodeMouseHandler,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
@@ -20,10 +23,10 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import { useParams, useRouter } from "next/navigation"
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { CustomTreeNode } from "../components/CustomTreeNode"
 import { NodeEditPanel } from "../components/NodeEditPanel"
-import { NodeEditFormData, TreeNode, TreeValidation } from "../types"
+import { NodeEditFormData, TreeNodeData, TreeValidation } from "../types"
 import { calculateTreeLayout } from "../utils/treeLayout"
 import { validateTree } from "../utils/treeValidation"
 import {
@@ -31,6 +34,10 @@ import {
   simulateDelay,
   StoryDetailsResponse,
 } from "./story-tree.page.mock"
+
+// Type aliases for React Flow
+type TreeNode = Node<TreeNodeData>
+type TreeEdge = Edge
 
 /**
  * Add Node Modal Component
@@ -219,8 +226,8 @@ function StoryTreeEditor() {
 
   // State
   const [storyData, setStoryData] = useState<StoryDetailsResponse | null>(null)
-  const [nodes, setNodes, onNodesChange] = useNodesState<any>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([])
+  const [nodes, setNodes, onNodesChange] = useNodesState<TreeNode>([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState<TreeEdge>([])
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -236,12 +243,71 @@ function StoryTreeEditor() {
   )
 
   // Define node types for React Flow
-  const nodeTypes = useMemo(() => ({ custom: CustomTreeNode }), []) as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const nodeTypes = useMemo(() => ({ custom: CustomTreeNode as any }), [])
 
   // Load story data
   useEffect(() => {
     loadStoryData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storyId])
+
+  // Handle delete node
+  const handleDeleteNode = useCallback(async () => {
+    if (!selectedNode) return
+
+    const node = nodes.find((n) => n.id === selectedNode)
+    if (!node || node.data.type === NodeType.START) {
+      alert("Cannot delete the start node")
+      return
+    }
+
+    try {
+      setIsSaving(true)
+
+      // Simulate API call
+      await simulateDelay(500)
+
+      // In production:
+      // await api.delete(`/stories/${storyId}/nodes/${selectedNode}`)
+
+      // Remove node
+      setNodes((nds) => nds.filter((n) => n.id !== selectedNode))
+
+      // Remove associated edges
+      setEdges((eds) =>
+        eds.filter(
+          (e) => e.source !== selectedNode && e.target !== selectedNode
+        )
+      )
+
+      setSelectedNode(null)
+      setHasUnsavedChanges(false)
+
+      // Revalidate
+      setTimeout(() => {
+        validateTreeStructure(
+          nodes.filter((n) => n.id !== selectedNode),
+          edges
+        )
+      }, 100)
+
+      console.log("Node deleted successfully")
+    } catch (error) {
+      console.error("Failed to delete node:", error)
+    } finally {
+      setIsSaving(false)
+    }
+  }, [
+    selectedNode,
+    nodes,
+    setNodes,
+    setEdges,
+    edges,
+    setIsSaving,
+    setHasUnsavedChanges,
+    setSelectedNode,
+  ])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -270,7 +336,7 @@ function StoryTreeEditor() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedNode, nodes, hasUnsavedChanges])
+  }, [selectedNode, nodes, hasUnsavedChanges, handleDeleteNode])
 
   // Load story data from API
   const loadStoryData = async () => {
@@ -296,15 +362,18 @@ function StoryTreeEditor() {
   }
 
   // Get parent and child nodes for hover highlighting
-  const getRelatedNodes = (nodeId: string) => {
-    const parents = edges
-      .filter((e: any) => e.target === nodeId)
-      .map((e: any) => e.source)
-    const children = edges
-      .filter((e: any) => e.source === nodeId)
-      .map((e: any) => e.target)
-    return { parents, children }
-  }
+  const getRelatedNodes = useCallback(
+    (nodeId: string) => {
+      const parents = edges
+        .filter((e) => e.target === nodeId)
+        .map((e) => e.source as string)
+      const children = edges
+        .filter((e) => e.source === nodeId)
+        .map((e) => e.target as string)
+      return { parents, children }
+    },
+    [edges]
+  )
 
   // Handle add node request
   const handleAddNodeRequest = (parentNodeId: string) => {
@@ -367,9 +436,12 @@ function StoryTreeEditor() {
   }
 
   // Validate tree structure
-  const validateTreeStructure = (currentNodes: any[], currentEdges: any[]) => {
-    const nodeData = currentNodes.map((n: any) => n.data)
-    const edgeData = currentEdges.map((e: any) => ({
+  const validateTreeStructure = (
+    currentNodes: TreeNode[],
+    currentEdges: TreeEdge[]
+  ) => {
+    const nodeData = currentNodes.map((n) => n.data)
+    const edgeData = currentEdges.map((e) => ({
       from: e.source,
       to: e.target,
     }))
@@ -379,16 +451,16 @@ function StoryTreeEditor() {
   }
 
   // Handle node hover
-  const onNodeMouseEnter = useCallback(
-    (_event: React.MouseEvent, node: any) => {
+  const onNodeMouseEnter: NodeMouseHandler = useCallback(
+    (_event, node) => {
       setHoveredNode(node.id)
 
       // Get related nodes
       const { parents, children } = getRelatedNodes(node.id)
 
       // Update node hover state
-      setNodes((nds: any) =>
-        nds.map((n: any) => ({
+      setNodes((nds) =>
+        nds.map((n) => ({
           ...n,
           data: {
             ...n.data,
@@ -400,8 +472,8 @@ function StoryTreeEditor() {
       )
 
       // Update edge styles
-      setEdges((eds: any) =>
-        eds.map((e: any) => {
+      setEdges((eds) =>
+        eds.map((e) => {
           const isRelated = e.source === node.id || e.target === node.id
           return {
             ...e,
@@ -415,7 +487,7 @@ function StoryTreeEditor() {
         })
       )
     },
-    [edges, setNodes, setEdges]
+    [setNodes, setEdges, getRelatedNodes]
   )
 
   // Handle node hover leave
@@ -423,8 +495,8 @@ function StoryTreeEditor() {
     setHoveredNode(null)
 
     // Reset node hover state
-    setNodes((nds: any) =>
-      nds.map((n: any) => ({
+    setNodes((nds) =>
+      nds.map((n) => ({
         ...n,
         data: {
           ...n.data,
@@ -436,8 +508,8 @@ function StoryTreeEditor() {
     )
 
     // Reset edge styles
-    setEdges((eds: any) =>
-      eds.map((e: any) => ({
+    setEdges((eds) =>
+      eds.map((e) => ({
         ...e,
         animated: false,
         style: {
@@ -450,14 +522,14 @@ function StoryTreeEditor() {
   }, [setNodes, setEdges])
 
   // Handle node click
-  const onNodeClick = useCallback(
-    (_event: React.MouseEvent, node: any) => {
+  const onNodeClick: NodeMouseHandler = useCallback(
+    (_event, node) => {
       setSelectedNode(node.id)
       setHasUnsavedChanges(false)
 
       // Update node selection state
-      setNodes((nds: any) =>
-        nds.map((n: any) => ({
+      setNodes((nds) =>
+        nds.map((n) => ({
           ...n,
           data: { ...n.data, isSelected: n.id === node.id },
         }))
@@ -479,8 +551,8 @@ function StoryTreeEditor() {
     setHasUnsavedChanges(false)
 
     // Clear selection
-    setNodes((nds: any) =>
-      nds.map((n: any) => ({
+    setNodes((nds) =>
+      nds.map((n) => ({
         ...n,
         data: { ...n.data, isSelected: false },
       }))
@@ -501,8 +573,8 @@ function StoryTreeEditor() {
       // await api.patch(`/stories/${storyId}/nodes/${selectedNode}`, formData)
 
       // Update local state
-      setNodes((nds: any) =>
-        nds.map((node: any) => {
+      setNodes((nds) =>
+        nds.map((node) => {
           if (node.id === selectedNode) {
             return {
               ...node,
@@ -542,9 +614,9 @@ function StoryTreeEditor() {
     nodeId: string,
     choices: Array<{ id: string; nextNodeId: string | null }>
   ) => {
-    setEdges((eds: any) => {
+    setEdges((eds) => {
       // Remove old edges from this node
-      const filtered = eds.filter((e: any) => e.source !== nodeId)
+      const filtered = eds.filter((e) => e.source !== nodeId)
 
       // Add new edges
       const newEdges = choices
@@ -614,7 +686,7 @@ function StoryTreeEditor() {
       }
 
       // Add new node to nodes array
-      setNodes((nds: any) => [...nds, newNode])
+      setNodes((nds) => [...nds, newNode])
 
       // Add edge from parent to new node
       const newEdge = {
@@ -624,22 +696,39 @@ function StoryTreeEditor() {
         animated: false,
         style: { stroke: "#9CA3AF", strokeWidth: 2 },
       }
-      setEdges((eds: any) => [...eds, newEdge])
+      setEdges((eds) => [...eds, newEdge])
 
       // Recalculate layout
       setTimeout(() => {
         if (storyData) {
-          const updatedData = {
+          const updatedNodes = [...nodes.map((n) => n.data), newNode.data]
+          const updatedEdges = [
+            ...edges.map((e) => ({
+              from: e.source as string,
+              to: e.target as string,
+              choiceId: "",
+            })),
+            { from: parentNodeIdForAdd, to: newNodeId, choiceId: "" },
+          ]
+
+          const updatedData: StoryDetailsResponse = {
             ...storyData,
             tree: {
-              nodes: [...nodes.map((n: any) => n.data), newNode.data],
-              edges: [
-                ...edges.map((e: any) => ({ from: e.source, to: e.target })),
-                { from: parentNodeIdForAdd, to: newNodeId },
-              ],
+              storyId: storyData.tree.storyId,
+              nodes: updatedNodes.map((node) => ({
+                id: node.id,
+                sceneNumber: node.sceneNumber,
+                title: node.title,
+                text: node.text,
+                location: node.location,
+                type: node.type,
+                choices: node.choices,
+                images: [],
+              })),
+              edges: updatedEdges,
             },
           }
-          convertToReactFlowData(updatedData as any)
+          convertToReactFlowData(updatedData)
         }
       }, 100)
 
@@ -650,54 +739,6 @@ function StoryTreeEditor() {
       console.log("Node added successfully")
     } catch (error) {
       console.error("Failed to add node:", error)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  // Handle node delete
-  const handleDeleteNode = async () => {
-    if (!selectedNode) return
-
-    const node = nodes.find((n: any) => n.id === selectedNode)
-    if (!node || node.data.type === NodeType.START) {
-      alert("Cannot delete the start node")
-      return
-    }
-
-    try {
-      setIsSaving(true)
-
-      // Simulate API call
-      await simulateDelay(500)
-
-      // In production:
-      // await api.delete(`/stories/${storyId}/nodes/${selectedNode}`)
-
-      // Remove node
-      setNodes((nds: any) => nds.filter((n: any) => n.id !== selectedNode))
-
-      // Remove associated edges
-      setEdges((eds: any) =>
-        eds.filter(
-          (e: any) => e.source !== selectedNode && e.target !== selectedNode
-        )
-      )
-
-      setSelectedNode(null)
-      setHasUnsavedChanges(false)
-
-      // Revalidate
-      setTimeout(() => {
-        validateTreeStructure(
-          nodes.filter((n: any) => n.id !== selectedNode),
-          edges
-        )
-      }, 100)
-
-      console.log("Node deleted successfully")
-    } catch (error) {
-      console.error("Failed to delete node:", error)
     } finally {
       setIsSaving(false)
     }
@@ -733,7 +774,7 @@ function StoryTreeEditor() {
   const getCurrentNodeData = (): NodeEditFormData | null => {
     if (!selectedNode) return null
 
-    const node = nodes.find((n: any) => n.id === selectedNode)
+    const node = nodes.find((n) => n.id === selectedNode)
     if (!node) return null
 
     return {
@@ -766,7 +807,7 @@ function StoryTreeEditor() {
   }
 
   const currentNodeData = getCurrentNodeData()
-  const selectedNodeObj = nodes.find((n: any) => n.id === selectedNode) as any
+  const selectedNodeObj = nodes.find((n) => n.id === selectedNode)
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -938,7 +979,7 @@ function StoryTreeEditor() {
                 id: loc.id,
                 name: loc.name,
               }))}
-              availableNodes={nodes.map((n: any) => ({
+              availableNodes={nodes.map((n) => ({
                 id: n.id,
                 title: n.data.title,
                 sceneNumber: n.data.sceneNumber,
@@ -1083,8 +1124,8 @@ function StoryTreeEditor() {
       >
         <div className="space-y-6 max-h-[600px] overflow-y-auto">
           {nodes
-            .sort((a: any, b: any) => a.data.sceneNumber - b.data.sceneNumber)
-            .map((node: any) => (
+            .sort((a, b) => a.data.sceneNumber - b.data.sceneNumber)
+            .map((node) => (
               <Card key={node.id} className="p-4">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-900">
@@ -1100,7 +1141,7 @@ function StoryTreeEditor() {
                         <p className="text-sm font-semibold text-gray-600">
                           Choices:
                         </p>
-                        {node.data.choices.map((choice: any, idx: number) => (
+                        {node.data.choices.map((choice, idx) => (
                           <div
                             key={choice.id}
                             className="text-sm text-gray-600 pl-4"
