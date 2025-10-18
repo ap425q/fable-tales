@@ -925,7 +925,7 @@ Generate a single illustration that captures this scene with the characters desc
                     version_id = str(uuid.uuid4())
                     
                     # Upload base64 image to Supabase storage
-                    filename = f"scenes/{story_id}/{node.id}_{version_id}.png"
+                    filename = f"scene/{node.id}_{version_id}.png"
                     image_url = self.data_manager.upload_base64_image_to_storage(
                         base64_image_data, 
                         filename
