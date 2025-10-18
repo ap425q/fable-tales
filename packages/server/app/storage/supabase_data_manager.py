@@ -78,6 +78,11 @@ class SupabaseDataManager:
                 
                 self.supabase.table("story_nodes").upsert(node_data).execute()
             
+            # Delete existing choices for all nodes in this story
+            for node in story.tree.nodes:
+                node_uuid = node_id_mapping[node.id]
+                self.supabase.table("story_choices").delete().eq("node_id", node_uuid).execute()
+            
             # Second pass: create all choices with proper UUID references
             for node in story.tree.nodes:
                 node_uuid = node_id_mapping[node.id]
@@ -101,7 +106,10 @@ class SupabaseDataManager:
                         "created_at": datetime.now().isoformat()
                     }
                     
-                    self.supabase.table("story_choices").upsert(choice_data).execute()
+                    self.supabase.table("story_choices").insert(choice_data).execute()
+            
+            # Delete existing edges for this story before inserting new ones
+            self.supabase.table("story_edges").delete().eq("story_id", story.id).execute()
             
             # Save story edges
             for edge in story.tree.edges:
@@ -114,7 +122,7 @@ class SupabaseDataManager:
                     "created_at": datetime.now().isoformat()
                 }
                 
-                self.supabase.table("story_edges").upsert(edge_data).execute()
+                self.supabase.table("story_edges").insert(edge_data).execute()
             
             # Save character roles
             for char in story.characters:
@@ -142,6 +150,9 @@ class SupabaseDataManager:
                 
                 self.supabase.table("locations").upsert(loc_data).execute()
                 
+                # Delete existing location scene numbers for this location
+                self.supabase.table("location_scene_numbers").delete().eq("location_id", loc_uuid).execute()
+                
                 # Save location scene numbers
                 for scene_num in loc.sceneNumbers:
                     scene_data = {
@@ -151,7 +162,7 @@ class SupabaseDataManager:
                         "created_at": datetime.now().isoformat()
                     }
                     
-                    self.supabase.table("location_scene_numbers").upsert(scene_data).execute()
+                    self.supabase.table("location_scene_numbers").insert(scene_data).execute()
             
         except Exception as e:
             raise Exception(f"Failed to save story to Supabase: {str(e)}")

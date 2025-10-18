@@ -599,7 +599,7 @@ function StoryTreeEditor() {
       setIsSaving(true)
 
       // Update node via API
-      await api.stories.update(storyId, selectedNode, formData)
+      await api.stories.updateNode(storyId, selectedNode, formData)
 
       // Update local state
       setNodes((nds) =>
