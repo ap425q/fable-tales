@@ -1,7 +1,5 @@
 "use client"
 
-import React, { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/Button"
 import { Input } from "@/components/Input"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
@@ -9,11 +7,18 @@ import {
   ButtonSize,
   ButtonVariant,
   InputVariant,
-  SpinnerSize,
   SpinnerColor,
+  SpinnerSize,
 } from "@/components/types"
-import { api } from "@/lib/api"
+import { useRouter } from "next/navigation"
+import React, { useState } from "react"
+// import { api } from "@/lib/api"
 import { ApiError } from "@/types"
+import {
+  mockFormExamples,
+  mockStoryGenerateResponse,
+  simulateDelay,
+} from "./story-setup.page.mock"
 
 /**
  * Form data interface
@@ -126,13 +131,18 @@ export default function StorySetupPage() {
     setIsLoading(true)
 
     try {
+      // TODO: Uncomment the API call below when backend is ready
       // Call API to generate story
-      const response = await api.stories.generate({
-        lesson: formData.lesson.trim(),
-        theme: formData.theme.trim() || "General adventure",
-        storyFormat: formData.storyFormat.trim() || "Classic story",
-        characterCount: 4, // Fixed as per requirements
-      })
+      // const response = await api.stories.generate({
+      //   lesson: formData.lesson.trim(),
+      //   theme: formData.theme.trim() || "General adventure",
+      //   storyFormat: formData.storyFormat.trim() || "Classic story",
+      //   characterCount: 4, // Fixed as per requirements
+      // })
+
+      // MOCK: Using mock data for development
+      await simulateDelay(2000) // Simulate API delay
+      const response = mockStoryGenerateResponse
 
       if (response.success && response.data) {
         // Navigate to story tree editing page with story ID
@@ -140,9 +150,7 @@ export default function StorySetupPage() {
         router.push(`/story-tree/${storyId}`)
       } else {
         // Handle unexpected response format
-        setApiError(
-          "Failed to generate story. Please try again."
-        )
+        setApiError("Failed to generate story. Please try again.")
       }
     } catch (error) {
       // Handle API errors
@@ -248,7 +256,7 @@ export default function StorySetupPage() {
                 variant={InputVariant.Textarea}
                 value={formData.storyFormat}
                 onChange={(value) => handleFieldChange("storyFormat", value)}
-                placeholder="e.g., &quot;Good triumphs over evil&quot;, &quot;Aesop's fable style&quot;, &quot;Coming-of-age story&quot;, &quot;Friendship story&quot;"
+                placeholder='e.g., "Good triumphs over evil", "Aesop&apos;s fable style", "Coming-of-age story", "Friendship story"'
                 error={errors.storyFormat}
                 rows={2}
                 maxLength={CHARACTER_LIMITS.FORMAT}
@@ -336,81 +344,25 @@ export default function StorySetupPage() {
             Need inspiration? Try these examples:
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Honesty is always the best policy",
-                  theme: "Magical forest with talking animals",
-                  storyFormat: "Aesop's fable style with clear moral",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Honesty Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Magical forest • Aesop's fable style
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Sharing makes everyone happier",
-                  theme: "Space station with friendly aliens",
-                  storyFormat: "Science fiction adventure",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Sharing Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Space adventure • Sci-fi style
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "Courage means facing your fears",
-                  theme: "Medieval kingdom with dragons",
-                  storyFormat: "Classic hero's journey",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Courage Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                Medieval kingdom • Hero's journey
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  lesson: "True friends support each other",
-                  theme: "School playground and neighborhood",
-                  storyFormat: "Everyday life, realistic story",
-                })
-              }}
-              disabled={isLoading}
-              className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <p className="font-medium text-gray-900">Friendship Story</p>
-              <p className="text-sm text-gray-600 mt-1">
-                School setting • Realistic style
-              </p>
-            </button>
+            {mockFormExamples.map((example) => (
+              <button
+                key={example.id}
+                type="button"
+                onClick={() => {
+                  setFormData(example.formData)
+                }}
+                disabled={isLoading}
+                className="text-left p-4 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <p className="font-medium text-gray-900">{example.title}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {example.description}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
       </div>
     </div>
   )
 }
-
