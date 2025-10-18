@@ -1,28 +1,27 @@
 "use client"
 
 /**
- * Story Reading Page (Child Mode)
+ * Story Reading Page (Child Mode) - CLASSIC BOOK DESIGN
  *
- * An engaging, interactive reading experience for children with:
- * - Book-like layout with images and text
- * - Choice-driven branching narrative
- * - Bad ending handling with encouragement
- * - Good ending celebration
- * - Reading assistance features
- * - Auto-save progress
+ * An immersive, book-like reading experience with:
+ * - Realistic book layout with left and right pages
+ * - Paper textures and book spine
+ * - Beautiful choice buttons styled as embossed paper
+ * - Bookmark-style progress indicator
+ * - Page turn animations
+ * - Bad ending encouragement modals
+ * - Good ending celebration with confetti
  */
 
-import { Button } from "@/components/Button"
+import { BookPage } from "@/components/BookPage"
+import { ChoiceButton, ContinueButton } from "@/components/ChoiceButton"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import {
-  ButtonSize,
-  ButtonVariant,
-  SpinnerColor,
-  SpinnerSize,
-} from "@/components/types"
+import { ProgressRibbon } from "@/components/ProgressRibbon"
+import { SpinnerColor, SpinnerSize } from "@/components/types"
 import api from "@/lib/api"
 import type { ChoiceMade, ReadingNode, StoryForReading } from "@/lib/apiTypes"
 import { NodeType } from "@/types"
+import { AnimatePresence, motion } from "framer-motion"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { mockReadingProgress, mockStoryReadData } from "./page.mock"
@@ -309,6 +308,7 @@ export default function StoryReadingPage() {
     } else {
       // Normal transition
       setCurrentNode(nextNode)
+      setImageLoading(true)
     }
   }
 
@@ -327,6 +327,7 @@ export default function StoryReadingPage() {
       if (previousNode) {
         setTransitionDirection("backward")
         setCurrentNode(previousNode)
+        setImageLoading(true)
 
         // Remove the bad choice from history
         const lastChoiceIndex = choicesMade.findLastIndex(
@@ -361,6 +362,7 @@ export default function StoryReadingPage() {
       setTransitionDirection("backward")
       setCurrentNode(previousNode)
       setVisitedNodes(visitedNodes.slice(0, -1))
+      setImageLoading(true)
 
       // Remove last choice
       if (choicesMade.length > 0) {
@@ -423,13 +425,18 @@ export default function StoryReadingPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-pink-100">
+      <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
           />
-          <p className="mt-4 text-xl text-gray-700">Loading your story...</p>
+          <p className="mt-6 text-xl text-text-primary text-body">
+            Opening your storybook...
+          </p>
+          <div className="mt-4 text-sm text-text-muted text-ui">
+            Preparing pages and illustrations
+          </div>
         </div>
       </div>
     )
@@ -438,366 +445,446 @@ export default function StoryReadingPage() {
   // Error state
   if (error || !story || !currentNode) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-100 to-pink-100">
-        <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Oops! Something went wrong
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="text-center max-w-md paper-texture page-shadow rounded-2xl p-12">
+          <div className="text-6xl mb-6">📖</div>
+          <h2 className="text-3xl font-bold text-text-primary text-heading mb-4">
+            Oops! Book not found
           </h2>
-          <p className="text-gray-600 mb-6">
-            {error || "We couldn't load the story. Please try again."}
+          <p className="text-lg text-text-secondary text-body mb-8">
+            {error ||
+              "We couldn't find this story. Let's go back and choose another one."}
           </p>
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={() => router.push("/")}
+            className="px-8 py-4 bg-leather text-cream rounded-xl font-semibold text-lg hover:bg-dark-leather transition-all duration-200 shadow-lg hover:shadow-xl text-ui"
           >
-            Go Back Home
-          </Button>
+            ← Back to Library
+          </button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 via-pink-50 to-blue-100">
-      {/* Top Navigation Bar */}
-      <div className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Left: Story Title */}
-          <div className="flex items-center space-x-4">
-            <Button
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Small}
-              onClick={() => router.push("/")}
-              icon={<span className="text-xl">←</span>}
-              ariaLabel="Exit story"
-            >
-              Exit
-            </Button>
-            <h1 className="text-xl font-bold text-gray-800 hidden sm:block">
-              {story.title}
-            </h1>
-          </div>
+    <div className="min-h-screen bg-cream">
+      {/* Top Navigation Bar - Leather Bookshelf Style */}
+      <div
+        className="leather-texture sticky top-0 z-50 border-b-4 border-book-spine"
+        style={{
+          background: "linear-gradient(to bottom, #8B7355, #6B5744)",
+          boxShadow: "0 4px 12px rgba(44, 36, 22, 0.4)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-6">
+            {/* Left: Exit Button & Title */}
+            <div className="flex items-center gap-4 min-w-0">
+              <button
+                onClick={() => router.push("/")}
+                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 shadow-md hover:shadow-lg flex-shrink-0 text-ui font-semibold"
+                aria-label="Exit story"
+              >
+                <span className="text-xl">←</span>
+                <span className="hidden sm:inline">Exit</span>
+              </button>
 
-          {/* Center: Progress */}
-          <div className="flex-1 max-w-md mx-4">
-            <div className="text-sm text-gray-600 mb-1 text-center">
-              Scene {progress.current} / {progress.total}
+              <h1 className="text-xl font-bold text-cream embossed text-heading truncate hidden md:block">
+                {story.title}
+              </h1>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-full transition-all duration-500 rounded-full"
-                style={{ width: `${progress.percentage}%` }}
+
+            {/* Center: Progress Ribbon */}
+            <div className="flex-1 max-w-md hidden lg:block">
+              <ProgressRibbon
+                progress={progress.percentage}
+                current={progress.current}
+                total={progress.total}
+                label="Scene"
               />
             </div>
+
+            {/* Right: Controls */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                onClick={handleBack}
+                disabled={visitedNodes.length === 0}
+                className="p-3 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-ui font-bold"
+                aria-label="Go back one page"
+                title="Previous page"
+              >
+                <span className="text-xl">↶</span>
+              </button>
+
+              <button
+                onClick={() => handleFontSizeChange(-2)}
+                className="px-3 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 font-bold text-lg shadow-md hover:shadow-lg text-ui"
+                aria-label="Decrease font size"
+                title="Smaller text"
+              >
+                A-
+              </button>
+
+              <button
+                onClick={() => handleFontSizeChange(2)}
+                className="px-3 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 font-bold text-lg shadow-md hover:shadow-lg text-ui"
+                aria-label="Increase font size"
+                title="Larger text"
+              >
+                A+
+              </button>
+            </div>
           </div>
 
-          {/* Right: Controls */}
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Small}
-              onClick={handleBack}
-              disabled={visitedNodes.length === 0}
-              icon={<span className="text-lg">↶</span>}
-              ariaLabel="Go back"
-            >
-              {""}
-            </Button>
-            <button
-              onClick={() => handleFontSizeChange(-2)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-lg font-bold"
-              aria-label="Decrease font size"
-            >
-              A-
-            </button>
-            <button
-              onClick={() => handleFontSizeChange(2)}
-              className="p-2 hover:bg-gray-100 rounded-lg text-lg font-bold"
-              aria-label="Increase font size"
-            >
-              A+
-            </button>
+          {/* Mobile Progress Bar */}
+          <div className="mt-3 lg:hidden">
+            <ProgressRibbon
+              progress={progress.percentage}
+              current={progress.current}
+              total={progress.total}
+              label="Scene"
+            />
           </div>
         </div>
       </div>
 
-      {/* Main Reading Area */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div
-          className={`bg-white rounded-3xl shadow-2xl overflow-hidden transition-all duration-500 ${
-            transitionDirection === "forward"
-              ? "animate-slide-in-right"
-              : "animate-slide-in-left"
-          }`}
-        >
-          <div className="flex flex-col lg:flex-row min-h-[600px]">
-            {/* Left Side - Image */}
-            <div className="lg:w-[45%] relative bg-gradient-to-br from-purple-200 to-pink-200 flex items-center justify-center p-6">
-              {imageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
-                  <LoadingSpinner
-                    size={SpinnerSize.Large}
-                    color={SpinnerColor.Primary}
-                  />
-                </div>
-              )}
-              <img
-                src={currentNode.imageUrl}
-                alt={currentNode.title}
-                className="max-w-full max-h-[500px] object-contain rounded-2xl shadow-lg"
-                onLoad={() => setImageLoading(false)}
-                onError={() => setImageLoading(false)}
-              />
-            </div>
-
-            {/* Right Side - Text and Choices */}
-            <div className="lg:w-[55%] flex flex-col p-8 lg:p-12">
-              {/* Scene Number */}
-              <div className="inline-block bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-bold mb-4 self-start">
-                Scene {currentNode.sceneNumber}
-              </div>
-
-              {/* Title */}
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-800 mb-6">
-                {currentNode.title}
-              </h2>
-
-              {/* Story Text */}
-              <div
-                className="flex-1 mb-8 overflow-y-auto"
-                style={{
-                  fontSize: `${preferences.fontSize}px`,
-                  lineHeight: 1.8,
-                }}
-              >
-                <p className="text-gray-700 leading-relaxed">
-                  {currentNode.text}
-                </p>
-              </div>
-
-              {/* Choices */}
-              <div className="space-y-4">
-                {currentNode.choices.length === 0 ? (
-                  // No choices - ending node
-                  <div className="text-center">
-                    {currentNode.type === NodeType.GOOD_ENDING ? (
-                      <div className="text-6xl mb-4 animate-bounce">🎉</div>
-                    ) : currentNode.type === NodeType.BAD_ENDING ? (
-                      <div className="text-6xl mb-4">😔</div>
-                    ) : null}
+      {/* Main Reading Area - Book Layout */}
+      <div className="py-8 px-4 lg:py-12">
+        <AnimatePresence mode="wait">
+          <BookPage
+            key={currentNode.id}
+            pageKey={currentNode.id}
+            transitionDirection={transitionDirection}
+            leftPageNumber={currentNode.sceneNumber * 2 - 1}
+            rightPageNumber={currentNode.sceneNumber * 2}
+            showSpine={true}
+            leftContent={
+              // Left Page: Illustration
+              <div className="h-full flex flex-col items-center justify-center">
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <LoadingSpinner
+                      size={SpinnerSize.Large}
+                      color={SpinnerColor.Primary}
+                    />
                   </div>
-                ) : currentNode.choices.length === 1 ? (
-                  // Single choice - Next button
-                  <Button
-                    variant={ButtonVariant.Primary}
-                    size={ButtonSize.Large}
-                    onClick={() =>
-                      handleChoiceSelect(
-                        currentNode.choices[0].id!,
-                        currentNode.choices[0].nextNodeId!
-                      )
-                    }
-                    fullWidth
-                    icon={<span className="text-2xl">→</span>}
-                    className="text-xl py-6 animate-pulse"
-                  >
-                    Continue
-                  </Button>
-                ) : (
-                  // Multiple choices
-                  <>
-                    <div className="text-center text-lg font-semibold text-gray-700 mb-4">
-                      What should happen next?
-                    </div>
-                    {currentNode.choices.map((choice, index) => {
-                      const colors = [
-                        "bg-blue-500 hover:bg-blue-600",
-                        "bg-green-500 hover:bg-green-600",
-                        "bg-yellow-500 hover:bg-yellow-600",
-                      ]
-                      const emojis = ["💙", "💚", "💛"]
+                )}
+                <img
+                  src={currentNode.imageUrl}
+                  alt={currentNode.title}
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                  style={{
+                    maxHeight: "550px",
+                    filter: "drop-shadow(0 4px 8px rgba(44, 36, 22, 0.2))",
+                  }}
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
+                />
+              </div>
+            }
+            rightContent={
+              // Right Page: Text and Choices
+              <div className="h-full flex flex-col">
+                {/* Scene Badge */}
+                <motion.div
+                  className="inline-flex items-center gap-2 self-start mb-4 px-4 py-2 rounded-full text-sm font-bold"
+                  style={{
+                    background: "linear-gradient(135deg, #8B3A3A, #CD5C5C)",
+                    color: "#FFF",
+                    boxShadow: "0 2px 6px rgba(139, 58, 58, 0.4)",
+                  }}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <span className="text-ui">
+                    Scene {currentNode.sceneNumber}
+                  </span>
+                </motion.div>
 
-                      return (
-                        <button
+                {/* Title */}
+                <motion.h2
+                  className="text-3xl lg:text-4xl font-bold text-text-primary mb-6 text-heading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  {currentNode.title}
+                </motion.h2>
+
+                {/* Story Text */}
+                <motion.div
+                  className="flex-1 mb-6 overflow-y-auto custom-scrollbar"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  <p
+                    className="text-text-primary leading-relaxed text-body"
+                    style={{
+                      fontSize: `${preferences.fontSize}px`,
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    {currentNode.text}
+                  </p>
+                </motion.div>
+
+                {/* Choices Section */}
+                <motion.div
+                  className="space-y-3 mt-auto"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  {currentNode.choices.length === 0 ? (
+                    // Ending node
+                    <div className="text-center py-6">
+                      {currentNode.type === NodeType.GOOD_ENDING ? (
+                        <motion.div
+                          className="text-6xl"
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 10, -10, 0],
+                          }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            repeatDelay: 2,
+                          }}
+                        >
+                          🎉
+                        </motion.div>
+                      ) : currentNode.type === NodeType.BAD_ENDING ? (
+                        <div className="text-6xl">💭</div>
+                      ) : null}
+                    </div>
+                  ) : currentNode.choices.length === 1 ? (
+                    // Single choice - Continue button
+                    <ContinueButton
+                      onClick={() =>
+                        handleChoiceSelect(
+                          currentNode.choices[0].id!,
+                          currentNode.choices[0].nextNodeId!
+                        )
+                      }
+                    />
+                  ) : (
+                    // Multiple choices
+                    <>
+                      <div className="text-center text-lg font-semibold text-text-primary mb-3 text-heading">
+                        What should happen next?
+                      </div>
+                      {currentNode.choices.map((choice, index) => (
+                        <ChoiceButton
                           key={choice.id}
+                          text={choice.text}
+                          index={index}
                           onClick={() =>
                             handleChoiceSelect(choice.id!, choice.nextNodeId!)
                           }
-                          className={`w-full ${
-                            colors[index % 3]
-                          } text-white px-6 py-6 rounded-2xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-between group`}
-                        >
-                          <span className="text-3xl mr-4">
-                            {emojis[index % 3]}
-                          </span>
-                          <span className="flex-1 text-left">
-                            {choice.text}
-                          </span>
-                          <span className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity">
-                            →
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </>
-                )}
+                        />
+                      ))}
+                    </>
+                  )}
+                </motion.div>
               </div>
-            </div>
-          </div>
-        </div>
+            }
+          />
+        </AnimatePresence>
       </div>
 
       {/* Bad Ending Modal */}
-      {showBadEndingModal && currentNode.type === NodeType.BAD_ENDING && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl animate-scale-in">
-            <div className="text-center">
-              <div className="text-6xl mb-4">💭</div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                Hmm, maybe there's a better way?
-              </h3>
-              <p className="text-lg text-gray-600 mb-6">
-                {currentNode.lessonMessage ||
-                  "Let's think about this choice and try again!"}
-              </p>
-              <Button
-                variant={ButtonVariant.Success}
-                size={ButtonSize.Large}
-                onClick={handleTryAgain}
-                fullWidth
-                icon={<span className="text-2xl">🔄</span>}
-                className="text-xl py-6"
-              >
-                Try Again!
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showBadEndingModal && currentNode.type === NodeType.BAD_ENDING && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="paper-texture page-shadow rounded-3xl p-8 max-w-md w-full relative overflow-hidden"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+            >
+              {/* Decorative corners */}
+              <div className="absolute top-4 left-4 text-burgundy text-2xl opacity-50">
+                ✦
+              </div>
+              <div className="absolute top-4 right-4 text-burgundy text-2xl opacity-50">
+                ✦
+              </div>
+              <div className="absolute bottom-4 left-4 text-burgundy text-2xl opacity-50">
+                ✦
+              </div>
+              <div className="absolute bottom-4 right-4 text-burgundy text-2xl opacity-50">
+                ✦
+              </div>
+
+              <div className="text-center relative z-10">
+                <motion.div
+                  className="text-6xl mb-4"
+                  animate={{ rotate: [-5, 5, -5] }}
+                  transition={{ duration: 0.5, repeat: 3 }}
+                >
+                  💭
+                </motion.div>
+
+                <h3 className="text-2xl font-bold text-text-primary mb-4 text-heading">
+                  Hmm, let's think about this...
+                </h3>
+
+                <p className="text-lg text-text-secondary mb-8 text-body leading-relaxed">
+                  {currentNode.lessonMessage ||
+                    "Every choice teaches us something new! Sometimes we learn the most from trying different paths. Shall we explore another way?"}
+                </p>
+
+                <button
+                  onClick={handleTryAgain}
+                  className="w-full px-8 py-5 rounded-xl font-bold text-xl transition-all duration-200 text-ui flex items-center justify-center gap-3"
+                  style={{
+                    background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
+                    color: "#FFF",
+                    boxShadow: "0 4px 12px rgba(74, 103, 65, 0.4)",
+                  }}
+                >
+                  <span className="text-2xl">🔄</span>
+                  <span>Try a Different Path!</span>
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Good Ending Celebration Modal */}
-      {showCelebration && currentNode.type === NodeType.GOOD_ENDING && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-yellow-100 via-pink-100 to-purple-100 rounded-3xl p-8 max-w-2xl w-full shadow-2xl animate-scale-in relative overflow-hidden">
-            {/* Confetti Animation */}
-            <div className="absolute inset-0 pointer-events-none">
-              {[...Array(20)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute text-3xl animate-float"
-                  style={{
-                    left: `${Math.random() * 100}%`,
-                    top: `-20px`,
-                    animationDelay: `${Math.random() * 2}s`,
-                    animationDuration: `${3 + Math.random() * 2}s`,
+      <AnimatePresence>
+        {showCelebration && currentNode.type === NodeType.GOOD_ENDING && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="rounded-3xl p-8 max-w-2xl w-full relative overflow-hidden"
+              style={{
+                background:
+                  "linear-gradient(135deg, #FFF8E1 0%, #FFE8A0 50%, #FFD700 100%)",
+                boxShadow: "0 20px 60px rgba(212, 175, 55, 0.4)",
+              }}
+              initial={{ scale: 0.5, opacity: 0, rotateX: -20 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.7 }}
+            >
+              {/* Confetti Animation */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {[...Array(30)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute text-3xl"
+                    style={{
+                      left: `${Math.random() * 100}%`,
+                      top: `-20px`,
+                    }}
+                    animate={{
+                      y: [0, window.innerHeight],
+                      rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
+                      opacity: [1, 0],
+                    }}
+                    transition={{
+                      duration: 2 + Math.random() * 2,
+                      delay: Math.random() * 0.5,
+                      ease: "easeIn",
+                    }}
+                  >
+                    {
+                      ["🎉", "⭐", "💖", "🌟", "✨", "🎊"][
+                        Math.floor(Math.random() * 6)
+                      ]
+                    }
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="text-center relative z-10">
+                <motion.div
+                  className="text-8xl mb-6"
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 10, -10, 0],
+                  }}
+                  transition={{
+                    duration: 0.8,
+                    repeat: 3,
                   }}
                 >
-                  {
-                    ["🎉", "⭐", "💖", "🌟", "✨"][
-                      Math.floor(Math.random() * 5)
-                    ]
-                  }
-                </div>
-              ))}
-            </div>
+                  🎊
+                </motion.div>
 
-            <div className="text-center relative z-10">
-              <div className="text-8xl mb-6 animate-bounce">🎊</div>
-              <h3 className="text-4xl font-bold text-gray-800 mb-4">
-                Amazing! You did it!
-              </h3>
-              <p className="text-2xl text-gray-700 mb-6">
-                You made wonderful choices and completed the story!
-              </p>
+                <h3 className="text-4xl font-bold text-text-primary mb-4 text-heading">
+                  Amazing! You did it!
+                </h3>
 
-              {/* Lesson Highlight */}
-              <div className="bg-white rounded-2xl p-6 mb-8 shadow-lg">
-                <div className="text-lg font-semibold text-purple-600 mb-2">
-                  What You Learned:
-                </div>
-                <p className="text-xl text-gray-800 leading-relaxed">
-                  {currentNode.lessonMessage || story.lesson}
+                <p className="text-2xl text-text-secondary mb-8 text-body">
+                  You made wonderful choices and completed the story!
                 </p>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
-                  variant={ButtonVariant.Primary}
-                  size={ButtonSize.Large}
-                  onClick={() => {
-                    setShowCelebration(false)
-                    loadStory() // Restart story
+                {/* Lesson Highlight */}
+                <div
+                  className="paper-texture page-shadow rounded-2xl p-6 mb-8"
+                  style={{
+                    background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
                   }}
-                  icon={<span className="text-2xl">🔄</span>}
-                  className="text-lg"
                 >
-                  Read Again
-                </Button>
-                <Button
-                  variant={ButtonVariant.Success}
-                  size={ButtonSize.Large}
-                  onClick={() => router.push("/")}
-                  icon={<span className="text-2xl">📚</span>}
-                  className="text-lg"
-                >
-                  Choose Another Story
-                </Button>
+                  <div className="text-lg font-semibold text-burgundy mb-2 text-ui">
+                    💡 What You Learned:
+                  </div>
+                  <p className="text-xl text-text-primary leading-relaxed text-body">
+                    {currentNode.lessonMessage || story.lesson}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => {
+                      setShowCelebration(false)
+                      loadStory() // Restart story
+                    }}
+                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2"
+                    style={{
+                      background: "linear-gradient(145deg, #8B7355, #6B5744)",
+                      color: "#FFF",
+                      boxShadow: "0 4px 12px rgba(139, 115, 85, 0.4)",
+                    }}
+                  >
+                    <span className="text-2xl">🔄</span>
+                    <span>Read Again</span>
+                  </button>
+
+                  <button
+                    onClick={() => router.push("/")}
+                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2"
+                    style={{
+                      background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
+                      color: "#FFF",
+                      boxShadow: "0 4px 12px rgba(74, 103, 65, 0.4)",
+                    }}
+                  >
+                    <span className="text-2xl">📚</span>
+                    <span>More Stories</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Animations */}
-      <style jsx>{`
-        @keyframes slide-in-right {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes slide-in-left {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes float {
-          from {
-            transform: translateY(0) rotate(0deg);
-            opacity: 1;
-          }
-          to {
-            transform: translateY(100vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-
-        .animate-slide-in-right {
-          animation: slide-in-right 0.5s ease-out;
-        }
-
-        .animate-slide-in-left {
-          animation: slide-in-left 0.5s ease-out;
-        }
-
-        .animate-float {
-          animation: float 5s linear forwards;
-        }
-      `}</style>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,35 +1,22 @@
 "use client"
 
 /**
- * Story Library Page (Parent Mode)
+ * Story Library Page (Parent Mode) - CLASSIC BOOKSHELF DESIGN
  *
- * A comprehensive library management page for parents to view, organize,
- * and manage all their created stories (both completed and drafts).
+ * A beautiful library with books displayed on wooden shelves.
+ * Parents can view, manage, and create stories.
  */
 
-import { Button } from "@/components/Button"
-import { Card } from "@/components/Card"
+import { LeatherCard } from "@/components/LeatherCard"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import { Modal } from "@/components/Modal"
-import { NoImagePlaceholder } from "@/components/NoImagePlaceholder"
-import { Toast } from "@/components/Toast"
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  ModalSize,
-  SpinnerSize,
-  ToastVariant,
-} from "@/components/types"
+import { SpinnerColor, SpinnerSize } from "@/components/types"
 import { api } from "@/lib/api"
 import { SortOption, Story, StoryStatus } from "@/types"
+import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { mockAllStories, mockEmptyStates } from "./StoryLibrary.page.mock"
+import { mockAllStories } from "./StoryLibrary.page.mock"
 
-/**
- * Status filter options
- */
 const STATUS_FILTERS = {
   ALL: "all",
   COMPLETED: "completed",
@@ -38,32 +25,6 @@ const STATUS_FILTERS = {
 
 type StatusFilter = (typeof STATUS_FILTERS)[keyof typeof STATUS_FILTERS]
 
-/**
- * Sort options for story library
- */
-const SORT_OPTIONS = [
-  { value: SortOption.RECENT, label: "Recently Updated" },
-  { value: "created", label: "Recently Created" },
-  { value: SortOption.TITLE, label: "Title (A-Z)" },
-  { value: SortOption.READ_COUNT, label: "Most Read" },
-] as const
-
-/**
- * Stories per page
- */
-const STORIES_PER_PAGE = 20
-
-/**
- * View mode options
- */
-enum ViewMode {
-  GRID = "grid",
-  LIST = "list",
-}
-
-/**
- * Story Library Page Component
- */
 export default function StoryLibraryPage() {
   const router = useRouter()
 
@@ -76,36 +37,7 @@ export default function StoryLibraryPage() {
   const [sortBy, setSortBy] = useState<string>(SortOption.RECENT)
   const [searchQuery, setSearchQuery] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.GRID)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedStories, setSelectedStories] = useState<Set<string>>(new Set())
-
-  // Modal state
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [storyToDelete, setStoryToDelete] = useState<Story | null>(null)
-  const [shareModalOpen, setShareModalOpen] = useState(false)
-  const [shareUrl, setShareUrl] = useState("")
-  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
-
-  // Operation state
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isSharing, setIsSharing] = useState(false)
-
-  // Toast state
-  const [toast, setToast] = useState<{
-    message: string
-    variant: ToastVariant
-  } | null>(null)
-
-  // Mock data toggle
   const [useMockData] = useState(true)
-
-  /**
-   * Show toast notification
-   */
-  const showToast = (message: string, variant: ToastVariant) => {
-    setToast({ message, variant })
-  }
 
   /**
    * Debounce search input
@@ -113,46 +45,40 @@ export default function StoryLibraryPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setCurrentPage(1)
     }, 300)
-
     return () => clearTimeout(timer)
   }, [searchQuery])
 
   /**
-   * Fetch stories from API or use mock data
+   * Fetch stories
    */
   const fetchStories = useCallback(async () => {
     try {
       setIsLoading(true)
-
       if (useMockData) {
-        // Use mock data
         await new Promise((resolve) => setTimeout(resolve, 500))
         setStories(mockAllStories)
       } else {
-        // Use real API
-        const response = await api.stories.getAll({
-          limit: 100,
-          offset: 0,
-        })
-
+        const response = await api.stories.getAll({ limit: 100, offset: 0 })
         if (response.success && response.data) {
           setStories(response.data.stories)
         }
       }
     } catch (err) {
       console.error("Error fetching stories:", err)
-      showToast("Failed to load stories. Please try again.", ToastVariant.Error)
     } finally {
       setIsLoading(false)
     }
   }, [useMockData])
 
+  useEffect(() => {
+    fetchStories()
+  }, [fetchStories])
+
   /**
    * Filter and sort stories
    */
-  const filteredAndSortedStories = useMemo(() => {
+  const filteredStories = useMemo(() => {
     let result = [...stories]
 
     // Apply status filter
@@ -181,12 +107,6 @@ export default function StoryLibraryPage() {
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         )
         break
-      case "created":
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        break
       case SortOption.TITLE:
         result.sort((a, b) => a.title.localeCompare(b.title))
         break
@@ -199,855 +119,375 @@ export default function StoryLibraryPage() {
   }, [stories, statusFilter, debouncedSearch, sortBy])
 
   /**
-   * Paginated stories
+   * Get book spine color based on theme
    */
-  const paginatedStories = useMemo(() => {
-    const startIndex = (currentPage - 1) * STORIES_PER_PAGE
-    const endIndex = startIndex + STORIES_PER_PAGE
-    return filteredAndSortedStories.slice(startIndex, endIndex)
-  }, [filteredAndSortedStories, currentPage])
-
-  /**
-   * Total pages
-   */
-  const totalPages = Math.ceil(
-    filteredAndSortedStories.length / STORIES_PER_PAGE
-  )
-
-  /**
-   * Handle story selection
-   */
-  const handleStorySelect = (storyId: string) => {
-    setSelectedStories((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(storyId)) {
-        newSet.delete(storyId)
-      } else {
-        newSet.add(storyId)
-      }
-      return newSet
-    })
+  const getBookColor = (theme: string, index: number) => {
+    const colors = [
+      { bg: "#8B3A3A", text: "#F5F1E8" }, // Burgundy
+      { bg: "#4A6741", text: "#F5F1E8" }, // Forest Green
+      { bg: "#5B7C99", text: "#F5F1E8" }, // Antique Blue
+      { bg: "#8B7355", text: "#F5F1E8" }, // Leather Brown
+      { bg: "#CD5C5C", text: "#F5F1E8" }, // Soft Coral
+    ]
+    return colors[index % colors.length]
   }
 
-  /**
-   * Handle select all
-   */
-  const handleSelectAll = () => {
-    if (selectedStories.size === paginatedStories.length) {
-      setSelectedStories(new Set())
-    } else {
-      setSelectedStories(new Set(paginatedStories.map((s) => s.id)))
-    }
-  }
-
-  /**
-   * Handle read story
-   */
-  const handleReadStory = (storyId: string) => {
-    router.push(`/story-reading/${storyId}`)
-  }
-
-  /**
-   * Handle edit story
-   */
-  const handleEditStory = (story: Story) => {
-    // Route to appropriate page based on status
-    if (story.status === StoryStatus.DRAFT) {
-      // If very early draft (few scenes), go to story tree
-      if (story.sceneCount < 10) {
-        router.push(`/story-tree/${story.id}`)
-      } else {
-        // Otherwise, might be in character assignment or background setup
-        router.push(`/character-assignment/${story.id}`)
-      }
-    } else if (story.status === StoryStatus.STRUCTURE_FINALIZED) {
-      // In scene generation phase
-      router.push(`/scene-generation/${story.id}`)
-    } else {
-      // Completed - allow editing structure
-      router.push(`/story-tree/${story.id}`)
-    }
-  }
-
-  /**
-   * Handle delete story
-   */
-  const handleDeleteStory = async () => {
-    if (!storyToDelete) return
-
-    try {
-      setIsDeleting(true)
-
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setStories((prev) => prev.filter((s) => s.id !== storyToDelete.id))
-        showToast(
-          `"${storyToDelete.title}" deleted successfully.`,
-          ToastVariant.Success
-        )
-      } else {
-        // Real API call
-        const response = await fetch(`/api/v1/stories/${storyToDelete.id}`, {
-          method: "DELETE",
-        })
-        if (response.ok) {
-          await fetchStories()
-          showToast("Story deleted successfully.", ToastVariant.Success)
-        }
-      }
-    } catch (err) {
-      console.error("Error deleting story:", err)
-      showToast("Failed to delete story. Please try again.", ToastVariant.Error)
-    } finally {
-      setIsDeleting(false)
-      setDeleteModalOpen(false)
-      setStoryToDelete(null)
-    }
-  }
-
-  /**
-   * Handle bulk delete
-   */
-  const handleBulkDelete = async () => {
-    try {
-      setIsDeleting(true)
-
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 800))
-        setStories((prev) => prev.filter((s) => !selectedStories.has(s.id)))
-        showToast(
-          `${selectedStories.size} stories deleted successfully.`,
-          ToastVariant.Success
-        )
-        setSelectedStories(new Set())
-      } else {
-        // Real API - delete each story
-        await Promise.all(
-          Array.from(selectedStories).map((id) =>
-            fetch(`/api/v1/stories/${id}`, { method: "DELETE" })
-          )
-        )
-        await fetchStories()
-        showToast("Stories deleted successfully.", ToastVariant.Success)
-        setSelectedStories(new Set())
-      }
-    } catch (err) {
-      console.error("Error deleting stories:", err)
-      showToast(
-        "Failed to delete stories. Please try again.",
-        ToastVariant.Error
-      )
-    } finally {
-      setIsDeleting(false)
-      setBulkDeleteModalOpen(false)
-    }
-  }
-
-  /**
-   * Handle share story
-   */
-  const handleShareStory = async (story: Story) => {
-    if (story.status !== StoryStatus.COMPLETED) {
-      showToast("Only completed stories can be shared.", ToastVariant.Warning)
-      return
-    }
-
-    try {
-      setIsSharing(true)
-
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        const url = `${window.location.origin}/story-reading/${story.id}`
-        setShareUrl(url)
-        setShareModalOpen(true)
-      } else {
-        // Real API call
-        const response = await fetch(`/api/v1/stories/${story.id}/share`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            expiresIn: 2592000, // 30 days in seconds
-          }),
-        })
-
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.data) {
-            setShareUrl(result.data.shareUrl)
-            setShareModalOpen(true)
-          } else {
-            throw new Error("Invalid response format")
-          }
-        } else {
-          throw new Error("Failed to generate share link")
-        }
-      }
-    } catch (err) {
-      console.error("Error generating share link:", err)
-      showToast("Failed to generate share link.", ToastVariant.Error)
-    } finally {
-      setIsSharing(false)
-    }
-  }
-
-  /**
-   * Handle copy share link
-   */
-  const handleCopyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      showToast("Link copied to clipboard!", ToastVariant.Success)
-    } catch (err) {
-      console.error("Error copying to clipboard:", err)
-      showToast("Failed to copy link.", ToastVariant.Error)
-    }
-  }
-
-  /**
-   * Format date for display
-   */
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return "Today"
-    if (diffDays === 1) return "Yesterday"
-    if (diffDays < 7) return `${diffDays} days ago`
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
-    return date.toLocaleDateString()
-  }
-
-  /**
-   * Get status badge
-   */
-  const getStatusBadge = (status: StoryStatus) => {
-    if (status === StoryStatus.COMPLETED) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-          ✓ Completed
-        </span>
-      )
-    } else if (status === StoryStatus.STRUCTURE_FINALIZED) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-          ⏳ In Progress
-        </span>
-      )
-    } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
-          📝 Draft
-        </span>
-      )
-    }
-  }
-
-  /**
-   * Get theme color
-   */
-  const getThemeColor = (theme: string): string => {
-    const colors: Record<string, string> = {
-      Honesty: "bg-blue-500",
-      Courage: "bg-red-500",
-      Friendship: "bg-pink-500",
-      Kindness: "bg-green-500",
-      Sharing: "bg-purple-500",
-      Teamwork: "bg-yellow-500",
-      Gratitude: "bg-orange-500",
-      Perseverance: "bg-indigo-500",
-      Respect: "bg-teal-500",
-      Responsibility: "bg-cyan-500",
-    }
-    return colors[theme] || "bg-gray-500"
-  }
-
-  /**
-   * Initial load
-   */
-  useEffect(() => {
-    fetchStories()
-  }, [fetchStories])
-
-  /**
-   * Render empty state
-   */
-  const renderEmptyState = () => {
-    let emptyState = mockEmptyStates.noStories
-
-    if (debouncedSearch) {
-      emptyState = mockEmptyStates.noSearchResults
-    } else if (statusFilter === STATUS_FILTERS.COMPLETED) {
-      emptyState = mockEmptyStates.noCompleted
-    } else if (statusFilter === STATUS_FILTERS.DRAFTS) {
-      emptyState = mockEmptyStates.noDrafts
-    }
-
+  // Loading state
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="text-8xl mb-6">{emptyState.icon}</div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">
-          {emptyState.title}
-        </h2>
-        <p className="text-xl text-gray-600 max-w-lg mb-8">
-          {emptyState.message}
-        </p>
-        {statusFilter === STATUS_FILTERS.ALL && !debouncedSearch && (
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
-            onClick={() => router.push("/story-setup")}
-          >
-            Create New Story
-          </Button>
-        )}
-      </div>
-    )
-  }
-
-  /**
-   * Render story card
-   */
-  const renderStoryCard = (story: Story) => {
-    const isSelected = selectedStories.has(story.id)
-
-    return (
-      <div key={story.id} className="relative">
-        {/* Selection checkbox */}
-        <div className="absolute top-3 left-3 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => handleStorySelect(story.id)}
-            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-            aria-label={`Select ${story.title}`}
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner
+            size={SpinnerSize.XLarge}
+            color={SpinnerColor.Primary}
           />
+          <p className="mt-4 text-xl text-text-primary text-body">
+            Loading your library...
+          </p>
         </div>
-
-        <Card
-          image={story.coverImageUrl || undefined}
-          imageAlt={story.coverImageUrl ? `Cover for ${story.title}` : ""}
-          padding={CardPadding.None}
-          hoverable
-          selected={isSelected}
-          className="h-full"
-        >
-          {/* No image placeholder */}
-          {!story.coverImageUrl && <NoImagePlaceholder />}
-
-          <div className="p-5">
-            {/* Header with status */}
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="text-xl font-bold text-gray-900 flex-1 line-clamp-2 mr-2">
-                {story.title}
-              </h3>
-              {getStatusBadge(story.status)}
-            </div>
-
-            {/* Theme badge */}
-            <div className="mb-3">
-              <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold text-white ${getThemeColor(
-                  story.theme
-                )}`}
-              >
-                {story.theme}
-              </span>
-            </div>
-
-            {/* Lesson */}
-            <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-              {story.lesson}
-            </p>
-
-            {/* Stats */}
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mb-4">
-              <span className="flex items-center gap-1">
-                <span>📄</span>
-                {story.sceneCount} scenes
-              </span>
-              {story.status === StoryStatus.COMPLETED && (
-                <span className="flex items-center gap-1">
-                  <span>👁️</span>
-                  {story.readCount} reads
-                </span>
-              )}
-            </div>
-
-            {/* Dates */}
-            <div className="text-xs text-gray-400 mb-4 space-y-1">
-              <div>Created: {formatDate(story.createdAt)}</div>
-              <div>Updated: {formatDate(story.updatedAt)}</div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-2">
-              {story.status === StoryStatus.COMPLETED && (
-                <Button
-                  variant={ButtonVariant.Primary}
-                  size={ButtonSize.Small}
-                  onClick={() => handleReadStory(story.id)}
-                  className="flex-1"
-                >
-                  Read
-                </Button>
-              )}
-              <Button
-                variant={ButtonVariant.Secondary}
-                size={ButtonSize.Small}
-                onClick={() => handleEditStory(story)}
-                className="flex-1"
-              >
-                Edit
-              </Button>
-            </div>
-
-            {story.status === StoryStatus.COMPLETED && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Button
-                  variant={ButtonVariant.Secondary}
-                  size={ButtonSize.Small}
-                  onClick={() => handleShareStory(story)}
-                  disabled={isSharing}
-                  className="flex-1"
-                >
-                  Share
-                </Button>
-              </div>
-            )}
-
-            <div className="mt-2">
-              <Button
-                variant={ButtonVariant.Danger}
-                size={ButtonSize.Small}
-                onClick={() => {
-                  setStoryToDelete(story)
-                  setDeleteModalOpen(true)
-                }}
-                className="w-full"
-              >
-                Delete
-              </Button>
-            </div>
-          </div>
-        </Card>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 via-purple-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white shadow-md border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-cream">
+      {/* Header - Leather Binding */}
+      <div
+        className="leather-texture border-b-4 border-book-spine sticky top-0 z-50"
+        style={{
+          background: "linear-gradient(to bottom, #8B7355, #6B5744)",
+          boxShadow: "0 4px 12px rgba(44, 36, 22, 0.4)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Title */}
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">
-                My Story Library 📚
-              </h1>
-              <p className="text-lg text-gray-600 mt-1">
-                Manage and organize all your stories
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {filteredAndSortedStories.length}{" "}
-                {filteredAndSortedStories.length === 1 ? "story" : "stories"}{" "}
-                total
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant={ButtonVariant.Secondary}
-                size={ButtonSize.Medium}
+              <button
                 onClick={() => router.push("/")}
+                className="text-cream hover:text-parchment transition-colors mb-2 flex items-center gap-2 text-ui font-semibold"
               >
-                ← Back to Home
-              </Button>
-              <Button
-                variant={ButtonVariant.Primary}
-                size={ButtonSize.Large}
-                onClick={() => router.push("/story-setup")}
-                className="font-semibold"
-              >
-                + Create New Story
-              </Button>
+                <span className="text-xl">←</span>
+                <span>Home</span>
+              </button>
+              <h1 className="text-4xl font-bold text-cream embossed text-heading flex items-center gap-3">
+                <span>📚</span>
+                <span>My Story Library</span>
+              </h1>
             </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters and Controls */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          {/* Status Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <button
-              onClick={() => {
-                setStatusFilter(STATUS_FILTERS.ALL)
-                setCurrentPage(1)
+            {/* Create New Story Button */}
+            <motion.button
+              onClick={() => router.push("/story-setup")}
+              className="px-6 py-4 rounded-xl font-bold text-lg text-ui flex items-center gap-2 self-start"
+              style={{
+                background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
+                color: "#FFF",
+                boxShadow: "0 4px 12px rgba(74, 103, 65, 0.4)",
               }}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === STATUS_FILTERS.ALL
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              All Stories
-            </button>
-            <button
-              onClick={() => {
-                setStatusFilter(STATUS_FILTERS.COMPLETED)
-                setCurrentPage(1)
+              whileHover={{
+                scale: 1.05,
+                boxShadow: "0 6px 16px rgba(74, 103, 65, 0.5)",
               }}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === STATUS_FILTERS.COMPLETED
-                  ? "bg-green-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              whileTap={{ scale: 0.95 }}
             >
-              Completed
-            </button>
-            <button
-              onClick={() => {
-                setStatusFilter(STATUS_FILTERS.DRAFTS)
-                setCurrentPage(1)
-              }}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === STATUS_FILTERS.DRAFTS
-                  ? "bg-yellow-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              Drafts
-            </button>
+              <span className="text-2xl">+</span>
+              <span>Create New Story</span>
+            </motion.button>
           </div>
 
-          {/* Search and Sort */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          {/* Filters and Search */}
+          <div className="mt-6 flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search by title, lesson, or theme..."
+                placeholder="Search stories by title, lesson, or theme..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                aria-label="Search stories"
+                className="w-full px-4 py-3 rounded-lg paper-texture text-text-primary text-body border-2 border-leather focus:border-gold focus:outline-none transition-colors"
+                style={{
+                  background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
+                }}
               />
             </div>
 
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="px-4 py-3 rounded-lg paper-texture text-text-primary text-ui border-2 border-leather focus:border-gold focus:outline-none transition-colors font-semibold"
+              style={{
+                background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
+              }}
+            >
+              <option value={STATUS_FILTERS.ALL}>All Stories</option>
+              <option value={STATUS_FILTERS.COMPLETED}>Completed</option>
+              <option value={STATUS_FILTERS.DRAFTS}>Drafts</option>
+            </select>
+
             {/* Sort */}
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="sort-select"
-                className="text-sm font-medium text-gray-700 whitespace-nowrap"
-              >
-                Sort by:
-              </label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer"
-                aria-label="Sort stories"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex items-center gap-2 border-2 border-gray-300 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode(ViewMode.GRID)}
-                className={`p-2 rounded ${
-                  viewMode === ViewMode.GRID
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-                aria-label="Grid view"
-                title="Grid view"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 8a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm8-8a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zm0 8a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setViewMode(ViewMode.LIST)}
-                className={`p-2 rounded ${
-                  viewMode === ViewMode.LIST
-                    ? "bg-blue-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-                aria-label="List view"
-                title="List view"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
-                  />
-                </svg>
-              </button>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-3 rounded-lg paper-texture text-text-primary text-ui border-2 border-leather focus:border-gold focus:outline-none transition-colors font-semibold"
+              style={{
+                background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
+              }}
+            >
+              <option value={SortOption.RECENT}>Recently Updated</option>
+              <option value={SortOption.TITLE}>Title (A-Z)</option>
+              <option value={SortOption.READ_COUNT}>Most Read</option>
+            </select>
           </div>
+        </div>
+      </div>
 
-          {/* Bulk Actions */}
-          {selectedStories.size > 0 && (
-            <div className="flex items-center justify-between bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-4">
-                <span className="font-medium text-gray-900">
-                  {selectedStories.size} selected
-                </span>
-                <Button
-                  variant={ButtonVariant.Secondary}
-                  size={ButtonSize.Small}
-                  onClick={handleSelectAll}
-                >
-                  {selectedStories.size === paginatedStories.length
-                    ? "Deselect All"
-                    : "Select All"}
-                </Button>
-              </div>
-              <Button
-                variant={ButtonVariant.Danger}
-                size={ButtonSize.Small}
-                onClick={() => setBulkDeleteModalOpen(true)}
-              >
-                Delete Selected
-              </Button>
-            </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Story Count */}
+        <div className="mb-6 text-text-secondary text-body">
+          {filteredStories.length === 0 ? (
+            <span>No stories found</span>
+          ) : (
+            <span>
+              Showing {filteredStories.length}{" "}
+              {filteredStories.length === 1 ? "story" : "stories"}
+            </span>
           )}
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <LoadingSpinner size={SpinnerSize.Large} />
-            <p className="mt-4 text-xl text-gray-600">
-              Loading your stories...
+        {/* Empty State */}
+        {filteredStories.length === 0 && !searchQuery && (
+          <motion.div
+            className="paper-texture page-shadow rounded-2xl p-12 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="text-8xl mb-6">📚</div>
+            <h2 className="text-3xl font-bold text-text-primary text-heading mb-4">
+              Your Library is Empty
+            </h2>
+            <p className="text-lg text-text-secondary text-body mb-8 max-w-md mx-auto">
+              Start creating magical stories for your children. Each story is a
+              unique adventure waiting to be told!
             </p>
-          </div>
+            <motion.button
+              onClick={() => router.push("/story-setup")}
+              className="px-8 py-4 rounded-xl font-bold text-lg text-ui"
+              style={{
+                background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
+                color: "#FFF",
+                boxShadow: "0 4px 12px rgba(74, 103, 65, 0.4)",
+              }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Create Your First Story
+            </motion.button>
+          </motion.div>
         )}
 
-        {/* Empty State */}
-        {!isLoading &&
-          filteredAndSortedStories.length === 0 &&
-          renderEmptyState()}
-
-        {/* Story Grid/List */}
-        {!isLoading && filteredAndSortedStories.length > 0 && (
-          <>
+        {/* Bookshelf - Grid of Book Spines */}
+        {filteredStories.length > 0 && (
+          <div className="space-y-8">
+            {/* Wooden Bookshelf */}
             <div
-              className={
-                viewMode === ViewMode.GRID
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }
+              className="wood-grain-texture rounded-2xl p-6"
+              style={{
+                boxShadow:
+                  "0 8px 24px rgba(44, 36, 22, 0.3), inset 0 2px 4px rgba(0, 0, 0, 0.2)",
+              }}
             >
-              {paginatedStories.map((story) => renderStoryCard(story))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {filteredStories.map((story, index) => {
+                  const bookColor = getBookColor(story.theme, index)
+                  const isCompleted = story.status === StoryStatus.COMPLETED
+
+                  return (
+                    <motion.button
+                      key={story.id}
+                      onClick={() => {
+                        if (isCompleted) {
+                          // Show story options modal or navigate to edit
+                          router.push(`/story-tree/${story.id}`)
+                        } else {
+                          router.push(`/story-tree/${story.id}`)
+                        }
+                      }}
+                      className="relative group z-0 hover:z-10"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                    >
+                      {/* Book Spine */}
+                      <div
+                        className="relative h-64 rounded-lg overflow-hidden transition-all duration-200 group-hover:shadow-2xl"
+                        style={{
+                          background: `linear-gradient(145deg, ${bookColor.bg} 0%, ${bookColor.bg}DD 100%)`,
+                          boxShadow:
+                            "0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
+                          border: "2px solid rgba(0, 0, 0, 0.2)",
+                        }}
+                      >
+                        {/* Leather texture */}
+                        <div
+                          className="absolute inset-0 opacity-20"
+                          style={{
+                            backgroundImage: `
+                              repeating-radial-gradient(
+                                circle at 20% 30%,
+                                transparent 0,
+                                rgba(0, 0, 0, 0.1) 1px,
+                                transparent 2px
+                              )
+                            `,
+                          }}
+                        />
+
+                        {/* Book Title - Horizontal */}
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                          <div
+                            className="text-center"
+                            style={{
+                              color: bookColor.text,
+                              textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
+                            }}
+                          >
+                            <div className="text-xs font-bold text-ui mb-2 opacity-70">
+                              {story.theme.toUpperCase()}
+                            </div>
+                            <div className="text-base font-bold text-heading leading-tight">
+                              {story.title}
+                            </div>
+                          </div>
+
+                          {/* Gold decoration */}
+                          <div
+                            className="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs opacity-70"
+                            style={{ color: "#D4AF37" }}
+                          >
+                            ✦
+                          </div>
+                          <div
+                            className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-xs opacity-70"
+                            style={{ color: "#D4AF37" }}
+                          >
+                            ✦
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        {!isCompleted && (
+                          <div
+                            className="absolute top-2 right-2 w-3 h-3 rounded-full"
+                            style={{
+                              background: "#D4A76A",
+                              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)",
+                            }}
+                            title="Draft"
+                          />
+                        )}
+
+                        {/* Read count badge */}
+                        {story.readCount > 0 && (
+                          <div
+                            className="absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-bold text-ui"
+                            style={{
+                              background: "rgba(0, 0, 0, 0.5)",
+                              color: "#FFF",
+                            }}
+                          >
+                            {story.readCount} reads
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Hover Card with Details */}
+                      <div className="absolute left-0 right-0 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <div
+                          className="paper-texture page-shadow rounded-lg p-4 text-left"
+                          style={{
+                            background:
+                              "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
+                          }}
+                        >
+                          <h3 className="font-bold text-text-primary text-body mb-2 line-clamp-2">
+                            {story.title}
+                          </h3>
+                          <p className="text-sm text-text-secondary text-body mb-2 line-clamp-2">
+                            Lesson: {story.lesson}
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-text-muted text-ui">
+                            <span>{story.sceneCount} scenes</span>
+                            <span>
+                              {isCompleted ? "✓ Complete" : "✎ Draft"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.button>
+                  )
+                })}
+              </div>
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex justify-center items-center gap-2">
-                <Button
-                  variant={ButtonVariant.Secondary}
-                  size={ButtonSize.Medium}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ← Previous
-                </Button>
+            {/* Detail Cards View (Optional Alternative) */}
+            <div className="mt-8">
+              <h2 className="text-2xl font-bold text-cream text-heading mb-4">
+                Recent Stories
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredStories.slice(0, 6).map((story, index) => {
+                  const isCompleted = story.status === StoryStatus.COMPLETED
 
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum: number
-                    if (totalPages <= 5) {
-                      pageNum = i + 1
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i
-                    } else {
-                      pageNum = currentPage - 2 + i
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-10 h-10 rounded-lg font-medium transition-all ${
-                          currentPage === pageNum
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                        }`}
+                  return (
+                    <motion.div
+                      key={`card-${story.id}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <LeatherCard
+                        title={story.title}
+                        subtitle={story.theme}
+                        hoverable
+                        onClick={() => router.push(`/story-tree/${story.id}`)}
+                        className="h-full"
                       >
-                        {pageNum}
-                      </button>
-                    )
-                  })}
-                </div>
+                        <div className="space-y-3">
+                          <div className="text-cream text-body text-sm leading-relaxed">
+                            <strong className="text-cream">Lesson:</strong>{" "}
+                            {story.lesson}
+                          </div>
 
-                <Button
-                  variant={ButtonVariant.Secondary}
-                  size={ButtonSize.Medium}
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next →
-                </Button>
+                          <div className="flex items-center gap-4 text-sm text-parchment text-ui">
+                            <span>📝 {story.sceneCount} scenes</span>
+                            <span>👁️ {story.readCount} reads</span>
+                          </div>
+
+                          <div className="pt-3 border-t border-dark-leather">
+                            <span
+                              className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-ui ${
+                                isCompleted
+                                  ? "bg-forest-green text-cream"
+                                  : "bg-warning text-text-primary"
+                              }`}
+                            >
+                              {isCompleted ? "✓ Completed" : "✎ Draft"}
+                            </span>
+                          </div>
+                        </div>
+                      </LeatherCard>
+                    </motion.div>
+                  )
+                })}
               </div>
-            )}
-          </>
-        )}
-      </main>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={deleteModalOpen}
-        onClose={() => {
-          setDeleteModalOpen(false)
-          setStoryToDelete(null)
-        }}
-        title="Delete Story"
-        size={ModalSize.Medium}
-        footer={
-          <>
-            <Button
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Medium}
-              onClick={() => {
-                setDeleteModalOpen(false)
-                setStoryToDelete(null)
-              }}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={ButtonVariant.Danger}
-              size={ButtonSize.Medium}
-              onClick={handleDeleteStory}
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete Story"}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-gray-700">
-          Are you sure you want to delete{" "}
-          <strong>{storyToDelete?.title}</strong>? This action cannot be undone.
-        </p>
-      </Modal>
-
-      {/* Bulk Delete Confirmation Modal */}
-      <Modal
-        isOpen={bulkDeleteModalOpen}
-        onClose={() => setBulkDeleteModalOpen(false)}
-        title="Delete Multiple Stories"
-        size={ModalSize.Medium}
-        footer={
-          <>
-            <Button
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Medium}
-              onClick={() => setBulkDeleteModalOpen(false)}
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={ButtonVariant.Danger}
-              size={ButtonSize.Medium}
-              onClick={handleBulkDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting
-                ? "Deleting..."
-                : `Delete ${selectedStories.size} Stories`}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-gray-700">
-          Are you sure you want to delete{" "}
-          <strong>{selectedStories.size}</strong>{" "}
-          {selectedStories.size === 1 ? "story" : "stories"}? This action cannot
-          be undone.
-        </p>
-      </Modal>
-
-      {/* Share Modal */}
-      <Modal
-        isOpen={shareModalOpen}
-        onClose={() => {
-          setShareModalOpen(false)
-          setShareUrl("")
-        }}
-        title="Share Story"
-        size={ModalSize.Medium}
-        footer={
-          <>
-            <Button
-              variant={ButtonVariant.Secondary}
-              size={ButtonSize.Medium}
-              onClick={() => {
-                setShareModalOpen(false)
-                setShareUrl("")
-              }}
-            >
-              Close
-            </Button>
-            <Button
-              variant={ButtonVariant.Primary}
-              size={ButtonSize.Medium}
-              onClick={handleCopyShareLink}
-            >
-              Copy Link
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            Share this link with others to let them read your story:
-          </p>
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <code className="text-sm text-blue-600 break-all">{shareUrl}</code>
+            </div>
           </div>
-        </div>
-      </Modal>
-
-      {/* Toast Notifications */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          variant={toast.variant}
-          isVisible={!!toast}
-          onDismiss={() => setToast(null)}
-          duration={4000}
-        />
-      )}
+        )}
+      </div>
     </div>
   )
 }
