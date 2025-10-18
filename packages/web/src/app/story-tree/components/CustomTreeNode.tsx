@@ -188,6 +188,7 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
   const nodeStyles = getNodeStyles(data.type)
   const icon = getNodeIcon(data.type)
   const typeLabel = getTypeLabel(data.type)
+  const [showAddButton, setShowAddButton] = React.useState(false)
 
   // Show handles for connections
   const hasIncoming = data.type !== NodeType.START
@@ -201,9 +202,19 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
   const selectionClass =
     selected && !data.isHovered ? "ring-2 ring-blue-400" : ""
 
+  // Handle add node button click
+  const handleAddNodeClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent node selection
+    if (data.onAddNode) {
+      data.onAddNode(data.id)
+    }
+  }
+
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 min-w-[200px] max-w-[250px] transition-all duration-200 ${nodeStyles} ${opacityClass} ${borderClass} ${selectionClass} ${shadowClass} cursor-pointer hover:scale-105`}
+      className={`px-4 py-3 rounded-lg border-2 min-w-[200px] max-w-[250px] transition-all duration-200 ${nodeStyles} ${opacityClass} ${borderClass} ${selectionClass} ${shadowClass} cursor-pointer hover:scale-105 relative group`}
+      onMouseEnter={() => setShowAddButton(true)}
+      onMouseLeave={() => setShowAddButton(false)}
     >
       {/* Incoming handle (top) */}
       {hasIncoming && (
@@ -239,6 +250,30 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
             {data.choices.length} choice{data.choices.length !== 1 ? "s" : ""}
           </div>
         </div>
+      )}
+
+      {/* Add Node Button - Shows on hover for non-ending nodes */}
+      {hasOutgoing && showAddButton && (
+        <button
+          onClick={handleAddNodeClick}
+          className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg transition-all duration-200 flex items-center gap-1 z-50"
+          title="Add child node"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 4v16m8-8H4"
+            />
+          </svg>
+          Add Node
+        </button>
       )}
 
       {/* Outgoing handle (bottom) */}

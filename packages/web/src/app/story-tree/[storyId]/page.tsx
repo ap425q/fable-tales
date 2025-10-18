@@ -33,6 +33,181 @@ import {
 } from "./story-tree.page.mock"
 
 /**
+ * Add Node Modal Component
+ */
+interface AddNodeModalProps {
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (nodeData: {
+    type: NodeType
+    title: string
+    text: string
+    location: string
+  }) => void
+  isSaving: boolean
+  locations: Array<{ id: string; name: string }>
+}
+
+function AddNodeModal({
+  isOpen,
+  onClose,
+  onAdd,
+  isSaving,
+  locations,
+}: AddNodeModalProps) {
+  const [nodeType, setNodeType] = useState<NodeType>(NodeType.NORMAL)
+  const [title, setTitle] = useState("")
+  const [text, setText] = useState("")
+  const [location, setLocation] = useState("")
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setNodeType(NodeType.NORMAL)
+      setTitle("")
+      setText("")
+      setLocation(locations[0]?.id || "")
+    }
+  }, [isOpen, locations])
+
+  const handleSubmit = () => {
+    if (!title.trim() || !text.trim()) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    onAdd({
+      type: nodeType,
+      title: title.trim(),
+      text: text.trim(),
+      location: location || locations[0]?.id || "",
+    })
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add New Node"
+      size={ModalSize.Large}
+      footer={
+        <>
+          <Button
+            variant={ButtonVariant.Secondary}
+            onClick={onClose}
+            disabled={isSaving}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant={ButtonVariant.Primary}
+            onClick={handleSubmit}
+            loading={isSaving}
+          >
+            Add Node
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Node Type Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Node Type *
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { type: NodeType.NORMAL, label: "Normal Scene", icon: "📄" },
+              { type: NodeType.CHOICE, label: "Choice Point", icon: "🔀" },
+              { type: NodeType.GOOD_ENDING, label: "Good Ending", icon: "⭐" },
+              { type: NodeType.BAD_ENDING, label: "Bad Ending", icon: "❌" },
+            ].map((option) => (
+              <button
+                key={option.type}
+                type="button"
+                onClick={() => setNodeType(option.type)}
+                className={`p-3 rounded-lg border-2 text-left transition-all ${
+                  nodeType === option.type
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-300 bg-white hover:border-gray-400"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{option.icon}</span>
+                  <span className="text-sm font-medium">{option.label}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Title Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Scene Title *
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter scene title"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            maxLength={100}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            {title.length}/100 characters
+          </p>
+        </div>
+
+        {/* Text Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Scene Text *
+          </label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Enter scene text"
+            rows={4}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            maxLength={500}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            {text.length}/500 characters
+          </p>
+        </div>
+
+        {/* Location Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Location
+          </label>
+          <select
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Info Box */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-sm text-blue-800">
+            <strong>Tip:</strong> The new node will be added as a child of the
+            selected parent node. You can edit choices and connections later.
+          </p>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+/**
  * Story Tree Editor Page Component
  * Interactive tree visualization for editing story structure
  */
@@ -55,6 +230,10 @@ function StoryTreeEditor() {
   const [showValidation, setShowValidation] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false)
+  const [showAddNodeModal, setShowAddNodeModal] = useState(false)
+  const [parentNodeIdForAdd, setParentNodeIdForAdd] = useState<string | null>(
+    null
+  )
 
   // Define node types for React Flow
   const nodeTypes = useMemo(() => ({ custom: CustomTreeNode }), []) as any
@@ -127,6 +306,12 @@ function StoryTreeEditor() {
     return { parents, children }
   }
 
+  // Handle add node request
+  const handleAddNodeRequest = (parentNodeId: string) => {
+    setParentNodeIdForAdd(parentNodeId)
+    setShowAddNodeModal(true)
+  }
+
   // Convert API data to React Flow format
   const convertToReactFlowData = (data: StoryDetailsResponse) => {
     // Calculate layout
@@ -155,6 +340,7 @@ function StoryTreeEditor() {
           isHovered: false,
           isParent: false,
           isChild: false,
+          onAddNode: handleAddNodeRequest,
         },
       }
     })
@@ -373,6 +559,100 @@ function StoryTreeEditor() {
 
       return [...filtered, ...newEdges]
     })
+  }
+
+  // Handle add node
+  const handleAddNode = async (nodeData: {
+    type: NodeType
+    title: string
+    text: string
+    location: string
+  }) => {
+    if (!parentNodeIdForAdd) return
+
+    try {
+      setIsSaving(true)
+
+      // Simulate API call
+      await simulateDelay(800)
+
+      // In production:
+      // const response = await api.post(`/stories/${storyId}/nodes`, {
+      //   parentNodeId: parentNodeIdForAdd,
+      //   choiceId: null, // Optional: can be used to link to specific choice
+      //   type: nodeData.type,
+      //   title: nodeData.title,
+      //   text: nodeData.text,
+      //   location: nodeData.location,
+      //   choices: [], // Empty choices initially
+      // })
+
+      // Generate a new node ID (in production, this comes from API)
+      const newNodeId = `node-${Date.now()}`
+      const newSceneNumber = nodes.length + 1
+
+      // Create new node
+      const newNode: TreeNode = {
+        id: newNodeId,
+        type: "custom",
+        position: { x: 0, y: 0 }, // Will be recalculated
+        draggable: false,
+        data: {
+          id: newNodeId,
+          sceneNumber: newSceneNumber,
+          title: nodeData.title,
+          text: nodeData.text,
+          location: nodeData.location,
+          type: nodeData.type,
+          choices: [],
+          isSelected: false,
+          isHovered: false,
+          isParent: false,
+          isChild: false,
+          onAddNode: handleAddNodeRequest,
+        },
+      }
+
+      // Add new node to nodes array
+      setNodes((nds: any) => [...nds, newNode])
+
+      // Add edge from parent to new node
+      const newEdge = {
+        id: `${parentNodeIdForAdd}-${newNodeId}`,
+        source: parentNodeIdForAdd,
+        target: newNodeId,
+        animated: false,
+        style: { stroke: "#9CA3AF", strokeWidth: 2 },
+      }
+      setEdges((eds: any) => [...eds, newEdge])
+
+      // Recalculate layout
+      setTimeout(() => {
+        if (storyData) {
+          const updatedData = {
+            ...storyData,
+            tree: {
+              nodes: [...nodes.map((n: any) => n.data), newNode.data],
+              edges: [
+                ...edges.map((e: any) => ({ from: e.source, to: e.target })),
+                { from: parentNodeIdForAdd, to: newNodeId },
+              ],
+            },
+          }
+          convertToReactFlowData(updatedData as any)
+        }
+      }, 100)
+
+      // Close modal
+      setShowAddNodeModal(false)
+      setParentNodeIdForAdd(null)
+
+      console.log("Node added successfully")
+    } catch (error) {
+      console.error("Failed to add node:", error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Handle node delete
@@ -615,6 +895,10 @@ function StoryTreeEditor() {
                   <p>
                     • <strong>Click</strong> to edit node details
                   </p>
+                  <p>
+                    • <strong>Hover</strong> and click{" "}
+                    <strong>"Add Node"</strong> to create child nodes
+                  </p>
                   <p className="mt-2 pt-2 border-t border-gray-200">
                     <span className="inline-block w-3 h-3 rounded-full bg-purple-400 mr-1"></span>
                     Purple ring = Parent node
@@ -777,6 +1061,18 @@ function StoryTreeEditor() {
           </div>
         </div>
       </Modal>
+
+      {/* Add Node Modal */}
+      <AddNodeModal
+        isOpen={showAddNodeModal}
+        onClose={() => {
+          setShowAddNodeModal(false)
+          setParentNodeIdForAdd(null)
+        }}
+        onAdd={handleAddNode}
+        isSaving={isSaving}
+        locations={storyData?.locations || []}
+      />
 
       {/* Preview Modal */}
       <Modal

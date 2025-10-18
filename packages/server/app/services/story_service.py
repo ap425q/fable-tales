@@ -332,11 +332,30 @@ class StoryService:
             text=request.text,
             location=request.location,
             type=request.type,
-            choices=request.choices
+            choices=request.choices if hasattr(request, 'choices') else []
         )
         
         # Add to story tree
         story.tree.nodes.append(new_node)
+        
+        # Add edge from parent to new node
+        if hasattr(request, 'parentNodeId') and request.parentNodeId:
+            new_edge = StoryEdge(
+                from_node=request.parentNodeId,
+                to=new_node.id
+            )
+            story.tree.edges.append(new_edge)
+            
+            # If choiceId is provided, update the parent node's choice to point to new node
+            if hasattr(request, 'choiceId') and request.choiceId:
+                for node in story.tree.nodes:
+                    if node.id == request.parentNodeId:
+                        for choice in node.choices:
+                            if choice.id == request.choiceId:
+                                choice.nextNodeId = new_node.id
+                                break
+                        break
+        
         story.updatedAt = datetime.now()
         self.data_manager.save_story(story)
         
