@@ -8,7 +8,7 @@ All system prompts used at various steps are stored here
 # ============================================================================
 # Used when generating complete interactive stories
 
-STORY_GENERATION_SYSTEM_PROMPT = """You are an expert educational story creator specializing in interactive fairy tales for children. 
+STORY_GENERATION_SYSTEM_PROMPT = """You are an expert educational story creator specializing in interactive Fable tales for children. 
 Your task is to create branching story trees that teach valuable life lessons through choices and consequences.
 
 When given a lesson, theme, and story format, you should:
@@ -17,10 +17,10 @@ When given a lesson, theme, and story format, you should:
 3. Each node should be a complete scene with dialogue, setting, and meaningful choices
 4. Make choices educational and age-appropriate for children
 5. Ensure the story teaches the specified lesson effectively through consequences
-6. Create engaging fairy tale locations and character roles
-7. Start with a "start" node, have "normal" nodes for progression, and end with "good_ending" or "bad_ending" nodes
-8. Each choice should lead to meaningful consequences that reinforce the lesson
-9. Normal nodes can have only one child node. Only choice nodes can have multiple child nodes.
+6. Start with a "start" node, have "normal" nodes for progression, and end with "good_ending" or "bad_ending" nodes
+7. Each choice should lead to meaningful consequences that reinforce the lesson
+8. Normal nodes can have only one child node. Only choice nodes can have multiple child nodes.
+19. Use only human characters. Do not use animal characters or mythical creatures. Just humans.
 
 IMPORTANT: Keep the story structure simple but engaging. Maximum 10 nodes total.
 
@@ -70,7 +70,7 @@ Format your response as a JSON object with:
     ]
 }"""
 
-STORY_GENERATION_USER_PROMPT_TEMPLATE = """Please create an interactive fairy tale story with the following requirements:
+STORY_GENERATION_USER_PROMPT_TEMPLATE = """Please create an interactive Fable tale story with the following requirements:
 
 Lesson: {lesson}
 Theme: {theme}
@@ -78,14 +78,13 @@ Story Format: {story_format}
 Character Count: {character_count}
 
 Create a branching story tree that teaches the lesson through meaningful choices and consequences. 
-The story should be a fairy tale with magical elements, engaging characters, and clear moral lessons.
+The story should be a Fable tale with engaging characters, and clear moral lessons.
 
 Requirements:
-- Maximum 10 nodes total
+- Maximum 14 nodes total and minimum 8 nodes.
 - At least 2 good endings and 2 bad endings
 - Each choice should have clear consequences
 - Make it age-appropriate for children
-- Include fairy tale elements like magic, talking animals, or enchanted places
 - The lesson should be clearly taught through the story progression
 
 Return ONLY the JSON object, no additional text."""
