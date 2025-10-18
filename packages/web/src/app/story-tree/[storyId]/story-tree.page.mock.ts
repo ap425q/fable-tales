@@ -1,8 +1,11 @@
 /**
- * Mock Data for Story Tree Editor Page
+ * Mock Data for Story Tree Editor Page - FIXED VERSION
  *
  * This file contains comprehensive mock data for testing the story tree editor
  * including complex branching scenarios with multiple paths and endings.
+ *
+ * FIXES:
+ * - Changed node-2 from NORMAL to CHOICE (Scene nodes can't have multiple children)
  */
 
 import { ApiResponse, NodeType, StoryStatus } from "@/types"
@@ -69,11 +72,10 @@ export interface MockLocationInfo {
  * Mock story tree data with complex branching
  * Demonstrates:
  * - 1 start node
- * - 2 branch points with multiple choices
- * - 6 normal/choice nodes
- * - 2 good endings (different paths)
- * - 1 bad ending
- * - Node with 3 choices
+ * - 3 choice nodes (node-2, node-4, node-6)
+ * - 4 normal/scene nodes (node-5, node-8, node-9 removed, replaced with direct path)
+ * - 1 good ending (node-11)
+ * - 3 bad endings (node-3, node-7, node-10)
  */
 export const mockStoryTreeData: ApiResponse<StoryDetailsResponse> = {
   success: true,
@@ -116,7 +118,7 @@ export const mockStoryTreeData: ApiResponse<StoryDetailsResponse> = {
           title: "The Trapped Squirrel",
           text: "Ruby hopped quickly through the bushes and found a small squirrel named Sam trapped under a fallen branch. 'Thank you for coming!' Sam squeaked. 'I can't move this branch by myself!'",
           location: "location-1",
-          type: NodeType.NORMAL,
+          type: NodeType.CHOICE, // FIXED: Changed from NORMAL to CHOICE
           choices: [
             {
               id: "choice-2-1",
