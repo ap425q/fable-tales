@@ -29,6 +29,7 @@ import { validateTree } from "../utils/treeValidation"
 interface StoryDetailsResponse {
   id: string
   title: string
+  lesson?: string
   status: string
   tree: {
     nodes: Array<{
@@ -42,6 +43,7 @@ interface StoryDetailsResponse {
         id: string
         text: string
         nextNodeId: string
+        isCorrect?: boolean
       }>
     }>
     edges: Array<{
@@ -324,6 +326,7 @@ function StoryTreeEditor() {
     setIsSaving,
     setHasUnsavedChanges,
     setSelectedNode,
+    storyId,
   ])
 
   // Keyboard shortcuts
@@ -365,16 +368,46 @@ function StoryTreeEditor() {
 
       if (response.success && response.data) {
         // Transform the response to match expected structure
-        const storyData = response.data as any
+        const rawData = response.data as unknown as {
+          id: string
+          title: string
+          lesson?: string
+          status: string
+          tree?: {
+            nodes: Array<{
+              id: string
+              sceneNumber: number
+              title: string
+              text: string
+              location: string
+              type: NodeType
+              choices: Array<{
+                id: string
+                text: string
+                nextNodeId: string
+                isCorrect?: boolean
+              }>
+            }>
+            edges: Array<{
+              from: string
+              to: string
+            }>
+          }
+          locations: Array<{
+            id: string
+            name: string
+          }>
+        }
         const transformedData: StoryDetailsResponse = {
-          id: storyData.id,
-          title: storyData.title,
-          status: storyData.status,
+          id: rawData.id,
+          title: rawData.title,
+          lesson: rawData.lesson,
+          status: rawData.status,
           tree: {
-            nodes: storyData.tree?.nodes || [],
-            edges: storyData.tree?.edges || [],
+            nodes: rawData.tree?.nodes || [],
+            edges: rawData.tree?.edges || [],
           },
-          locations: storyData.locations || [],
+          locations: rawData.locations || [],
         }
         setStoryData(transformedData)
         convertToReactFlowData(transformedData)
@@ -430,7 +463,12 @@ function StoryTreeEditor() {
           text: node.text,
           location: node.location,
           type: node.type,
-          choices: node.choices,
+          choices: node.choices.map((choice) => ({
+            id: choice.id,
+            text: choice.text,
+            nextNodeId: choice.nextNodeId,
+            isCorrect: choice.isCorrect ?? false,
+          })),
           isSelected: false,
           isHovered: false,
           isParent: false,
@@ -691,6 +729,7 @@ function StoryTreeEditor() {
       // Add node via API
       const response = await api.stories.addNode(storyId, {
         parentNodeId: parentNodeIdForAdd,
+        choiceId: "", // Empty choiceId for now
         type: nodeData.type,
         title: nodeData.title,
         text: nodeData.text,
@@ -703,7 +742,10 @@ function StoryTreeEditor() {
       }
 
       // Get the new node from API response
-      const apiNode = response.data.node as any
+      const apiNode = response.data.node as {
+        id: string
+        sceneNumber?: number
+      }
       const newNodeId = apiNode.id
       const newSceneNumber = apiNode.sceneNumber || nodes.length + 1
 
@@ -759,7 +801,6 @@ function StoryTreeEditor() {
           const updatedData: StoryDetailsResponse = {
             ...storyData,
             tree: {
-              storyId: storyData.tree.storyId,
               nodes: updatedNodes.map((node) => ({
                 id: node.id,
                 sceneNumber: node.sceneNumber,
@@ -767,8 +808,12 @@ function StoryTreeEditor() {
                 text: node.text,
                 location: node.location,
                 type: node.type,
-                choices: node.choices,
-                images: [],
+                choices: node.choices.map((choice) => ({
+                  id: choice.id,
+                  text: choice.text,
+                  nextNodeId: choice.nextNodeId || "",
+                  isCorrect: choice.isCorrect,
+                })),
               })),
               edges: updatedEdges,
             },
