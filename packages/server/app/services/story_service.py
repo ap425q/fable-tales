@@ -636,19 +636,34 @@ class StoryService:
             # Use Supabase URL if available, otherwise use FAL.ai URL
             final_url = supabase_url if supabase_url else fal_image_url
             
+            # Generate a version ID for this image
+            version_id = str(uuid.uuid4())
+            
             # Update the location with the generated image
             location_data = {
                 "id": first_location.locationId,
                 "story_id": story_id,
+                "location_id": first_location.locationId,
                 "name": f"Location {first_location.locationId}",
                 "description": description,
                 "image_url": final_url,
                 "status": "completed",
+                "selected_version_id": version_id,  # Set the new version as selected
                 "updated_at": datetime.now().isoformat()
             }
             
             # Save to database
             self.data_manager.update_location_image(location_data)
+            
+            # Create a version entry for this generated image
+            version_data = {
+                "id": f"bg_version_{first_location.locationId}_{version_id}",
+                "background_id": first_location.locationId,
+                "version_id": version_id,
+                "image_url": final_url,
+                "created_at": datetime.now().isoformat()
+            }
+            self.data_manager.supabase.table("background_versions").insert(version_data).execute()
             
             if supabase_url:
                 print(f"✅ Image uploaded to Supabase storage: {supabase_url}", flush=True)

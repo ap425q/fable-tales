@@ -600,6 +600,7 @@ class SupabaseDataManager:
                 loc_data = {
                     "id": loc["id"],
                     "story_id": story_id,
+                    "location_id": loc["id"],
                     "name": loc["name"],
                     "description": loc["description"],
                     "image_url": loc.get("imageUrl"),

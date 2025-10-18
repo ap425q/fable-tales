@@ -173,7 +173,7 @@ export default function BackgroundSetupPage({
     } catch (err) {
       console.error("Error polling generation status:", err)
     }
-  }, [])
+  }, [storyId])
 
   /**
    * Start polling for generation status
