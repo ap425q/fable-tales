@@ -93,38 +93,38 @@
 
 ---
 
-## 5. **Parent Mode - Background Setup and Generation Page** ⭐ Newly Added!
+## 5. **Parent Mode - Location Background Setup and Generation Page** ⭐ Newly Added!
 **Features:**
 
-### Background Location List
+### Location List
 - **Locations automatically extracted from story**:
-  - Identify background locations appearing through scene analysis
+  - Identify locations appearing through scene analysis
   - E.g., "Magic forest", "Kingdom castle", "Beach", "Village square", etc.
   - Display each location in card format
 
-### Each Background Card
+### Each Location Card
 - **Location Information**:
   - Location name (editable)
   - Display scene numbers where this location appears (e.g., "Used in Scenes 1, 3, 7, 15")
   
-- **Background Description Input**:
+- **Location Description Input**:
   - Text input field
-  - Description for AI to reference when generating background
+  - Description for AI to reference when generating location background image
   - E.g., "Bright forest with sunlight", "Inside a dark cave", "Splendid throne room"
   
 - **Background Image Area**:
-  - Before generation: Display "Waiting for background generation"
-  - After generation: Display background image
+  - Before generation: Display "Waiting for image generation"
+  - After generation: Display location background image
   - "Regenerate" button
   - Generated version history (small thumbnails)
 
 ### Overall Controls
-- **"Generate All Backgrounds"** button (generate all backgrounds at once)
-- **"Add Background"** button (manually add background location)
-- Individual "Generate" button for each background
+- **"Generate All Location Images"** button (generate all location backgrounds at once)
+- **"Add Location"** button (manually add location)
+- Individual "Generate" button for each location
 
 ### After Completion
-- **"Next: Final Image Generation"** button (activated when all backgrounds are generated)
+- **"Next: Final Image Generation"** button (activated when all location images are generated)
 
 ---
 
@@ -271,9 +271,9 @@ Parent Mode:
    ↓
 4. Assign character roles (up to 4)
    ↓
-5. Background setup and generation (background image for each location)
+5. Location background image setup and generation (one image per location)
    ↓
-6. Final scene image generation (character + background composite)
+6. Final scene image generation (character + location background composite)
    ↓
 7. Complete!
 
@@ -293,7 +293,7 @@ Child Mode:
 1. ✅ Story setup page (#2)
 2. ✅ Story tree editing page (#3) - basic features
 3. ✅ Character role assignment (#4)
-4. ✅ **Background setup and generation (#5) - Newly added!**
+4. ✅ **Location background image setup and generation (#5) - Newly added!**
 5. ✅ Final image generation and management (#6)
 6. ✅ Child reading page (#8)
 
@@ -307,4 +307,4 @@ Child Mode:
 - TTS, background music
 - Share feature
 
-**Core Demo Points**: #3 (tree editing) → #5 (background generation) → #6 (final composite) → #8 (child reading)
+**Core Demo Points**: #3 (tree editing) → #5 (location image generation) → #6 (final composite) → #8 (child reading)
