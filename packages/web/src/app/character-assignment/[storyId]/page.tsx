@@ -1,15 +1,7 @@
 "use client"
 
-import { Button } from "@/components/Button"
-import { Card } from "@/components/Card"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import {
-  ButtonSize,
-  ButtonVariant,
-  CardPadding,
-  SpinnerColor,
-  SpinnerSize,
-} from "@/components/types"
+import { SpinnerColor, SpinnerSize } from "@/components/types"
 import { CharacterRole } from "@/lib/apiTypes"
 import { ApiError, PresetCharacter } from "@/types"
 import { useRouter } from "next/navigation"
@@ -431,7 +423,7 @@ export default function CharacterAssignmentPage({
               </p>
 
               {/* Character Grid */}
-              <div className="grid grid-cols-2 gap-6 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-visible pr-4 px-4 py-3">
+              <div className="grid grid-cols-2 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto overflow-x-visible pr-2 py-2">
                 {presetCharacters.map((character) => {
                   const isSelected = selectedCharacter === character.id
                   const isAssigned = isCharacterAssigned(character.id)
@@ -440,53 +432,98 @@ export default function CharacterAssignmentPage({
                   return (
                     <div
                       key={character.id}
-                      className={`relative ${
+                      className={`relative group ${
                         isSelected ? "z-10" : "z-0"
-                      } hover:z-10`}
+                      } hover:z-10 transition-all duration-200`}
                       draggable={!isAssigned}
                       onDragStart={() =>
                         !isAssigned && handleDragStart(character.id)
                       }
                       onDragEnd={handleDragEnd}
+                      onClick={() =>
+                        !isAssigned && handleCharacterSelect(character.id)
+                      }
                     >
-                      <Card
-                        image={character.imageUrl}
-                        imageAlt={character.name}
-                        padding={CardPadding.Small}
-                        hoverable={!isAssigned}
-                        selected={isSelected}
-                        onClick={() =>
-                          !isAssigned && handleCharacterSelect(character.id)
-                        }
-                        className={`${
+                      <div
+                        className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
                           isAssigned
-                            ? "opacity-50 cursor-not-allowed"
-                            : "cursor-pointer"
+                            ? "opacity-60 cursor-not-allowed"
+                            : "cursor-grab active:cursor-grabbing hover:scale-105 hover:shadow-2xl"
                         } ${
-                          draggedCharacter === character.id ? "opacity-50" : ""
+                          isSelected
+                            ? "ring-4 ring-purple-500 shadow-2xl scale-105"
+                            : "shadow-lg"
+                        } ${
+                          draggedCharacter === character.id
+                            ? "opacity-40 scale-95"
+                            : ""
                         }`}
                       >
-                        <div className="text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <p className="font-semibold text-gray-900">
-                              {character.name}
-                            </p>
-                            {isAssigned && assignedRole && (
+                        {/* Character Image */}
+                        <div className="aspect-square relative bg-gradient-to-br from-gray-100 to-gray-200">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={character.imageUrl}
+                            alt={character.name}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+                          {/* Selected Indicator */}
+                          {isSelected && !isAssigned && (
+                            <div className="absolute top-2 right-2 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
                               <svg
-                                className="w-4 h-4 text-green-600 flex-shrink-0"
+                                className="w-5 h-5 text-white"
                                 fill="currentColor"
                                 viewBox="0 0 20 20"
                               >
                                 <path
                                   fillRule="evenodd"
-                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
                                   clipRule="evenodd"
                                 />
                               </svg>
-                            )}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* Assigned Badge */}
+                          {isAssigned && assignedRole && (
+                            <div className="absolute top-2 right-2 bg-green-500 rounded-full p-2 shadow-lg">
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </div>
+                          )}
                         </div>
-                      </Card>
+
+                        {/* Character Name */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 text-center">
+                          <p className="font-bold text-white text-sm drop-shadow-lg">
+                            {character.name}
+                          </p>
+                          {isAssigned && (
+                            <p className="text-xs text-green-300 font-semibold mt-0.5 drop-shadow">
+                              Assigned
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Hover Effect Border */}
+                        {!isAssigned && (
+                          <div className="absolute inset-0 border-2 border-transparent group-hover:border-purple-400 rounded-2xl transition-colors duration-300 pointer-events-none" />
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -508,122 +545,120 @@ export default function CharacterAssignmentPage({
                 return (
                   <div
                     key={role.id}
-                    className={`bg-white rounded-2xl border-2 shadow-lg p-6 transition-all duration-200 ${
+                    className={`bg-white rounded-xl border-2 shadow-lg p-5 transition-colors duration-200 ring-4 ring-offset-0 ${
                       isHovered
-                        ? "ring-4 ring-purple-400 border-purple-400 shadow-xl scale-[1.02]"
-                        : "border-gray-100"
-                    } ${
-                      isRoleSelected
-                        ? "ring-2 ring-purple-300 border-purple-300"
-                        : ""
+                        ? "ring-purple-400 border-purple-400 shadow-xl"
+                        : isRoleSelected
+                        ? "ring-purple-300 border-purple-300"
+                        : "ring-transparent border-gray-100"
                     }`}
                     onDragOver={(e) => handleDragOver(e, role.id)}
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, role.id)}
                   >
-                    <div className="flex flex-col sm:flex-row gap-6">
-                      {/* Role Information */}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {role.role}
-                          </h3>
-                          {assignedCharacter && (
-                            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded">
-                              Assigned
-                            </span>
-                          )}
+                    {/* Assignment Display */}
+                    {assignedCharacter ? (
+                      <div className="flex items-center gap-5 h-28">
+                        {/* Character Image */}
+                        <div className="w-28 h-28 rounded-xl overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={assignedCharacter.imageUrl}
+                            alt={assignedCharacter.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <p className="text-gray-600 mb-4">{role.description}</p>
 
-                        {/* Assignment Display */}
-                        {assignedCharacter ? (
-                          <div className="flex items-center space-x-4">
-                            <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={assignedCharacter.imageUrl}
-                                alt={assignedCharacter.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-gray-900 text-lg">
-                                {assignedCharacter.name}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {assignedCharacter.description}
-                              </p>
-                            </div>
+                        {/* Role & Character Info */}
+                        <div className="flex-1 min-w-0 py-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900 truncate">
+                              {role.role}
+                            </h3>
+                            <span className="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded shrink-0">
+                              ✓
+                            </span>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => handleRoleClick(role.id)}
-                            className={`w-full border-3 border-dashed rounded-xl p-8 transition-all duration-200 ${
-                              selectedCharacter
-                                ? "border-purple-400 bg-purple-50 hover:bg-purple-100 hover:border-purple-500"
-                                : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
-                            }`}
-                          >
-                            <div className="flex flex-col items-center space-y-2">
-                              <svg
-                                className={`w-12 h-12 ${
-                                  selectedCharacter
-                                    ? "text-blue-500"
-                                    : "text-gray-400"
-                                }`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                              </svg>
-                              <p
-                                className={`font-medium ${
-                                  selectedCharacter
-                                    ? "text-blue-700"
-                                    : "text-gray-600"
-                                }`}
-                              >
-                                {selectedCharacter
-                                  ? "Click to assign selected character"
-                                  : "Click to select or drag a character here"}
-                              </p>
-                            </div>
-                          </button>
-                        )}
+                          <p className="text-base text-gray-600 line-clamp-2 mb-2">
+                            {role.description}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-purple-700 text-base">
+                              {assignedCharacter.name}
+                            </p>
+                            <span className="text-gray-400">•</span>
+                            <p className="text-sm text-gray-500 line-clamp-1">
+                              {assignedCharacter.description}
+                            </p>
+                          </div>
+                        </div>
 
-                        {/* Action Buttons */}
-                        {assignedCharacter && (
-                          <div className="mt-4 flex space-x-2">
-                            <Button
-                              variant={ButtonVariant.Secondary}
-                              size={ButtonSize.Small}
-                              onClick={() => {
-                                handleRemoveAssignment(role.id)
-                              }}
-                            >
-                              Remove
-                            </Button>
-                            <Button
-                              variant={ButtonVariant.Secondary}
-                              size={ButtonSize.Small}
-                              onClick={() => {
-                                handleRemoveAssignment(role.id)
-                                setSelectedRole(role.id)
-                              }}
-                            >
-                              Change
-                            </Button>
-                          </div>
-                        )}
+                        {/* Action Button */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            handleRemoveAssignment(role.id)
+                            setSelectedRole(role.id)
+                          }}
+                          className="shrink-0 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                        >
+                          Change
+                        </button>
                       </div>
-                    </div>
+                    ) : (
+                      <button
+                        onClick={() => handleRoleClick(role.id)}
+                        className={`w-full border-2 border-dashed rounded-xl transition-colors duration-200 ${
+                          selectedCharacter
+                            ? "border-purple-400 bg-purple-50 hover:bg-purple-100"
+                            : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-5 h-28 px-2">
+                          {/* Icon */}
+                          <div className="shrink-0 w-28 h-28 flex items-center justify-center">
+                            <svg
+                              className={`w-14 h-14 ${
+                                selectedCharacter
+                                  ? "text-purple-500"
+                                  : "text-gray-400"
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            </svg>
+                          </div>
+
+                          {/* Text Content */}
+                          <div className="flex-1 text-left py-1">
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">
+                              {role.role}
+                            </h3>
+                            <p className="text-base text-gray-600 line-clamp-2 mb-2">
+                              {role.description}
+                            </p>
+                            <p
+                              className={`text-sm font-medium ${
+                                selectedCharacter
+                                  ? "text-purple-700"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {selectedCharacter
+                                ? "Click to assign selected character"
+                                : "Click or drag character here"}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 )
               })}
