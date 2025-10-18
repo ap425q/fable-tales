@@ -964,6 +964,7 @@ Generate a single illustration that captures this scene with the characters desc
             job_id = str(uuid.uuid4())
             
             # Save scene images to database
+            print(f"💾 Saving {len(generated_scenes)} scene images to database...", flush=True)
             for scene in generated_scenes:
                 if "error" not in scene:
                     try:
@@ -977,9 +978,16 @@ Generate a single illustration that captures this scene with the characters desc
                                 "createdAt": scene["generatedAt"]
                             }]
                         }
+                        print(f"   Saving scene {scene['sceneId']} with version {scene['versionId']}", flush=True)
+                        print(f"   Image URL: {scene['imageUrl']}", flush=True)
                         self.data_manager.save_scene_image_versions(story_id, scene["sceneId"], scene_image_data)
+                        print(f"   ✅ Scene saved successfully", flush=True)
                     except Exception as e:
-                        print(f"⚠️ Failed to save scene {scene['sceneId']} to database: {str(e)}")
+                        print(f"   ❌ Failed to save scene {scene['sceneId']} to database: {str(e)}", flush=True)
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print(f"   ⚠️ Skipping scene {scene.get('sceneId', 'unknown')} - has error", flush=True)
             
             # Save generation job with results
             self.data_manager.create_scene_generation_job(story_id, job_id, scene_ids)
@@ -1105,12 +1113,40 @@ Generate a single illustration that captures this scene with the characters desc
         # Convert nodes to reading format
         reading_nodes = []
         for node in story.tree.nodes:
+            # Get the actual scene image URL from database
+            scene_versions = self.data_manager.get_scene_image_versions(story_id, node.id)
+            image_url = None
+            
+            print(f"📖 Loading scene {node.id} for reading:", flush=True)
+            print(f"   Scene versions found: {scene_versions}", flush=True)
+            
+            if scene_versions and scene_versions.get("versions"):
+                # Get the selected version or the latest version
+                selected_version_id = scene_versions.get("currentVersionId")
+                if selected_version_id:
+                    # Find the selected version
+                    for version in scene_versions["versions"]:
+                        if version["versionId"] == selected_version_id:
+                            image_url = version["imageUrl"]
+                            print(f"   Using selected version: {image_url}", flush=True)
+                            break
+                
+                # If no selected version found, use the latest version
+                if not image_url and scene_versions["versions"]:
+                    image_url = scene_versions["versions"][-1]["imageUrl"]
+                    print(f"   Using latest version: {image_url}", flush=True)
+            
+            # Fallback to placeholder if no image found
+            if not image_url:
+                print(f"   ⚠️ No scene image found in database, using placeholder", flush=True)
+                image_url = f"https://cdn.example.com/scene_{node.id}_final.png"
+            
             reading_node = ReadingNode(
                 id=node.id,
                 sceneNumber=node.sceneNumber,
                 title=node.title,
                 text=node.text,
-                imageUrl=f"https://cdn.example.com/scene_{node.id}_final.png",
+                imageUrl=image_url,
                 type=node.type,
                 choices=node.choices,
                 lessonMessage=node.text if node.type in ["good_ending", "bad_ending"] else None,

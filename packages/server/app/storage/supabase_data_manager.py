@@ -826,9 +826,14 @@ class SupabaseDataManager:
     def save_scene_image_versions(self, story_id: str, scene_id: str, versions: Dict[str, Any]):
         """Save scene image versions to Supabase"""
         try:
+            print(f"💾 save_scene_image_versions called:", flush=True)
+            print(f"   story_id: {story_id}", flush=True)
+            print(f"   scene_id: {scene_id}", flush=True)
+            print(f"   versions: {versions}", flush=True)
+            
             for version in versions.get("versions", []):
                 version_data = {
-                    "id": f"scene_version_{scene_id}_{version['versionId']}",
+                    "id": str(uuid.uuid4()),  # Generate a proper UUID
                     "story_id": story_id,
                     "scene_id": scene_id,
                     "version_id": version["versionId"],
@@ -837,15 +842,22 @@ class SupabaseDataManager:
                     "created_at": version["createdAt"]
                 }
                 
-                self.supabase.table("scene_image_versions").upsert(version_data).execute()
+                print(f"   Upserting version data: {version_data}", flush=True)
+                result = self.supabase.table("scene_image_versions").upsert(version_data).execute()
+                print(f"   ✅ Upsert result: {result}", flush=True)
                 
         except Exception as e:
-            print(f"Error saving scene image versions to Supabase: {str(e)}")
+            print(f"❌ Error saving scene image versions to Supabase: {str(e)}", flush=True)
+            import traceback
+            traceback.print_exc()
     
     def get_scene_image_versions(self, story_id: str, scene_id: str) -> Optional[Dict[str, Any]]:
         """Get scene image versions from Supabase"""
         try:
+            print(f"🔍 Querying scene_image_versions for story_id={story_id}, scene_id={scene_id}", flush=True)
             result = self.supabase.table("scene_image_versions").select("*").eq("story_id", story_id).eq("scene_id", scene_id).order("created_at").execute()
+            
+            print(f"   Query result: {len(result.data) if result.data else 0} rows found", flush=True)
             
             if not result.data:
                 return None
@@ -860,6 +872,7 @@ class SupabaseDataManager:
                     "createdAt": version_data["created_at"]
                 }
                 versions.append(version)
+                print(f"   Found version: {version_data['version_id']} - {version_data['image_url']}", flush=True)
                 
                 if version_data["is_current"]:
                     current_version_id = version_data["version_id"]
@@ -871,7 +884,9 @@ class SupabaseDataManager:
             }
             
         except Exception as e:
-            print(f"Error getting scene image versions from Supabase: {str(e)}")
+            print(f"❌ Error getting scene image versions from Supabase: {str(e)}", flush=True)
+            import traceback
+            traceback.print_exc()
             return None
     
     # ========================================================================
