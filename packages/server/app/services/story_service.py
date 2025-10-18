@@ -16,7 +16,7 @@ from app.models.schemas import (
     Background, BackgroundVersion, GenerationStatus,
     StoryListItem, StoryListResponse, StoryForReading, ReadingNode,
     ReadingProgress, ReadingProgressRequest, ReadingCompletionRequest,
-    StoryStatistics, ShareLinkResponse, ImageUploadResponse,
+    ShareLinkResponse,
     SceneGenerationStatus, BackgroundGenerationStatus
 )
 from external_services import OpenAIService, FALAIService
@@ -271,14 +271,6 @@ class StoryService:
             hasMore=len(stories) == limit
         )
     
-    def get_completed_stories(self, limit: int, offset: int, sort_by: Optional[str] = None) -> StoryListResponse:
-        """Get list of completed stories for child mode"""
-        stories = self.data_manager.get_completed_stories(limit, offset, sort_by)
-        return StoryListResponse(
-            stories=stories,
-            total=self.data_manager.get_stories_count("completed"),
-            hasMore=len(stories) == limit
-        )
     
     def get_all_stories(self, limit: int, offset: int, status: Optional[str] = None, sort_by: Optional[str] = None) -> StoryListResponse:
         """Get all stories with detailed information"""
@@ -378,22 +370,6 @@ class StoryService:
         
         return None
     
-    def finalize_story_structure(self, story_id: str, tree: StoryTree) -> Optional[Dict[str, Any]]:
-        """Finalize the story structure"""
-        story = self.data_manager.get_story(story_id)
-        if not story:
-            return None
-        
-        story.tree = tree
-        story.status = StoryStatus.STRUCTURE_FINALIZED
-        story.updatedAt = datetime.now()
-        self.data_manager.save_story(story)
-        
-        return {
-            "storyId": story_id,
-            "status": story.status.value,
-            "message": "Story structure finalized"
-        }
     
     # ========================================================================
     # Character Management
@@ -404,7 +380,7 @@ class StoryService:
         characters_data = self.data_manager.get_preset_characters()
         return [PresetCharacter(**char) for char in characters_data]
     
-    def save_character_assignments(self, story_id: str, assignments: List[Dict[str, str]]) -> Optional[List[CharacterAssignment]]:
+    def save_character_assignments(self, story_id: str, assignments) -> Optional[List[CharacterAssignment]]:
         """Save character assignments for a story"""
         story = self.data_manager.get_story(story_id)
         if not story:
@@ -415,8 +391,8 @@ class StoryService:
         
         character_assignments = []
         for assignment in assignments:
-            char_role_id = assignment["characterRoleId"]
-            preset_char_id = assignment["presetCharacterId"]
+            char_role_id = assignment.characterRoleId
+            preset_char_id = assignment.presetCharacterId
             
             if char_role_id in story_chars and preset_char_id in preset_chars:
                 preset_char = preset_chars[preset_char_id]
@@ -425,14 +401,14 @@ class StoryService:
                 assignment_obj = CharacterAssignment(
                     characterRoleId=char_role_id,
                     presetCharacterId=preset_char_id,
-                    role=story_char.role,
-                    characterName=preset_char.name,
-                    imageUrl=preset_char.imageUrl
+                    roleName=story_char.role,
+                    characterName=preset_char.name
                 )
                 character_assignments.append(assignment_obj)
         
-        # Save assignments
-        self.data_manager.save_character_assignments(story_id, character_assignments)
+        # Save assignments to database
+        assignment_data = [{"characterRoleId": a.characterRoleId, "presetCharacterId": a.presetCharacterId} for a in assignments]
+        self.data_manager.save_character_assignments(story_id, assignment_data)
         
         return character_assignments
     
@@ -475,86 +451,41 @@ class StoryService:
         
         return None
     
-    def generate_all_backgrounds(self, story_id: str, backgrounds: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
-        """Generate all background images using AI"""
-        job_id = str(uuid.uuid4())
-        
+    def generate_all_backgrounds(self, story_id: str, backgrounds) -> Optional[str]:
+        """Generate background image using FAL.ai and return URL"""
         try:
-            # Get the story to extract node information
             story = self.data_manager.get_story(story_id)
             if not story:
                 raise Exception("Story not found")
             
-            # Generate background descriptions using OpenAI
-            story_nodes = []
-            for node in story.tree.nodes:
-                story_nodes.append({
-                    "sceneNumber": node.sceneNumber,
-                    "title": node.title,
-                    "location": node.location,
-                    "text": node.text
-                })
+            # For now, we'll generate the first background's image
+            # In the future, you might want to handle multiple backgrounds
+            if not backgrounds or len(backgrounds) == 0:
+                raise Exception("No backgrounds provided")
             
-            # Generate background descriptions
-            background_descriptions = self.openai_service.generate_background_descriptions(story_nodes)
+            first_background = backgrounds[0]
+            description = first_background.description
             
-            # Create background objects and generate images
-            generated_backgrounds = []
-            for bg_desc in background_descriptions:
-                try:
-                    # Generate image using FAL.ai
-                    image_url = self.fal_ai_service.generate_image(
-                        prompt=bg_desc["description"],
-                        width=1024,
-                        height=768
-                    )
-                    
-                    # Create background object with proper UUID
-                    background = Background(
-                        id=str(uuid.uuid4()),
-                        locationId=str(uuid.uuid4()),  # Use UUID instead of location name
-                        name=bg_desc["locationName"],
-                        description=bg_desc["description"],
-                        sceneNumbers=bg_desc["sceneNumbers"],
-                        imageUrl=image_url,
-                        status=GenerationStatus.COMPLETED,
-                        versions=[
-                            BackgroundVersion(
-                                versionId=str(uuid.uuid4()),
-                                imageUrl=image_url,
-                                createdAt=datetime.now()
-                            )
-                        ],
-                        selectedVersionId=None
-                    )
-                    
-                    generated_backgrounds.append(background)
-                    
-                except Exception as e:
-                    print(f"Error generating background for {bg_desc['locationName']}: {str(e)}")
-                    # Create background with error status
-                    background = Background(
-                        id=str(uuid.uuid4()),
-                        locationId=str(uuid.uuid4()),  # Use UUID instead of location name
-                        name=bg_desc["locationName"],
-                        description=bg_desc["description"],
-                        sceneNumbers=bg_desc["sceneNumbers"],
-                        imageUrl=None,
-                        status=GenerationStatus.FAILED,
-                        versions=[],
-                        selectedVersionId=None
-                    )
-                    generated_backgrounds.append(background)
+            # Generate image using FAL.ai
+            fal_image_url = self.fal_ai_service.generate_image(
+                prompt=description,
+                width=1024,
+                height=768
+            )
             
-            # Save backgrounds to storage
-            self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in generated_backgrounds])
+            if not fal_image_url:
+                raise Exception("Failed to generate image from FAL.ai")
             
-            return {
-                "jobId": job_id,
-                "message": "Background generation completed",
-                "backgroundIds": [bg.id for bg in generated_backgrounds],
-                "backgrounds": [bg.model_dump() for bg in generated_backgrounds]
-            }
+            # Download and upload to Supabase storage
+            filename = f"backgrounds/{story_id}_{first_background.backgroundId}_{str(uuid.uuid4())[:8]}.jpg"
+            supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
+            
+            if supabase_url:
+                print(f"✅ Image uploaded to Supabase storage: {supabase_url}")
+                return supabase_url
+            else:
+                print("⚠️ Supabase storage upload failed, falling back to FAL.ai URL")
+                return fal_image_url
             
         except Exception as e:
             print(f"Error in generate_all_backgrounds: {str(e)}")
@@ -675,33 +606,26 @@ class StoryService:
         
         return SceneGenerationStatus(**status_data)
     
-    def get_scene_image_version_history(self, story_id: str, scene_id: str) -> Optional[Dict[str, Any]]:
-        """Get scene image version history"""
-        versions_data = self.data_manager.get_scene_image_versions(story_id, scene_id)
-        if versions_data is None:
-            return None
-        
-        return versions_data
     
     def regenerate_individual_scene_image(self, story_id: str, scene_id: str, additional_prompt: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """Regenerate individual scene image"""
-        versions = self.get_scene_image_version_history(story_id, scene_id)
-        if not versions:
+        versions_data = self.data_manager.get_scene_image_versions(story_id, scene_id)
+        if not versions_data:
             return None
         
         # Generate new version
         version_id = str(uuid.uuid4())
         new_version = {
             "versionId": version_id,
-            "imageUrl": f"https://cdn.example.com/scene_{scene_id}_v{len(versions['versions']) + 1}.png",
+            "imageUrl": f"https://cdn.example.com/scene_{scene_id}_v{len(versions_data['versions']) + 1}.png",
             "createdAt": datetime.now().isoformat()
         }
         
-        versions["versions"].append(new_version)
-        versions["currentVersionId"] = version_id
+        versions_data["versions"].append(new_version)
+        versions_data["currentVersionId"] = version_id
         
         # Save updated versions
-        self.data_manager.save_scene_image_versions(story_id, scene_id, versions)
+        self.data_manager.save_scene_image_versions(story_id, scene_id, versions_data)
         
         return {
             "sceneId": scene_id,
@@ -854,43 +778,7 @@ class StoryService:
             }
         return None
     
-    def duplicate_story(self, story_id: str, new_title: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Duplicate a story"""
-        original_story = self.data_manager.get_story(story_id)
-        if not original_story:
-            return None
-        
-        # Create new story
-        new_story_id = str(uuid.uuid4())
-        new_story = Story(
-            id=new_story_id,
-            lesson=original_story.lesson,
-            theme=original_story.theme,
-            storyFormat=original_story.storyFormat,
-            status=StoryStatus.DRAFT,
-            tree=original_story.tree,
-            characters=original_story.characters,
-            locations=original_story.locations,
-            createdAt=datetime.now(),
-            updatedAt=datetime.now()
-        )
-        
-        self.data_manager.save_story(new_story)
-        
-        return {
-            "originalStoryId": story_id,
-            "newStoryId": new_story_id,
-            "title": new_title or f"{original_story.lesson} (Copy)",
-            "message": "Story duplicated successfully"
-        }
     
-    def get_story_statistics(self, story_id: str) -> Optional[StoryStatistics]:
-        """Get story statistics"""
-        stats_data = self.data_manager.get_story_statistics(story_id)
-        if not stats_data:
-            return None
-        
-        return StoryStatistics(**stats_data)
     
     def generate_share_link(self, story_id: str, expires_in: int = 2592000) -> Optional[ShareLinkResponse]:
         """Generate share link"""
@@ -912,15 +800,3 @@ class StoryService:
             expiresAt=expires_at
         )
     
-    def upload_image(self, file, image_type: str) -> ImageUploadResponse:
-        """Upload image for custom characters/backgrounds"""
-        # This would handle file upload to storage
-        # For now, return a mock response
-        image_id = str(uuid.uuid4())
-        image_url = f"https://cdn.example.com/{image_type}_{image_id}.png"
-        
-        return ImageUploadResponse(
-            imageId=image_id,
-            imageUrl=image_url,
-            uploadedAt=datetime.now()
-        )
