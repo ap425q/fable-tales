@@ -1129,15 +1129,7 @@ export default function BackgroundSetupPage({
             <h3 className="mt-6 text-2xl font-bold text-gray-900">
               Creating Your Backgrounds
             </h3>
-            <div className="mt-4 text-4xl font-bold text-indigo-600">
-              {
-                backgrounds.filter(
-                  (bg) => bg.generationStatus === GenerationStatus.COMPLETED
-                ).length
-              }{" "}
-              / {backgrounds.length}
-            </div>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-6 text-gray-600">
               AI is painting your story&apos;s world...
             </p>
             <p className="mt-2 text-sm text-gray-500">
