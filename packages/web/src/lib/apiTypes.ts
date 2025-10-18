@@ -2,13 +2,7 @@
  * API-specific type definitions
  */
 
-import {
-  Story,
-  StoryTree,
-  PresetCharacter,
-  Location,
-  SceneImage,
-} from "@/types"
+import { Location, PresetCharacter, Story, StoryTree } from "@/types"
 
 /**
  * Story generation request
@@ -267,3 +261,75 @@ export interface CharacterAssignmentsResponse {
   assignments: CharacterAssignmentResponse[]
 }
 
+/**
+ * Reading node for story reading
+ */
+export interface ReadingNode {
+  id: string
+  sceneNumber: number
+  title: string
+  text: string
+  imageUrl: string
+  type: string
+  choices: ChoiceData[]
+  lessonMessage?: string
+  previousNodeId?: string
+}
+
+/**
+ * Story formatted for reading
+ */
+export interface StoryForReading {
+  id: string
+  title: string
+  lesson: string
+  nodes: ReadingNode[]
+  startNodeId: string
+}
+
+/**
+ * Choice made during reading
+ */
+export interface ChoiceMade {
+  nodeId: string
+  choiceId: string
+}
+
+/**
+ * Reading progress request
+ */
+export interface ReadingProgressRequest {
+  currentNodeId: string
+  visitedNodeIds: string[]
+  choicesMade: ChoiceMade[]
+}
+
+/**
+ * Reading progress response
+ */
+export interface ReadingProgress {
+  storyId: string
+  currentNodeId: string
+  visitedNodeIds: string[]
+  choicesMade: ChoiceMade[]
+  lastReadAt: string
+}
+
+/**
+ * Reading completion request
+ */
+export interface ReadingCompletionRequest {
+  endingNodeId: string
+}
+
+/**
+ * Reading completion response
+ */
+export interface ReadingCompletionResponse {
+  storyId: string
+  endingNodeId: string
+  congratsMessage: string
+  readCount: number
+  reachedGoodEnding: boolean
+  completedAt: string
+}
