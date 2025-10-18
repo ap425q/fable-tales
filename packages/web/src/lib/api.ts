@@ -4,31 +4,35 @@
  * Centralized API client for making requests to the backend
  */
 
-import axios, { AxiosError, AxiosInstance } from "axios"
 import { API_BASE_URL } from "@/constants"
 import { ApiError, ApiResponse, ErrorCode, Story } from "@/types"
+import axios, { AxiosError, AxiosInstance } from "axios"
 import type {
-  StoryGenerateRequest,
-  StoryGenerateResponse,
-  NodeUpdateRequest,
-  NodeAddRequest,
-  CharacterAssignmentData,
-  CharacterAssignmentsResponse,
-  CharactersListResponse,
-  BackgroundUpdateRequest,
   BackgroundGenerateItem,
   BackgroundGenerationResponse,
   BackgroundGenerationStatus,
   BackgroundRegenerateResponse,
-  VersionSelectionResponse,
+  BackgroundsListResponse,
+  BackgroundUpdateRequest,
+  BulkSceneRegenerateResponse,
+  CharacterAssignmentData,
+  CharacterAssignmentsResponse,
+  CharactersListResponse,
+  NodeAddRequest,
+  NodeUpdateRequest,
+  ReadingCompletionRequest,
+  ReadingCompletionResponse,
+  ReadingProgress,
+  ReadingProgressRequest,
   SceneGenerationResponse,
   SceneGenerationStatus,
   SceneRegenerateResponse,
-  BulkSceneRegenerateResponse,
-  StoryCompletionResponse,
   StoriesListResponse,
-  BackgroundsListResponse,
-  SceneStatusItem,
+  StoryCompletionResponse,
+  StoryForReading,
+  StoryGenerateRequest,
+  StoryGenerateResponse,
+  VersionSelectionResponse,
 } from "./apiTypes"
 
 /**
@@ -81,14 +85,16 @@ function handleApiError(error: AxiosError): ApiError {
     return {
       code: data?.error?.code || ErrorCode.SERVER_ERROR,
       message:
-        data?.error?.message || "An error occurred while processing your request",
+        data?.error?.message ||
+        "An error occurred while processing your request",
       details: data?.error?.details,
     }
   } else if (error.request) {
     // Request made but no response received
     return {
       code: ErrorCode.NETWORK_ERROR,
-      message: "Unable to connect to server. Please check your internet connection.",
+      message:
+        "Unable to connect to server. Please check your internet connection.",
     }
   } else {
     // Something else happened
@@ -159,7 +165,10 @@ export const api = {
       storyId: string,
       data: NodeAddRequest
     ): Promise<ApiResponse<{ node: unknown }>> {
-      const response = await apiClient.post(`/v1/stories/${storyId}/nodes`, data)
+      const response = await apiClient.post(
+        `/v1/stories/${storyId}/nodes`,
+        data
+      )
       return response.data
     },
 
@@ -169,7 +178,9 @@ export const api = {
     async deleteNode(
       storyId: string,
       nodeId: string
-    ): Promise<ApiResponse<{ deletedNodeId: string; affectedNodes: string[] }>> {
+    ): Promise<
+      ApiResponse<{ deletedNodeId: string; affectedNodes: string[] }>
+    > {
       const response = await apiClient.delete(
         `/v1/stories/${storyId}/nodes/${nodeId}`
       )
@@ -182,7 +193,9 @@ export const api = {
     async finalizeStructure(
       storyId: string,
       tree: unknown
-    ): Promise<ApiResponse<{ storyId: string; status: string; message: string }>> {
+    ): Promise<
+      ApiResponse<{ storyId: string; status: string; message: string }>
+    > {
       const response = await apiClient.post(
         `/v1/stories/${storyId}/finalize-structure`,
         { tree }
@@ -237,7 +250,9 @@ export const api = {
     /**
      * Get backgrounds for a story
      */
-    async getAll(storyId: string): Promise<ApiResponse<BackgroundsListResponse>> {
+    async getAll(
+      storyId: string
+    ): Promise<ApiResponse<BackgroundsListResponse>> {
       const response = await apiClient.get(`/v1/stories/${storyId}/backgrounds`)
       return response.data
     },
@@ -354,7 +369,13 @@ export const api = {
     async getVersions(
       storyId: string,
       sceneId: string
-    ): Promise<ApiResponse<{ sceneId: string; currentVersionId: string; versions: unknown[] }>> {
+    ): Promise<
+      ApiResponse<{
+        sceneId: string
+        currentVersionId: string
+        versions: unknown[]
+      }>
+    > {
       const response = await apiClient.get(
         `/v1/stories/${storyId}/scenes/${sceneId}/image-versions`
       )
@@ -417,6 +438,57 @@ export const api = {
       title,
     })
     return response.data
+  },
+
+  /**
+   * Reading endpoints
+   */
+  reading: {
+    /**
+     * Get story for reading
+     */
+    async getStory(storyId: string): Promise<ApiResponse<StoryForReading>> {
+      const response = await apiClient.get(`/v1/stories/${storyId}/read`)
+      return response.data
+    },
+
+    /**
+     * Get reading progress
+     */
+    async getProgress(storyId: string): Promise<ApiResponse<ReadingProgress>> {
+      const response = await apiClient.get(
+        `/v1/stories/${storyId}/reading-progress`
+      )
+      return response.data
+    },
+
+    /**
+     * Save reading progress
+     */
+    async saveProgress(
+      storyId: string,
+      data: ReadingProgressRequest
+    ): Promise<ApiResponse<ReadingProgress>> {
+      const response = await apiClient.post(
+        `/v1/stories/${storyId}/reading-progress`,
+        data
+      )
+      return response.data
+    },
+
+    /**
+     * Record reading completion
+     */
+    async complete(
+      storyId: string,
+      data: ReadingCompletionRequest
+    ): Promise<ApiResponse<ReadingCompletionResponse>> {
+      const response = await apiClient.post(
+        `/v1/stories/${storyId}/reading-complete`,
+        data
+      )
+      return response.data
+    },
   },
 }
 
