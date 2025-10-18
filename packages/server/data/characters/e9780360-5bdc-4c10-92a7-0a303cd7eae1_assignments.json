@@ -1,0 +1,5 @@
+[
+  "characterRoleId='char_1' presetCharacterId='preset_char_1' role='Protagonist' characterName='Cute Rabbit' imageUrl='https://cdn.example.com/rabbit.png'",
+  "characterRoleId='char_2' presetCharacterId='preset_char_2' role='Friend' characterName='Brave Lion' imageUrl='https://cdn.example.com/lion.png'",
+  "characterRoleId='char_3' presetCharacterId='preset_char_3' role='Helper' characterName='Wise Owl' imageUrl='https://cdn.example.com/owl.png'"
+]

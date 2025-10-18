@@ -1,10 +1,10 @@
 """
 Pydantic models for request/response validation
-Aligned with Supabase schema structure
+Updated for new story-based API specification
 """
 
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from enum import Enum
 from datetime import datetime
 
@@ -13,234 +13,379 @@ from datetime import datetime
 # Enums
 # ============================================================================
 
-class JobStatus(str, Enum):
-    """Job status states"""
+class StoryStatus(str, Enum):
+    """Story status states"""
+    DRAFT = "draft"
+    STRUCTURE_FINALIZED = "structure_finalized"
+    COMPLETED = "completed"
+
+class NodeType(str, Enum):
+    """Node types in story tree"""
+    START = "start"
+    NORMAL = "normal"
+    CHOICE = "choice"
+    GOOD_ENDING = "good_ending"
+    BAD_ENDING = "bad_ending"
+
+class GenerationStatus(str, Enum):
+    """Generation status states"""
     PENDING = "pending"
-    PROCESSING = "processing"
-    REQUIRES_ACTION = "requires_action"
+    GENERATING = "generating"
     COMPLETED = "completed"
     FAILED = "failed"
+    IN_PROGRESS = "in_progress"
 
-
-class CharacterType(str, Enum):
-    """Available character types"""
-    BOY_YOUNG = "boy_young"
-    GIRL_YOUNG = "girl_young"
-    BOY_TEEN = "boy_teen"
-    GIRL_TEEN = "girl_teen"
-    PARENT_MOM = "parent_mom"
-    PARENT_DAD = "parent_dad"
-    FRIEND_BOY = "friend_boy"
-    FRIEND_GIRL = "friend_girl"
+class EndingType(str, Enum):
+    """Ending types"""
+    GOOD_ENDING = "good_ending"
+    BAD_ENDING = "bad_ending"
 
 
 # ============================================================================
-# Database-aligned Models (for Supabase migration)
+# Core Story Models
 # ============================================================================
 
-class SceneSchema(BaseModel):
-    """Scene data - aligns with scenes table"""
-    scene_id: int = Field(..., ge=1, le=6)
+class Choice(BaseModel):
+    """Choice in a story node"""
+    id: Optional[str] = None  # None for new choices
+    text: str
+    nextNodeId: Optional[str] = None
+    isCorrect: bool = True
+
+class StoryNode(BaseModel):
+    """Node in the story tree"""
+    id: str
+    sceneNumber: int
     title: str
+    text: str
+    location: str
+    type: NodeType
+    choices: List[Choice] = []
+
+class StoryEdge(BaseModel):
+    """Edge connecting nodes in story tree"""
+    from_: str = Field(alias="from")
+    to: str
+    choiceId: str
+
+class StoryTree(BaseModel):
+    """Complete story tree structure"""
+    nodes: List[StoryNode]
+    edges: List[StoryEdge]
+
+class CharacterRole(BaseModel):
+    """Character role in story"""
+    id: str
+    role: str  # Protagonist, Friend, Helper, Antagonist
     description: str
-    dialogue: str
-    learning_point: str
-    visual_elements: List[str]
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "scenes",
-            "columns": {
-                "id": "int",
-                "comic_id": "uuid (foreign key)",
-                "scene_id": "int",
-                "title": "text",
-                "description": "text",
-                "dialogue": "text",
-                "learning_point": "text",
-                "visual_elements": "text[]",
-                "created_at": "timestamp",
-                "updated_at": "timestamp"
-            }
-        }
 
+class Location(BaseModel):
+    """Location in story"""
+    id: str
+    name: str
+    sceneNumbers: List[int]
+    description: str
 
-class CharacterSchema(BaseModel):
-    """Character data - aligns with characters table"""
-    character_type: CharacterType
+class Story(BaseModel):
+    """Complete story data"""
+    id: str
+    lesson: str
+    theme: str
+    storyFormat: str
+    status: StoryStatus = StoryStatus.DRAFT
+    tree: StoryTree
+    characters: List[CharacterRole]
+    locations: List[Location]
+    createdAt: datetime
+    updatedAt: datetime
+
+# ============================================================================
+# Character Models
+# ============================================================================
+
+class PresetCharacter(BaseModel):
+    """Preset character available for selection"""
+    id: str
+    name: str
+    imageUrl: str
+    category: Optional[str] = None
+
+class CharacterAssignment(BaseModel):
+    """Character assignment for a story"""
+    characterRoleId: str
+    presetCharacterId: str
+    role: Optional[str] = None
+    characterName: Optional[str] = None
+    imageUrl: Optional[str] = None
+
+class CharacterAssignmentRequest(BaseModel):
+    """Request to save character assignments"""
+    assignments: List[Dict[str, str]]  # characterRoleId -> presetCharacterId mapping
+
+# ============================================================================
+# Background Models
+# ============================================================================
+
+class BackgroundVersion(BaseModel):
+    """Background image version"""
+    versionId: str
+    imageUrl: str
+    createdAt: datetime
+
+class Background(BaseModel):
+    """Background for a location"""
+    id: str
+    locationId: str
     name: str
     description: str
-    visual_tags: List[str]
-    age_group: str
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "characters",
-            "columns": {
-                "id": "uuid",
-                "character_type": "text (primary key)",
-                "name": "text",
-                "description": "text",
-                "visual_tags": "text[]",
-                "age_group": "text"
-            }
-        }
+    sceneNumbers: List[int]
+    imageUrl: Optional[str] = None
+    status: GenerationStatus = GenerationStatus.PENDING
+    versions: List[BackgroundVersion] = []
+    selectedVersionId: Optional[str] = None
 
+class BackgroundUpdateRequest(BaseModel):
+    """Request to update background description"""
+    name: Optional[str] = None
+    description: Optional[str] = None
 
-class ComicPanelSchema(BaseModel):
-    """Comic panel data - aligns with panels table"""
-    panel_id: int = Field(..., ge=1, le=6)
-    scene_id: int = Field(..., ge=1, le=6)
-    image_url: str
-    image_path: Optional[str] = None  # Local storage path
-    description: str
-    dialogue: str
-    title: str
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "panels",
-            "columns": {
-                "id": "uuid",
-                "comic_id": "uuid (foreign key)",
-                "panel_id": "int",
-                "scene_id": "int",
-                "image_url": "text",
-                "image_path": "text",
-                "description": "text",
-                "dialogue": "text",
-                "title": "text",
-                "created_at": "timestamp"
-            }
-        }
+class BackgroundGenerationRequest(BaseModel):
+    """Request to generate backgrounds"""
+    backgrounds: List[Dict[str, str]]  # backgroundId -> description mapping
 
+class BackgroundGenerationStatus(BaseModel):
+    """Background generation status response"""
+    status: GenerationStatus
+    backgrounds: List[Dict[str, Any]]
+    progress: Dict[str, int]
 
-class ComicSchema(BaseModel):
-    """Complete comic data - aligns with comics table"""
-    topic: str
-    title: str
-    scenes: List[SceneSchema]
-    panels: List[ComicPanelSchema]
-    characters: List[CharacterSchema]
-    status: JobStatus = JobStatus.COMPLETED
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "comics",
-            "columns": {
-                "id": "uuid",
-                "topic": "text",
-                "title": "text",
-                "status": "text",
-                "created_at": "timestamp",
-                "updated_at": "timestamp"
-            }
-        }
+class BackgroundRegenerateRequest(BaseModel):
+    """Request to regenerate background"""
+    description: Optional[str] = None
 
-
-class JobSchema(BaseModel):
-    """Job tracking data - aligns with jobs table"""
-    job_id: str = Field(..., alias="id")
-    topic: str
-    status: JobStatus
-    step: str
-    progress: int = Field(default=0, ge=0, le=100)
-    data: Dict[str, Any]
-    error: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "jobs",
-            "columns": {
-                "id": "uuid",
-                "topic": "text",
-                "status": "text",
-                "step": "text",
-                "progress": "int",
-                "data": "jsonb",
-                "error": "text",
-                "created_at": "timestamp",
-                "updated_at": "timestamp"
-            }
-        }
-
-
-class ImageMetadataSchema(BaseModel):
-    """Image metadata - aligns with images table"""
-    id: str = Field(..., description="UUID for image record")
-    url: str
-    local_path: str
-    panel_id: int
-    comic_id: str
-    created_at: datetime
-    size_bytes: Optional[int] = None
-    
-    class Config:
-        json_schema_extra = {
-            "supabase_table": "images",
-            "columns": {
-                "id": "uuid",
-                "url": "text",
-                "local_path": "text",
-                "panel_id": "int (foreign key)",
-                "comic_id": "uuid (foreign key)",
-                "created_at": "timestamp",
-                "size_bytes": "int"
-            }
-        }
-
+class BackgroundVersionSelectRequest(BaseModel):
+    """Request to select background version"""
+    versionId: str
 
 # ============================================================================
-# Request/Response Models
+# Scene Models
 # ============================================================================
 
-class SceneGenerationRequest(BaseModel):
-    """Request to generate scenes"""
-    topic: str = Field(..., min_length=10, max_length=500)
-    age_group: Optional[str] = Field(default="5-12")
+class SceneImageVersion(BaseModel):
+    """Scene image version"""
+    versionId: str
+    imageUrl: str
+    createdAt: datetime
 
+class SceneGenerationStatus(BaseModel):
+    """Scene generation status response"""
+    status: GenerationStatus
+    scenes: List[Dict[str, Any]]
+    progress: Dict[str, int]
 
-class SceneGenerationResponse(BaseModel):
-    """Response from scene generation"""
-    job_id: str
-    status: JobStatus
+class SceneRegenerateRequest(BaseModel):
+    """Request to regenerate scene image"""
+    additionalPrompt: Optional[str] = None
+
+class SceneVersionSelectRequest(BaseModel):
+    """Request to select scene version"""
+    versionId: str
+
+class SceneRegenerateMultipleRequest(BaseModel):
+    """Request to regenerate multiple scenes"""
+    sceneIds: List[str]
+
+# ============================================================================
+# Reading Progress Models
+# ============================================================================
+
+class ChoiceMade(BaseModel):
+    """Choice made during reading"""
+    nodeId: str
+    choiceId: str
+
+class ReadingProgressRequest(BaseModel):
+    """Request to save reading progress"""
+    currentNodeId: str
+    visitedNodeIds: List[str]
+    choicesMade: List[ChoiceMade]
+
+class ReadingProgress(BaseModel):
+    """Reading progress data"""
+    storyId: str
+    currentNodeId: str
+    visitedNodeIds: List[str]
+    choicesMade: List[ChoiceMade]
+    lastReadAt: datetime
+
+class ReadingCompletionRequest(BaseModel):
+    """Request to record reading completion"""
+    endingNodeId: str
+    endingType: EndingType
+    totalNodesVisited: int
+    readingTimeSeconds: int
+
+# ============================================================================
+# Story Management Models
+# ============================================================================
+
+class StoryListItem(BaseModel):
+    """Story list item for browsing"""
+    id: str
+    title: str
+    lesson: str
+    coverImage: Optional[str] = None
+    status: StoryStatus
+    createdAt: datetime
+    sceneCount: int
+    readCount: Optional[int] = None
+    lastReadAt: Optional[datetime] = None
+
+class StoryListResponse(BaseModel):
+    """Response for story list endpoints"""
+    stories: List[StoryListItem]
+    total: int
+    hasMore: bool
+
+class StoryGenerateRequest(BaseModel):
+    """Request to generate a new story"""
+    lesson: str
+    theme: str
+    storyFormat: str
+    characterCount: int = 4
+
+class StoryGenerateResponse(BaseModel):
+    """Response from story generation"""
+    storyId: str
+    tree: StoryTree
+    characters: List[CharacterRole]
+    locations: List[Location]
+
+class NodeUpdateRequest(BaseModel):
+    """Request to update a story node"""
+    title: Optional[str] = None
+    text: Optional[str] = None
+    location: Optional[str] = None
+    choices: Optional[List[Choice]] = None
+
+class NodeCreateRequest(BaseModel):
+    """Request to create a new node"""
+    parentNodeId: str
+    choiceId: str
+    title: str
+    text: str
+    location: str
+    type: NodeType
+    choices: List[Choice]
+
+class StoryFinalizeRequest(BaseModel):
+    """Request to finalize story structure"""
+    tree: StoryTree
+
+class StoryCompleteRequest(BaseModel):
+    """Request to complete a story"""
+    title: str
+
+class StoryDuplicateRequest(BaseModel):
+    """Request to duplicate a story"""
+    newTitle: Optional[str] = None
+
+class ShareLinkRequest(BaseModel):
+    """Request to generate share link"""
+    expiresIn: Optional[int] = 2592000  # 30 days default
+
+class ShareLinkResponse(BaseModel):
+    """Response with share link"""
+    shareUrl: str
+    shortCode: str
+    expiresAt: datetime
+
+# ============================================================================
+# Statistics Models
+# ============================================================================
+
+class ChoiceDistribution(BaseModel):
+    """Choice distribution statistics"""
+    nodeId: str
+    choices: List[Dict[str, Any]]
+
+class StoryStatistics(BaseModel):
+    """Story statistics"""
+    storyId: str
+    totalReads: int
+    uniqueReaders: int
+    averageReadingTime: int
+    completionRate: int
+    choiceDistribution: List[ChoiceDistribution]
+    mostVisitedScenes: List[Dict[str, Any]]
+
+# ============================================================================
+# Reading Models (for child mode)
+# ============================================================================
+
+class ReadingNode(BaseModel):
+    """Node for reading mode"""
+    id: str
+    sceneNumber: int
+    title: str
+    text: str
+    imageUrl: str
+    type: NodeType
+    choices: List[Choice]
+    lessonMessage: Optional[str] = None
+    previousNodeId: Optional[str] = None
+
+class StoryForReading(BaseModel):
+    """Story data formatted for reading"""
+    id: str
+    title: str
+    lesson: str
+    nodes: List[ReadingNode]
+    startNodeId: str
+
+# ============================================================================
+# Image Upload Models
+# ============================================================================
+
+class ImageUploadRequest(BaseModel):
+    """Request to upload image"""
+    type: str  # 'character' | 'background'
+
+class ImageUploadResponse(BaseModel):
+    """Response from image upload"""
+    imageId: str
+    imageUrl: str
+    uploadedAt: datetime
+
+# ============================================================================
+# Standard Response Models
+# ============================================================================
+
+class APIResponse(BaseModel):
+    """Standard API response format"""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[Dict[str, str]] = None
+
+class ErrorResponse(BaseModel):
+    """Error response format"""
+    code: str
     message: str
 
+# ============================================================================
+# Error Codes
+# ============================================================================
 
-class SceneRefinementRequest(BaseModel):
-    """Request to refine scenes"""
-    job_id: str
-    feedback_list: List[Dict[str, Any]]
-
-
-class CharacterSelectionRequest(BaseModel):
-    """Request to select characters"""
-    job_id: str
-    characters: List[Dict[str, Any]] = Field(..., min_items=1, max_items=4)
-
-
-class ComicGenerationRequest(BaseModel):
-    """Request to generate comic"""
-    job_id: str
-
-
-class JobStatusResponse(BaseModel):
-    """Response with job status"""
-    job_id: str
-    status: JobStatus
-    step: str
-    progress: int
-    data: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
-
-
-class ComicResultResponse(BaseModel):
-    """Response with completed comic"""
-    job_id: str
-    topic: str
-    title: str
-    panels: List[ComicPanelSchema]
-    characters: List[CharacterSchema]
-    created_at: datetime
+ERROR_CODES = {
+    "STORY_NOT_FOUND": "Story not found",
+    "NODE_NOT_FOUND": "Node not found",
+    "BACKGROUND_NOT_FOUND": "Background not found",
+    "INVALID_TREE_STRUCTURE": "Invalid tree structure",
+    "GENERATION_FAILED": "Generation failed",
+    "GENERATION_IN_PROGRESS": "Generation in progress",
+    "INVALID_CHARACTER_ASSIGNMENT": "Invalid character assignment",
+    "IMAGE_UPLOAD_FAILED": "Image upload failed",
+    "UNAUTHORIZED": "Unauthorized",
+    "VALIDATION_ERROR": "Validation error",
+    "SERVER_ERROR": "Server error occurred"
+}

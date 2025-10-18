@@ -2,6 +2,6 @@
 API routes package
 """
 
-from .comic_routes import router
+from .story_routes import router
 
 __all__ = ["router"]

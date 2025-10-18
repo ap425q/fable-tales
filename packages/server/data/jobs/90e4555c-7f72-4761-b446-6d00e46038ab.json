@@ -1,0 +1,94 @@
+{
+  "id": "90e4555c-7f72-4761-b446-6d00e46038ab",
+  "topic": "stringstri",
+  "status": "requires_action",
+  "step": "scene_review",
+  "progress": 50,
+  "data": {
+    "topic": "stringstri",
+    "age_group": "5-12",
+    "scenes": [
+      {
+        "scene_id": 1,
+        "title": "The Unexpected Offer",
+        "description": "A child is approached by an unfamiliar adult offering candy. Scene about: stringstri...",
+        "dialogue": "Would you like some candy, little one?",
+        "learning_point": "Be cautious with strangers offering gifts",
+        "visual_elements": [
+          "child",
+          "stranger",
+          "candy",
+          "concerned expression"
+        ]
+      },
+      {
+        "scene_id": 2,
+        "title": "Recognizing the Feeling",
+        "description": "The child feels uncomfortable and confused about the situation",
+        "dialogue": "Something doesn't feel right...",
+        "learning_point": "Trust your gut feelings about people",
+        "visual_elements": [
+          "child",
+          "thought bubble",
+          "uncertain expression"
+        ]
+      },
+      {
+        "scene_id": 3,
+        "title": "Taking Action",
+        "description": "The child moves away and looks for a safe adult",
+        "dialogue": "I need to find my mom/dad",
+        "learning_point": "Move to safety and find a trusted adult",
+        "visual_elements": [
+          "child",
+          "moving away",
+          "determined expression"
+        ]
+      },
+      {
+        "scene_id": 4,
+        "title": "Finding Safety",
+        "description": "The child reaches a trusted adult and feels secure",
+        "dialogue": "I found my parent, I'm safe now",
+        "learning_point": "Safe adults will protect you",
+        "visual_elements": [
+          "child",
+          "parent",
+          "relief",
+          "together"
+        ]
+      },
+      {
+        "scene_id": 5,
+        "title": "Talking It Out",
+        "description": "The parent listens without judgment and explains about stranger danger",
+        "dialogue": "You did the right thing by coming to me",
+        "learning_point": "Communication and education prevent future issues",
+        "visual_elements": [
+          "parent",
+          "child",
+          "conversation",
+          "supportive"
+        ]
+      },
+      {
+        "scene_id": 6,
+        "title": "Feeling Confident",
+        "description": "The child now feels empowered with knowledge about personal safety",
+        "dialogue": "Now I know how to stay safe!",
+        "learning_point": "Education and awareness build confidence",
+        "visual_elements": [
+          "child",
+          "confident smile",
+          "empowered",
+          "bright"
+        ]
+      }
+    ],
+    "characters": [],
+    "current_step": 1
+  },
+  "error": null,
+  "created_at": "2025-10-18T13:49:28.345481",
+  "updated_at": "2025-10-18T13:49:28.345928"
+}
