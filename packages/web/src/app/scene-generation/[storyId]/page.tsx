@@ -13,6 +13,7 @@ import {
   SpinnerSize,
 } from "@/components/types"
 import { api } from "@/lib/api"
+import { getCharacterImageUrl, getSceneImageUrl } from "@/lib/imageUtils"
 import { ApiError, GenerationStatus, ImageVersion } from "@/types"
 import { useRouter } from "next/navigation"
 import { use, useCallback, useEffect, useRef, useState } from "react"
@@ -503,11 +504,13 @@ export default function SceneGenerationPage({
       const selectedVersion = scene.imageVersions.find(
         (v) => v.versionId === scene.selectedVersionId
       )
-      if (selectedVersion) return selectedVersion.url
+      if (selectedVersion) return getSceneImageUrl(selectedVersion.url)
     }
 
     // Fallback to latest version
-    return scene.imageVersions[scene.imageVersions.length - 1].url
+    return getSceneImageUrl(
+      scene.imageVersions[scene.imageVersions.length - 1].url
+    )
   }
 
   /**
@@ -1044,7 +1047,7 @@ export default function SceneGenerationPage({
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                              src={character.imageUrl}
+                              src={getCharacterImageUrl(character.imageUrl)}
                               alt={character.name}
                               className="w-full h-full object-cover"
                             />
@@ -1344,7 +1347,7 @@ export default function SceneGenerationPage({
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={version.url}
+                        src={getSceneImageUrl(version.url)}
                         alt={`Version ${
                           selectedScene.imageVersions.length - index
                         }`}

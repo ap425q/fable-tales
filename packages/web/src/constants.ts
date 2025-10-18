@@ -31,6 +31,23 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api"
 
 /**
+ * Supabase storage configuration
+ */
+export const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://ecikiueohylxghlgouyb.supabase.co"
+
+export const SUPABASE_STORAGE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_STORAGE_URL ||
+  `${SUPABASE_URL}/storage/v1/object/public`
+
+/**
+ * Supabase storage bucket name
+ * All images (scenes, locations, characters) are stored in the same bucket
+ */
+export const STORAGE_BUCKET = "frame-fable"
+
+/**
  * API endpoint paths
  */
 export const API_ENDPOINTS = {

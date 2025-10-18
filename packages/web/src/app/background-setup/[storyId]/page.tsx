@@ -9,6 +9,7 @@ import {
   SpinnerSize,
 } from "@/components/types"
 import { api } from "@/lib/api"
+import { getLocationImageUrl } from "@/lib/imageUtils"
 import { ApiError, GenerationStatus, ImageVersion, Location } from "@/types"
 import { useRouter } from "next/navigation"
 import { use, useCallback, useEffect, useRef, useState } from "react"
@@ -397,11 +398,13 @@ export default function BackgroundSetupPage({
       const selectedVersion = background.imageVersions.find(
         (v) => v.versionId === selectedVersionId
       )
-      if (selectedVersion) return selectedVersion.url
+      if (selectedVersion) return getLocationImageUrl(selectedVersion.url)
     }
 
     // Fallback to latest version
-    return background.imageVersions[background.imageVersions.length - 1].url
+    return getLocationImageUrl(
+      background.imageVersions[background.imageVersions.length - 1].url
+    )
   }
 
   /**
@@ -732,7 +735,7 @@ export default function BackgroundSetupPage({
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={version.url}
+                                src={getLocationImageUrl(version.url)}
                                 alt={`Version ${
                                   background.imageVersions.length - index
                                 }`}

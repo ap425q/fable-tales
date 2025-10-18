@@ -20,6 +20,7 @@ import { ProgressRibbon } from "@/components/ProgressRibbon"
 import { SpinnerColor, SpinnerSize } from "@/components/types"
 import api from "@/lib/api"
 import type { ChoiceMade, ReadingNode, StoryForReading } from "@/lib/apiTypes"
+import { getSceneImageUrl } from "@/lib/imageUtils"
 import { NodeType } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
 import { useParams, useRouter } from "next/navigation"
@@ -74,7 +75,7 @@ export default function StoryReadingPage() {
     loadStory()
   }, [storyId])
 
-  const loadStory = async () => {
+  const loadStory = async (skipProgress: boolean = false) => {
     try {
       setIsLoading(true)
       setError(null)
@@ -82,7 +83,9 @@ export default function StoryReadingPage() {
       // Load from API
       const [storyResponse, progressResponse] = await Promise.all([
         api.reading.getStory(storyId),
-        api.reading.getProgress(storyId).catch(() => null),
+        skipProgress
+          ? null
+          : api.reading.getProgress(storyId).catch(() => null),
       ])
 
       if (!storyResponse.success || !storyResponse.data) {
@@ -93,7 +96,7 @@ export default function StoryReadingPage() {
       setStory(storyData)
 
       // Load progress or start from beginning
-      if (progressResponse?.success && progressResponse.data) {
+      if (!skipProgress && progressResponse?.success && progressResponse.data) {
         const progress = progressResponse.data
         const node = storyData.nodes.find(
           (n) => n.id === progress.currentNodeId
@@ -115,6 +118,8 @@ export default function StoryReadingPage() {
           (n) => n.id === storyData.startNodeId
         )
         setCurrentNode(startNode || null)
+        setVisitedNodes([])
+        setChoicesMade([])
       }
     } catch (err) {
       console.error("Error loading story:", err)
@@ -147,12 +152,12 @@ export default function StoryReadingPage() {
     // Preload images
     imagesToPreload.forEach((url) => {
       const img = new Image()
-      img.src = url
+      img.src = getSceneImageUrl(url)
       img.onload = () => {
         setPreloadedImages((prev) => new Set(prev).add(url))
       }
     })
-  }, [currentNode, story])
+  }, [currentNode, story, preloadedImages])
 
   /**
    * Auto-save progress with debouncing
@@ -310,19 +315,34 @@ export default function StoryReadingPage() {
    * Handle back button
    */
   const handleBack = () => {
-    if (visitedNodes.length === 0 || !story) return
+    if (!story || !currentNode) return
+
+    // If we're at the start node, don't go back
+    if (currentNode.id === story.startNodeId) return
 
     // Find previous node
-    const previousNodeId =
-      visitedNodes.length > 0
-        ? visitedNodes[visitedNodes.length - 1]
-        : story.startNodeId
+    let previousNodeId: string | undefined
+
+    if (visitedNodes.length > 0) {
+      // Go back in the visited history
+      previousNodeId = visitedNodes[visitedNodes.length - 1]
+    } else {
+      // Use the previousNodeId from currentNode (parent node)
+      previousNodeId = currentNode.previousNodeId
+    }
+
+    if (!previousNodeId) return
 
     const previousNode = story.nodes.find((n) => n.id === previousNodeId)
     if (previousNode) {
       setTransitionDirection("backward")
       setCurrentNode(previousNode)
-      setVisitedNodes(visitedNodes.slice(0, -1))
+
+      // Update visited nodes only if we were using history
+      if (visitedNodes.length > 0) {
+        setVisitedNodes(visitedNodes.slice(0, -1))
+      }
+
       setImageLoading(true)
 
       // Remove last choice
@@ -352,16 +372,6 @@ export default function StoryReadingPage() {
     // Placeholder for sound effect implementation
     // In a real app, you'd play actual audio files here
     console.log(`Playing sound: ${type}`)
-  }
-
-  /**
-   * Handle font size change
-   */
-  const handleFontSizeChange = (delta: number) => {
-    setPreferences((prev) => ({
-      ...prev,
-      fontSize: Math.max(16, Math.min(32, prev.fontSize + delta)),
-    }))
   }
 
   /**
@@ -465,30 +475,16 @@ export default function StoryReadingPage() {
             <div className="flex items-center gap-3 flex-shrink-0">
               <button
                 onClick={handleBack}
-                disabled={visitedNodes.length === 0}
-                className="p-3 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-ui font-bold"
+                disabled={
+                  !currentNode ||
+                  (currentNode.id === story?.startNodeId &&
+                    visitedNodes.length === 0)
+                }
+                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-ui font-bold"
                 aria-label="Go back one page"
                 title="Previous page"
               >
-                <span className="text-xl">↶</span>
-              </button>
-
-              <button
-                onClick={() => handleFontSizeChange(-2)}
-                className="px-3 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 font-bold text-lg shadow-md hover:shadow-lg text-ui"
-                aria-label="Decrease font size"
-                title="Smaller text"
-              >
-                A-
-              </button>
-
-              <button
-                onClick={() => handleFontSizeChange(2)}
-                className="px-3 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 font-bold text-lg shadow-md hover:shadow-lg text-ui"
-                aria-label="Increase font size"
-                title="Larger text"
-              >
-                A+
+                <span className="hidden sm:inline">Previous Page</span>
               </button>
             </div>
           </div>
@@ -527,7 +523,7 @@ export default function StoryReadingPage() {
                   </div>
                 )}
                 <img
-                  src={currentNode.imageUrl}
+                  src={getSceneImageUrl(currentNode.imageUrl)}
                   alt={currentNode.title}
                   className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                   style={{
@@ -811,7 +807,7 @@ export default function StoryReadingPage() {
                   <button
                     onClick={() => {
                       setShowCelebration(false)
-                      loadStory() // Restart story
+                      loadStory(true) // Restart story from beginning
                     }}
                     className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2"
                     style={{
