@@ -203,7 +203,7 @@ export default function StoryLibraryPage() {
                           router.push(`/story-tree/${story.id}`)
                         }
                       }}
-                      className="relative group z-0 hover:z-10 cursor-pointer"
+                      className="relative group hover:z-10 cursor-pointer"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
@@ -211,12 +211,13 @@ export default function StoryLibraryPage() {
                     >
                       {/* Book Spine */}
                       <div
-                        className="relative h-64 rounded-lg overflow-hidden transition-all duration-200 group-hover:shadow-2xl"
+                        className="relative h-64 rounded-lg overflow-hidden group-hover:[box-shadow:0_8px_24px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)]"
                         style={{
                           background: `linear-gradient(145deg, ${bookColor.bg} 0%, ${bookColor.bg}DD 100%)`,
                           boxShadow:
-                            "0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)",
-                          border: "2px solid rgba(0, 0, 0, 0.2)",
+                            "0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+                          border: "2px solid rgba(0, 0, 0, 0.3)",
+                          transition: "box-shadow 0.3s ease-in-out",
                         }}
                       >
                         {/* Leather texture */}
@@ -293,7 +294,7 @@ export default function StoryLibraryPage() {
                       </div>
 
                       {/* Hover Card with Details */}
-                      <div className="absolute left-0 right-0 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                      <div className="absolute left-0 right-0 top-full mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
                         <div
                           className="paper-texture page-shadow rounded-lg p-4 text-left"
                           style={{

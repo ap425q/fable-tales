@@ -171,7 +171,7 @@ export default function StorySelectionPage() {
                 <motion.button
                   key={story.id}
                   onClick={() => router.push(`/story-reading/${story.id}`)}
-                  className="group relative z-0 hover:z-10 cursor-pointer"
+                  className="group relative hover:z-10 cursor-pointer"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -179,12 +179,13 @@ export default function StorySelectionPage() {
                 >
                   {/* Book Cover */}
                   <div
-                    className="relative aspect-[3/4] rounded-xl overflow-hidden transition-all duration-300 group-hover:shadow-2xl"
+                    className="relative aspect-[3/4] rounded-xl overflow-hidden group-hover:[box-shadow:0_16px_48px_rgba(44,36,22,0.6),inset_0_1px_0_rgba(255,255,255,0.1)]"
                     style={{
                       background: `linear-gradient(145deg, ${coverColor.from} 0%, ${coverColor.to} 100%)`,
                       boxShadow:
-                        "0 8px 24px rgba(44, 36, 22, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.2)",
-                      border: "3px solid rgba(0, 0, 0, 0.2)",
+                        "0 8px 24px rgba(44, 36, 22, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+                      border: "3px solid rgba(0, 0, 0, 0.3)",
+                      transition: "box-shadow 0.3s ease-in-out",
                     }}
                   >
                     {/* Leather texture */}
@@ -285,7 +286,7 @@ export default function StorySelectionPage() {
                   />
 
                   {/* Hover details card */}
-                  <div className="absolute left-0 right-0 top-full mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  <div className="absolute left-0 right-0 top-full mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
                     <div
                       className="paper-texture page-shadow rounded-lg p-4"
                       style={{
