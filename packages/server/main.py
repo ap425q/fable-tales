@@ -81,7 +81,7 @@ async def startup_event():
     print("Fable Tales - Story Generation API")
     print("=" * 60)
     print(f"Environment: {os.getenv('ENV', 'development')}")
-    print(f"OpenAI API Key: {'configured' if os.getenv('OPENAI_API_KEY') != 'placeholder_openai_key' else 'placeholder'}")
+    print(f"OpenAI API Key: {'configured' if os.getenv('OPENAI_API_KEY') and os.getenv('OPENAI_API_KEY') != 'placeholder_openai_key' else 'not configured'}")
     print(f"FAL.ai API Key: {'configured' if os.getenv('FAL_AI_API_KEY') != 'placeholder_fal_ai_key' else 'placeholder'}")
     print("=" * 60)
 
