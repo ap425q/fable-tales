@@ -1,24 +1,13 @@
 "use client"
 
-import { Button } from "@/components/Button"
 import { Input } from "@/components/Input"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
-import {
-  ButtonSize,
-  ButtonVariant,
-  InputVariant,
-  SpinnerColor,
-  SpinnerSize,
-} from "@/components/types"
+import { InputVariant, SpinnerColor, SpinnerSize } from "@/components/types"
+import { api } from "@/lib/api"
+import { ApiError } from "@/types"
 import { useRouter } from "next/navigation"
 import React, { useState } from "react"
-// import { api } from "@/lib/api"
-import { ApiError } from "@/types"
-import {
-  mockFormExamples,
-  mockStoryGenerateResponse,
-  simulateDelay,
-} from "./story-setup.page.mock"
+import { mockFormExamples } from "./story-setup.page.mock"
 
 /**
  * Form data interface
@@ -131,18 +120,13 @@ export default function StorySetupPage() {
     setIsLoading(true)
 
     try {
-      // TODO: Uncomment the API call below when backend is ready
       // Call API to generate story
-      // const response = await api.stories.generate({
-      //   lesson: formData.lesson.trim(),
-      //   theme: formData.theme.trim() || "General adventure",
-      //   storyFormat: formData.storyFormat.trim() || "Classic story",
-      //   characterCount: 4, // Fixed as per requirements
-      // })
-
-      // MOCK: Using mock data for development
-      await simulateDelay(2000) // Simulate API delay
-      const response = mockStoryGenerateResponse
+      const response = await api.stories.generate({
+        lesson: formData.lesson.trim(),
+        theme: formData.theme.trim() || "General adventure",
+        storyFormat: formData.storyFormat.trim() || "Classic story",
+        characterCount: 4, // Fixed as per requirements
+      })
 
       if (response.success && response.data) {
         // Navigate to story tree editing page with story ID
@@ -219,28 +203,71 @@ export default function StorySetupPage() {
               </p>
               <ul className="text-teal-800 space-y-2">
                 <li className="flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mr-2 text-teal-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  <span><strong>Up to 4 unique characters</strong> that your child will love</span>
+                  <span>
+                    <strong>Up to 4 unique characters</strong> that your child
+                    will love
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mr-2 text-teal-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  <span><strong>15-20 interactive scenes</strong> with beautiful illustrations</span>
+                  <span>
+                    <strong>15-20 interactive scenes</strong> with beautiful
+                    illustrations
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mr-2 text-teal-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  <span><strong>Multiple choice paths</strong> for interactive learning</span>
+                  <span>
+                    <strong>Multiple choice paths</strong> for interactive
+                    learning
+                  </span>
                 </li>
                 <li className="flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  <svg
+                    className="w-5 h-5 mr-2 text-teal-600"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
                   </svg>
-                  <span><strong>Good and bad endings</strong> with valuable lessons</span>
+                  <span>
+                    <strong>Good and bad endings</strong> with valuable lessons
+                  </span>
                 </li>
               </ul>
             </div>
@@ -411,7 +438,9 @@ export default function StorySetupPage() {
                 >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                 </svg>
-                <span className="font-semibold">Please wait while magic happens...</span>
+                <span className="font-semibold">
+                  Please wait while magic happens...
+                </span>
                 <svg
                   className="animate-pulse w-5 h-5"
                   fill="currentColor"

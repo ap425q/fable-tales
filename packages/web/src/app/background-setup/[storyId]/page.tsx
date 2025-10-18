@@ -8,14 +8,10 @@ import {
   SpinnerColor,
   SpinnerSize,
 } from "@/components/types"
+import { api } from "@/lib/api"
 import { ApiError, GenerationStatus, ImageVersion, Location } from "@/types"
 import { useRouter } from "next/navigation"
 import { use, useCallback, useEffect, useRef, useState } from "react"
-import {
-  mockBackgrounds,
-  simulateDelay,
-  simulateGenerationPolling,
-} from "./background-setup.page.mock"
 
 /**
  * Background Setup Page
@@ -71,55 +67,38 @@ export default function BackgroundSetupPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API call
-        // const result = await api.locations.getAll(storyId)
-        // if (result.success && result.data) {
-        //   setBackgrounds(result.data.locations)
-        // }
+        // Fetch locations from API
+        const result = await api.locations.getAll(storyId)
+        if (result.success && result.data) {
+          setBackgrounds(result.data.locations)
 
-        // MOCK: Using mock data
-        await simulateDelay(800)
-        setBackgrounds(mockBackgrounds)
-
-        // Initialize editing state
-        const descriptions: { [key: string]: string } = {}
-        const selectedVersions: { [key: string]: string } = {}
-        mockBackgrounds.forEach((bg) => {
-          descriptions[bg.id] = bg.description
-          // Set latest version as selected by default
-          if (bg.imageVersions.length > 0) {
-            selectedVersions[bg.id] =
-              bg.imageVersions[bg.imageVersions.length - 1].versionId
-          }
-        })
-        setEditingDescriptions(descriptions)
-        setSelectedVersionIds(selectedVersions)
-
-        // TODO: Load scene content for tooltips from story tree
-        // const storyResult = await api.stories.getById(storyId)
-        // if (storyResult.success && storyResult.data) {
-        //   const tooltips: { [sceneNumber: number]: string } = {}
-        //   storyResult.data.nodes.forEach(node => {
-        //     tooltips[node.sceneNumber] = node.text
-        //   })
-        //   setSceneTooltips(tooltips)
-        // }
-
-        // MOCK: Simulate scene tooltips
-        const mockTooltips: { [sceneNumber: number]: string } = {
-          1: "The journey begins in the enchanted forest...",
-          2: "The royal castle towers before you...",
-          3: "Deep in the magical woods, a path appears...",
-          4: "The peaceful village welcomes weary travelers...",
-          5: "Ancient trees whisper secrets of old...",
-          6: "Inside the castle, grand halls echo with history...",
-          7: "By the riverside, children play and laugh...",
-          8: "The forest grows darker as night approaches...",
-          9: "The throne room awaits your arrival...",
-          10: "A mysterious cave entrance beckons...",
-          11: "Deep within the cavern, treasures glimmer...",
+          // Initialize editing state
+          const descriptions: { [key: string]: string } = {}
+          const selectedVersions: { [key: string]: string } = {}
+          result.data.locations.forEach((bg) => {
+            descriptions[bg.id] = bg.description
+            // Set latest version as selected by default
+            if (bg.imageVersions && bg.imageVersions.length > 0) {
+              selectedVersions[bg.id] =
+                bg.imageVersions[bg.imageVersions.length - 1].versionId
+            }
+          })
+          setEditingDescriptions(descriptions)
+          setSelectedVersionIds(selectedVersions)
         }
-        setSceneTooltips(mockTooltips)
+
+        // Load scene content for tooltips from story tree
+        const storyResult = await api.stories.getById(storyId)
+        if (storyResult.success && storyResult.data) {
+          const storyData = storyResult.data as any
+          if (storyData.tree?.nodes) {
+            const tooltips: { [sceneNumber: number]: string } = {}
+            storyData.tree.nodes.forEach((node: any) => {
+              tooltips[node.sceneNumber] = node.text
+            })
+            setSceneTooltips(tooltips)
+          }
+        }
       } catch (err) {
         const apiErr = err as ApiError
         setError(
@@ -154,63 +133,36 @@ export default function BackgroundSetupPage({
    */
   const pollGenerationStatus = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.locations.getGenerationStatus(storyId, jobId || undefined)
-      // if (!result.success || !result.data) return
+      // Fetch updated location data to check generation status
+      const result = await api.locations.getAll(storyId)
+      if (!result.success || !result.data) return
 
-      // MOCK: Simulate polling
-      pollCountRef.current += 1
-      const mockStatus = simulateGenerationPolling(pollCountRef.current)
+      const locationData = result.data.locations
 
-      // Update backgrounds with new status
-      setBackgrounds((prev) =>
-        prev.map((bg) => {
-          const statusItem = mockStatus.locations.find(
-            (s) => s.locationId === bg.id
-          )
-          if (!statusItem) return bg
+      // Update backgrounds with new data
+      setBackgrounds(locationData)
 
-          let newStatus = GenerationStatus.PENDING
-          if (statusItem.status === "generating") {
-            newStatus = GenerationStatus.GENERATING
-          } else if (statusItem.status === "completed") {
-            newStatus = GenerationStatus.COMPLETED
-          }
-
-          const newVersions = [...bg.imageVersions]
-          if (
-            statusItem.status === "completed" &&
-            statusItem.imageUrl &&
-            statusItem.versionId
-          ) {
-            // Add new version if not already present
-            const versionExists = newVersions.some(
-              (v) => v.versionId === statusItem.versionId
-            )
-            if (!versionExists && statusItem.versionId) {
-              newVersions.push({
-                versionId: statusItem.versionId,
-                url: statusItem.imageUrl,
-                generatedAt: new Date().toISOString(),
-              })
-              // Auto-select the newly generated version
-              setSelectedVersionIds((prev) => ({
-                ...prev,
-                [bg.id]: statusItem.versionId!,
-              }))
-            }
-          }
-
-          return {
-            ...bg,
-            generationStatus: newStatus,
-            imageVersions: newVersions,
-          }
-        })
-      )
+      // Auto-select newly generated versions
+      locationData.forEach((location) => {
+        if (location.imageVersions && location.imageVersions.length > 0) {
+          const latestVersion =
+            location.imageVersions[location.imageVersions.length - 1]
+          setSelectedVersionIds((prev) => ({
+            ...prev,
+            [location.id]: latestVersion.versionId,
+          }))
+        }
+      })
 
       // Check if all completed
-      if (mockStatus.status === "completed") {
+      const allCompleted = locationData.every(
+        (loc) =>
+          loc.generationStatus === GenerationStatus.COMPLETED &&
+          loc.imageVersions &&
+          loc.imageVersions.length > 0
+      )
+
+      if (allCompleted) {
         setIsBulkGenerating(false)
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
@@ -265,10 +217,11 @@ export default function BackgroundSetupPage({
     newDescription: string
   ) => {
     try {
-      // TODO: Replace with actual API call
-      // await api.locations.update(storyId, backgroundId, { description: newDescription })
+      await api.locations.update(storyId, backgroundId, {
+        description: newDescription,
+      })
 
-      // MOCK: Update local state
+      // Update local state
       setBackgrounds((prev) =>
         prev.map((bg) =>
           bg.id === backgroundId ? { ...bg, description: newDescription } : bg
@@ -298,21 +251,17 @@ export default function BackgroundSetupPage({
         }))
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.locations.generateAll(
-      //   storyId,
-      //   backgrounds.map(bg => ({
-      //     locationId: bg.id,
-      //     description: editingDescriptions[bg.id] || bg.description
-      //   }))
-      // )
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      // }
-
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
-      setJobId("mock-job-id")
+      // Call API to generate all location images
+      const result = await api.locations.generateAll(
+        storyId,
+        backgrounds.map((bg) => ({
+          locationId: bg.id,
+          description: editingDescriptions[bg.id] || bg.description,
+        }))
+      )
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+      }
 
       // Start polling
       startPolling()
@@ -353,51 +302,39 @@ export default function BackgroundSetupPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.locations.regenerate(storyId, backgroundId, description)
-      // if (result.success && result.data) {
-      //   // Add new version
-      //   setBackgrounds(prev => prev.map(bg => {
-      //     if (bg.id === backgroundId) {
-      //       return {
-      //         ...bg,
-      //         generationStatus: GenerationStatus.COMPLETED,
-      //         imageVersions: [...bg.imageVersions, {
-      //           versionId: result.data.versionId,
-      //           url: result.data.imageUrl,
-      //           generatedAt: new Date().toISOString()
-      //         }]
-      //       }
-      //     }
-      //     return bg
-      //   }))
-      // }
-
-      // MOCK: Simulate regeneration
-      await simulateDelay(2000)
-      const newVersion: ImageVersion = {
-        versionId: `v${Date.now()}`,
-        url: `https://picsum.photos/seed/${backgroundId}-${Date.now()}/800/600`,
-        generatedAt: new Date().toISOString(),
-      }
-
-      setBackgrounds((prev) =>
-        prev.map((bg) =>
-          bg.id === backgroundId
-            ? {
-                ...bg,
-                generationStatus: GenerationStatus.COMPLETED,
-                imageVersions: [...bg.imageVersions, newVersion],
-              }
-            : bg
-        )
+      // Call API to regenerate location image
+      const result = await api.locations.regenerate(
+        storyId,
+        backgroundId,
+        editingDescriptions[backgroundId]
       )
 
-      // Auto-select the newly generated version
-      setSelectedVersionIds((prev) => ({
-        ...prev,
-        [backgroundId]: newVersion.versionId,
-      }))
+      if (result.success && result.data) {
+        const newVersion: ImageVersion = {
+          versionId: result.data.versionId,
+          url: result.data.imageUrl,
+          generatedAt: new Date().toISOString(),
+        }
+
+        // Add new version to backgrounds
+        setBackgrounds((prev) =>
+          prev.map((bg) =>
+            bg.id === backgroundId
+              ? {
+                  ...bg,
+                  generationStatus: GenerationStatus.COMPLETED,
+                  imageVersions: [...(bg.imageVersions || []), newVersion],
+                }
+              : bg
+          )
+        )
+
+        // Auto-select the newly generated version
+        setSelectedVersionIds((prev) => ({
+          ...prev,
+          [backgroundId]: newVersion.versionId,
+        }))
+      }
     } catch (err) {
       const apiErr = err as ApiError
       setError(
@@ -441,13 +378,8 @@ export default function BackgroundSetupPage({
         [backgroundId]: versionId,
       }))
 
-      // TODO: Replace with actual API call
-      // await api.locations.selectVersion(storyId, backgroundId, versionId)
-
-      // MOCK: Log selection (in production, this would be saved to backend)
-      console.log(
-        `Selected version ${versionId} for background ${backgroundId}`
-      )
+      // Save selected version to API
+      await api.locations.selectVersion(storyId, backgroundId, versionId)
     } catch (err) {
       console.error("Error selecting version:", err)
     }

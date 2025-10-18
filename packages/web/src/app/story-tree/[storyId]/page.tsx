@@ -2,6 +2,7 @@
 
 import { Button, Card, LoadingSpinner, Modal } from "@/components"
 import { ButtonVariant, ModalSize, SpinnerSize } from "@/components/types"
+import { api } from "@/lib/api"
 import { NodeType } from "@/types"
 import {
   Background,
@@ -24,11 +25,35 @@ import { NodeEditPanel } from "../components/NodeEditPanel"
 import { NodeEditFormData, TreeNodeData, TreeValidation } from "../types"
 import { calculateTreeLayout } from "../utils/treeLayout"
 import { validateTree } from "../utils/treeValidation"
-import {
-  mockStoryTreeData,
-  simulateDelay,
-  StoryDetailsResponse,
-} from "./story-tree.page.mock"
+
+interface StoryDetailsResponse {
+  id: string
+  title: string
+  status: string
+  tree: {
+    nodes: Array<{
+      id: string
+      sceneNumber: number
+      title: string
+      text: string
+      location: string
+      type: NodeType
+      choices: Array<{
+        id: string
+        text: string
+        nextNodeId: string
+      }>
+    }>
+    edges: Array<{
+      from: string
+      to: string
+    }>
+  }
+  locations: Array<{
+    id: string
+    name: string
+  }>
+}
 
 // Type aliases for React Flow
 type TreeNode = Node<TreeNodeData>
@@ -260,11 +285,8 @@ function StoryTreeEditor() {
     try {
       setIsSaving(true)
 
-      // Simulate API call
-      await simulateDelay(500)
-
-      // In production:
-      // await api.delete(`/stories/${storyId}/nodes/${selectedNode}`)
+      // Delete node via API
+      await api.stories.deleteNode(storyId, selectedNode)
 
       // Remove node
       setNodes((nds) => nds.filter((n) => n.id !== selectedNode))
@@ -338,15 +360,24 @@ function StoryTreeEditor() {
     try {
       setIsLoading(true)
 
-      // Simulate API call with mock data
-      await simulateDelay(1000)
-
-      // In production: const response = await api.get(`/stories/${storyId}`)
-      const response = mockStoryTreeData
+      // Fetch story data from API
+      const response = await api.stories.getById(storyId)
 
       if (response.success && response.data) {
-        setStoryData(response.data)
-        convertToReactFlowData(response.data)
+        // Transform the response to match expected structure
+        const storyData = response.data as any
+        const transformedData: StoryDetailsResponse = {
+          id: storyData.id,
+          title: storyData.title,
+          status: storyData.status,
+          tree: {
+            nodes: storyData.tree?.nodes || [],
+            edges: storyData.tree?.edges || [],
+          },
+          locations: storyData.locations || [],
+        }
+        setStoryData(transformedData)
+        convertToReactFlowData(transformedData)
       }
     } catch (error) {
       console.error("Failed to load story:", error)
@@ -567,11 +598,8 @@ function StoryTreeEditor() {
     try {
       setIsSaving(true)
 
-      // Simulate API call
-      await simulateDelay(800)
-
-      // In production:
-      // await api.patch(`/stories/${storyId}/nodes/${selectedNode}`, formData)
+      // Update node via API
+      await api.stories.update(storyId, selectedNode, formData)
 
       // Update local state
       setNodes((nds) =>
@@ -646,23 +674,24 @@ function StoryTreeEditor() {
     try {
       setIsSaving(true)
 
-      // Simulate API call
-      await simulateDelay(800)
+      // Add node via API
+      const response = await api.stories.addNode(storyId, {
+        parentNodeId: parentNodeIdForAdd,
+        type: nodeData.type,
+        title: nodeData.title,
+        text: nodeData.text,
+        location: nodeData.location,
+        choices: [], // Empty choices initially
+      })
 
-      // In production:
-      // const response = await api.post(`/stories/${storyId}/nodes`, {
-      //   parentNodeId: parentNodeIdForAdd,
-      //   choiceId: null, // Optional: can be used to link to specific choice
-      //   type: nodeData.type,
-      //   title: nodeData.title,
-      //   text: nodeData.text,
-      //   location: nodeData.location,
-      //   choices: [], // Empty choices initially
-      // })
+      if (!response.success || !response.data) {
+        throw new Error("Failed to add node")
+      }
 
-      // Generate a new node ID (in production, this comes from API)
-      const newNodeId = `node-${Date.now()}`
-      const newSceneNumber = nodes.length + 1
+      // Get the new node from API response
+      const apiNode = response.data.node as any
+      const newNodeId = apiNode.id
+      const newSceneNumber = apiNode.sceneNumber || nodes.length + 1
 
       // Create new node
       const newNode: TreeNode = {
@@ -756,11 +785,22 @@ function StoryTreeEditor() {
     try {
       setIsSaving(true)
 
-      // Simulate API call
-      await simulateDelay(1000)
-
-      // In production:
-      // await api.post(`/stories/${storyId}/finalize-structure`)
+      // Finalize story structure via API
+      await api.stories.finalizeStructure(storyId, {
+        nodes: nodes.map((n) => ({
+          id: n.id,
+          sceneNumber: n.data.sceneNumber,
+          title: n.data.title,
+          text: n.data.text,
+          location: n.data.location,
+          type: n.data.type,
+          choices: n.data.choices,
+        })),
+        edges: edges.map((e) => ({
+          from: e.source,
+          to: e.target,
+        })),
+      })
 
       // Navigate to character assignment
       router.push(`/character-assignment/${storyId}`)

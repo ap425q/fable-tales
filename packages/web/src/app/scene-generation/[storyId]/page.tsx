@@ -12,17 +12,29 @@ import {
   SpinnerColor,
   SpinnerSize,
 } from "@/components/types"
+import { api } from "@/lib/api"
 import { ApiError, GenerationStatus, ImageVersion } from "@/types"
 import { useRouter } from "next/navigation"
 import { use, useCallback, useEffect, useRef, useState } from "react"
-import {
-  MockCharacter,
-  mockCharacters,
-  mockSceneImages,
-  SceneWithImages,
-  simulateDelay,
-  simulateGenerationPolling,
-} from "./scene-generation.page.mock"
+
+interface MockCharacter {
+  id: string
+  name: string
+  imageUrl: string
+}
+
+interface SceneWithImages {
+  id: string
+  sceneNumber: number
+  title: string
+  text: string
+  type: string
+  location: string
+  characterIds: string[]
+  imageVersions: ImageVersion[]
+  selectedVersionId?: string
+  generationStatus: GenerationStatus
+}
 
 /**
  * Scene Image Generation Page (Parent Mode)
@@ -78,23 +90,45 @@ export default function SceneGenerationPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API call
-        // const result = await api.scenes.getAllImages(storyId)
-        // if (result.success && result.data) {
-        //   setScenes(result.data.scenes)
-        // }
+        // Fetch story with scenes and characters
+        const storyResult = await api.stories.getById(storyId)
+        if (storyResult.success && storyResult.data) {
+          const storyData = storyResult.data as any
 
-        // MOCK: Using mock data, but clear images initially
-        await simulateDelay(800)
-        // Clear all image versions and set status to PENDING
-        const scenesWithoutImages = mockSceneImages.map((scene) => ({
-          ...scene,
-          imageVersions: [],
-          selectedVersionId: undefined,
-          generationStatus: GenerationStatus.PENDING,
-        }))
-        setScenes(scenesWithoutImages)
-        setCharacters(mockCharacters)
+          // Extract scenes with image data
+          if (storyData.tree?.nodes) {
+            const sceneData: SceneWithImages[] = storyData.tree.nodes.map(
+              (node: any) => ({
+                id: node.id,
+                sceneNumber: node.sceneNumber,
+                title: node.title || `Scene ${node.sceneNumber}`,
+                text: node.text,
+                type: node.type || "narrative",
+                location: node.location || "Unknown",
+                characterIds: node.characters || [],
+                imageVersions: node.imageVersions || [],
+                selectedVersionId: node.selectedVersionId,
+                generationStatus:
+                  node.imageVersions?.length > 0
+                    ? GenerationStatus.COMPLETED
+                    : GenerationStatus.PENDING,
+              })
+            )
+            setScenes(sceneData)
+          }
+
+          // Extract characters with assignments
+          if (storyData.characters) {
+            const characterData: MockCharacter[] = storyData.characters.map(
+              (char: any) => ({
+                id: char.id,
+                name: char.name,
+                imageUrl: char.imageUrl || char.presetImageUrl,
+              })
+            )
+            setCharacters(characterData)
+          }
+        }
       } catch (err) {
         const apiErr = err as ApiError
         setError(apiErr.message || "Failed to load scenes. Please try again.")
@@ -124,66 +158,60 @@ export default function SceneGenerationPage({
    */
   const pollGenerationStatus = useCallback(async () => {
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.getGenerationStatus(storyId, jobId || undefined)
-      // if (!result.success || !result.data) return
+      // Fetch updated story data to check scene generation status
+      const storyResult = await api.stories.getById(storyId)
+      if (!storyResult.success || !storyResult.data) return
 
-      // MOCK: Simulate polling
-      pollCountRef.current += 1
-      const mockStatus = simulateGenerationPolling(pollCountRef.current)
+      const storyData = storyResult.data as any
 
-      // Update scenes with new status
-      setScenes((prev) =>
-        prev.map((scene) => {
-          const statusItem = mockStatus.scenes.find(
-            (s) => s.sceneId === scene.id
-          )
-          if (!statusItem) return scene
-
-          let newStatus = GenerationStatus.PENDING
-          if (statusItem.status === "generating") {
-            newStatus = GenerationStatus.GENERATING
-          } else if (statusItem.status === "completed") {
-            newStatus = GenerationStatus.COMPLETED
-          }
-
-          const newVersions = [...scene.imageVersions]
-          if (
-            statusItem.status === "completed" &&
-            statusItem.currentImageUrl &&
-            statusItem.currentVersionId
-          ) {
-            // Add new version if not already present
-            const versionExists = newVersions.some(
-              (v) => v.versionId === statusItem.currentVersionId
+      if (storyData.tree?.nodes) {
+        // Update scenes with new data
+        setScenes((prev) =>
+          prev.map((scene) => {
+            const nodeData = storyData.tree.nodes.find(
+              (n: any) => n.id === scene.id
             )
-            if (!versionExists && statusItem.currentVersionId) {
-              newVersions.push({
-                versionId: statusItem.currentVersionId,
-                url: statusItem.currentImageUrl,
-                generatedAt: new Date().toISOString(),
-              })
+            if (!nodeData) return scene
+
+            const hasImage =
+              nodeData.imageVersions && nodeData.imageVersions.length > 0
+            let newStatus = GenerationStatus.PENDING
+
+            if (nodeData.generationStatus === "generating") {
+              newStatus = GenerationStatus.GENERATING
+            } else if (hasImage) {
+              newStatus = GenerationStatus.COMPLETED
+            } else if (nodeData.generationStatus === "failed") {
+              newStatus = GenerationStatus.FAILED
             }
-          }
 
-          return {
-            ...scene,
-            generationStatus: newStatus,
-            imageVersions: newVersions,
-            selectedVersionId:
-              statusItem.currentVersionId || scene.selectedVersionId,
-          }
-        })
-      )
+            return {
+              ...scene,
+              generationStatus: newStatus,
+              imageVersions: nodeData.imageVersions || scene.imageVersions,
+              selectedVersionId:
+                nodeData.selectedVersionId ||
+                (nodeData.imageVersions?.length > 0
+                  ? nodeData.imageVersions[nodeData.imageVersions.length - 1]
+                      .versionId
+                  : scene.selectedVersionId),
+            }
+          })
+        )
 
-      // Check if all completed
-      if (mockStatus.status === "completed") {
-        setIsBulkGenerating(false)
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          pollIntervalRef.current = null
+        // Check if all completed
+        const allCompleted = storyData.tree.nodes.every(
+          (node: any) => node.imageVersions && node.imageVersions.length > 0
+        )
+
+        if (allCompleted) {
+          setIsBulkGenerating(false)
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          pollCountRef.current = 0
         }
-        pollCountRef.current = 0
       }
     } catch (err) {
       console.error("Error polling generation status:", err)
@@ -220,15 +248,11 @@ export default function SceneGenerationPage({
         }))
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.generateAllImages(storyId)
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      // }
-
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
-      setJobId("mock-job-id")
+      // Call API to generate all scene images
+      const result = await api.scenes.generateAll(storyId, {})
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+      }
 
       // Start polling
       startPolling()
@@ -269,47 +293,29 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.regenerateImage(storyId, sceneId)
-      // if (result.success && result.data) {
-      //   // Add new version
-      //   setScenes(prev => prev.map(scene => {
-      //     if (scene.id === sceneId) {
-      //       return {
-      //         ...scene,
-      //         generationStatus: GenerationStatus.COMPLETED,
-      //         imageVersions: [...scene.imageVersions, {
-      //           versionId: result.data.versionId,
-      //           url: result.data.imageUrl,
-      //           generatedAt: new Date().toISOString()
-      //         }],
-      //         selectedVersionId: result.data.versionId
-      //       }
-      //     }
-      //     return scene
-      //   }))
-      // }
+      // Call API to regenerate scene image
+      const result = await api.scenes.regenerate(storyId, sceneId, {})
 
-      // MOCK: Simulate regeneration
-      await simulateDelay(3000)
-      const newVersion: ImageVersion = {
-        versionId: `v${Date.now()}`,
-        url: `https://picsum.photos/seed/scene-${sceneId}-${Date.now()}/1200/800`,
-        generatedAt: new Date().toISOString(),
-      }
+      if (result.success && result.data) {
+        const newVersion: ImageVersion = {
+          versionId: result.data.versionId,
+          url: result.data.imageUrl,
+          generatedAt: new Date().toISOString(),
+        }
 
-      setScenes((prev) =>
-        prev.map((scene) =>
-          scene.id === sceneId
-            ? {
-                ...scene,
-                generationStatus: GenerationStatus.COMPLETED,
-                imageVersions: [...scene.imageVersions, newVersion],
-                selectedVersionId: newVersion.versionId,
-              }
-            : scene
+        setScenes((prev) =>
+          prev.map((scene) =>
+            scene.id === sceneId
+              ? {
+                  ...scene,
+                  generationStatus: GenerationStatus.COMPLETED,
+                  imageVersions: [...scene.imageVersions, newVersion],
+                  selectedVersionId: newVersion.versionId,
+                }
+              : scene
+          )
         )
-      )
+      }
     } catch (err) {
       const apiErr = err as ApiError
       setError(
@@ -359,39 +365,11 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // const result = await api.scenes.regenerateMultiple(storyId, idsArray)
-      // if (result.success && result.data) {
-      //   setJobId(result.data.jobId)
-      //   startPolling()
-      // }
-
-      // MOCK: Simulate bulk regeneration
-      await simulateDelay(2000)
-
-      // Simulate completion for each selected scene
-      for (const sceneId of idsArray) {
-        const newVersion: ImageVersion = {
-          versionId: `v${Date.now()}-${sceneId}`,
-          url: `https://picsum.photos/seed/scene-${sceneId}-${Date.now()}/1200/800`,
-          generatedAt: new Date().toISOString(),
-        }
-
-        setScenes((prev) =>
-          prev.map((scene) =>
-            scene.id === sceneId
-              ? {
-                  ...scene,
-                  generationStatus: GenerationStatus.COMPLETED,
-                  imageVersions: [...scene.imageVersions, newVersion],
-                  selectedVersionId: newVersion.versionId,
-                }
-              : scene
-          )
-        )
-
-        // Stagger updates for visual effect
-        await simulateDelay(500)
+      // Call API to regenerate multiple scenes
+      const result = await api.scenes.bulkRegenerate(storyId, idsArray)
+      if (result.success && result.data) {
+        setJobId(result.data.jobId)
+        startPolling()
       }
 
       // Clear selection
@@ -420,11 +398,8 @@ export default function SceneGenerationPage({
         )
       )
 
-      // TODO: Replace with actual API call
-      // await api.scenes.selectVersion(storyId, sceneId, versionId)
-
-      // MOCK: Log selection (in production, this would be saved to backend)
-      console.log(`Selected version ${versionId} for scene ${sceneId}`)
+      // Save selected version to API
+      await api.scenes.selectVersion(storyId, sceneId, versionId)
     } catch (err) {
       console.error("Error selecting version:", err)
     }
@@ -557,23 +532,19 @@ export default function SceneGenerationPage({
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const result = await api.stories.complete(storyId, { title: storyTitle })
-      // if (result.success && result.data) {
-      //   setShowConfetti(true)
-      //   setTimeout(() => {
-      //     router.push(`/story-preview/${storyId}`)
-      //   }, 2000)
-      // }
+      // Update story with title and mark as complete
+      await api.stories.update(storyId, {
+        title: storyTitle,
+        status: "completed",
+        isPublished: true,
+      })
 
-      // MOCK: Simulate completion
-      await simulateDelay(1000)
       setIsCompletionModalOpen(false)
       setShowConfetti(true)
 
       // Navigate after confetti animation
       setTimeout(() => {
-        router.push(`/`)
+        router.push(`/story-selection`)
       }, 3000)
     } catch (err) {
       const apiErr = err as ApiError

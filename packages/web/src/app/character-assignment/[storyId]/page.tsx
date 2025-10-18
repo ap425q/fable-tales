@@ -2,15 +2,11 @@
 
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { SpinnerColor, SpinnerSize } from "@/components/types"
+import { api } from "@/lib/api"
 import { CharacterRole } from "@/lib/apiTypes"
 import { ApiError, PresetCharacter } from "@/types"
 import { useRouter } from "next/navigation"
 import React, { use, useEffect, useState } from "react"
-import {
-  mockCharactersResponse,
-  mockStoryRoles,
-  simulateDelay,
-} from "./character-assignment.page.mock"
 
 /**
  * Character assignment state
@@ -61,25 +57,34 @@ export default function CharacterAssignmentPage({
         setIsLoading(true)
         setError("")
 
-        // TODO: Replace with actual API calls
-        // const charactersResult = await api.characters.getPresetCharacters()
-        // const rolesResult = await api.stories.getCharacterRoles(storyId)
-        // const assignmentsResult = await api.stories.getCharacterAssignments(storyId)
-
-        // MOCK: Using mock data
-        await simulateDelay(800)
-        const charactersResult = mockCharactersResponse
-        const rolesResult = {
-          success: true,
-          data: { characters: mockStoryRoles },
-        }
+        // Fetch preset characters and story roles
+        const [charactersResult, storyResult, assignmentsResult] =
+          await Promise.all([
+            api.characters.getAll(),
+            api.stories.getById(storyId),
+            api.characters.getAssignments(storyId).catch(() => null), // Optional: may not exist yet
+          ])
 
         if (charactersResult.success && charactersResult.data) {
           setPresetCharacters(charactersResult.data.characters)
         }
 
-        if (rolesResult.success && rolesResult.data) {
-          setStoryRoles(rolesResult.data.characters)
+        if (storyResult.success && storyResult.data) {
+          // Extract character roles from story data
+          const storyData = storyResult.data as any
+          if (storyData.characters) {
+            setStoryRoles(storyData.characters)
+          }
+        }
+
+        // Load existing assignments if available
+        if (assignmentsResult?.success && assignmentsResult.data) {
+          const existingAssignments: AssignmentMap = {}
+          assignmentsResult.data.assignments.forEach((assignment: any) => {
+            existingAssignments[assignment.characterRoleId] =
+              assignment.presetCharacterId
+          })
+          setAssignments(existingAssignments)
         }
       } catch (err) {
         const apiErr = err as ApiError
@@ -252,21 +257,18 @@ export default function CharacterAssignmentPage({
       setIsSaving(true)
       setError("")
 
-      // TODO: Replace with actual API call when backend is ready
       // Format assignments for API
-      // const assignmentData = Object.entries(assignments).map(
-      //   ([roleId, characterId]) => ({
-      //     characterRoleId: roleId,
-      //     presetCharacterId: characterId,
-      //   })
-      // )
-      // await api.characters.saveAssignments(storyId, assignmentData)
+      const assignmentData = Object.entries(assignments).map(
+        ([roleId, characterId]) => ({
+          characterRoleId: roleId,
+          presetCharacterId: characterId,
+        })
+      )
 
-      // MOCK: Simulate API call
-      await simulateDelay(1000)
+      // Save assignments to API
+      await api.characters.saveAssignments(storyId, assignmentData)
 
       // Navigate to background setup page
-      // TODO: Update route when background setup page is created
       router.push(`/background-setup/${storyId}`)
     } catch (err) {
       const apiErr = err as ApiError
