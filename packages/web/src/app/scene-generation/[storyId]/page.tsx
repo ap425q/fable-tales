@@ -83,19 +83,17 @@ export default function SceneGenerationPage({
         //   setScenes(result.data.scenes)
         // }
 
-        // MOCK: Using mock data
+        // MOCK: Using mock data, but clear images initially
         await simulateDelay(800)
-        setScenes(mockSceneImages)
+        // Clear all image versions and set status to PENDING
+        const scenesWithoutImages = mockSceneImages.map((scene) => ({
+          ...scene,
+          imageVersions: [],
+          selectedVersionId: undefined,
+          generationStatus: GenerationStatus.PENDING,
+        }))
+        setScenes(scenesWithoutImages)
         setCharacters(mockCharacters)
-
-        // Auto-generate if no scenes have images yet
-        const hasAnyImages = mockSceneImages.some(
-          (scene) => scene.imageVersions.length > 0
-        )
-        if (!hasAnyImages) {
-          // Uncomment to auto-generate on load
-          // handleGenerateAll()
-        }
       } catch (err) {
         const apiErr = err as ApiError
         setError(apiErr.message || "Failed to load scenes. Please try again.")
@@ -1200,16 +1198,7 @@ export default function SceneGenerationPage({
             <h3 className="mt-6 text-2xl font-bold text-gray-900">
               Bringing Your Story to Life...
             </h3>
-            <div className="mt-4 text-4xl font-bold text-purple-600">
-              {
-                scenes.filter(
-                  (scene) =>
-                    scene.generationStatus === GenerationStatus.COMPLETED
-                ).length
-              }{" "}
-              / {scenes.length}
-            </div>
-            <p className="mt-3 text-gray-600">
+            <p className="mt-4 text-gray-600">
               AI is creating magic moments...
             </p>
             <p className="mt-2 text-sm text-gray-500">
