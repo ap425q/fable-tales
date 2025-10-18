@@ -997,6 +997,24 @@ class SupabaseDataManager:
         except Exception as e:
             print(f"Error creating scene regeneration job in Supabase: {str(e)}")
     
+    def save_background(self, background_data: Dict[str, Any]):
+        """Save a single background to Supabase"""
+        try:
+            self.supabase.table("backgrounds").insert(background_data).execute()
+            print(f"✅ Background saved to database: {background_data['id']}")
+        except Exception as e:
+            print(f"❌ Error saving background to Supabase: {str(e)}")
+            raise e
+    
+    def save_location(self, location_data: Dict[str, Any]):
+        """Save a single location to Supabase"""
+        try:
+            self.supabase.table("locations").insert(location_data).execute()
+            print(f"✅ Location saved to database: {location_data['id']}")
+        except Exception as e:
+            print(f"❌ Error saving location to Supabase: {str(e)}")
+            raise e
+    
     def upload_image_to_storage(self, image_url: str, filename: str) -> Optional[str]:
         """Download image from URL and upload to Supabase storage"""
         try:

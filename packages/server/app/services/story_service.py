@@ -499,12 +499,47 @@ class StoryService:
             filename = f"backgrounds/{story_id}_{first_background.backgroundId}_{str(uuid.uuid4())[:8]}.jpg"
             supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
             
+            # Use Supabase URL if available, otherwise use FAL.ai URL
+            final_url = supabase_url if supabase_url else fal_image_url
+            
+            # Get the first available location for this story
+            location_id = None
+            if story.locations and len(story.locations) > 0:
+                location_id = story.locations[0].id
+            else:
+                # If no locations exist, create a default one
+                location_id = str(uuid.uuid4())
+                location_data = {
+                    "id": location_id,
+                    "story_id": story_id,
+                    "name": "Generated Location",
+                    "description": "Auto-generated location for background",
+                    "created_at": datetime.now().isoformat()
+                }
+                self.data_manager.save_location(location_data)
+            
+            # Save the background to the database
+            background_data = {
+                "id": str(uuid.uuid4()),
+                "story_id": story_id,
+                "location_id": location_id,
+                "name": f"Background for {first_background.backgroundId}",
+                "description": description,
+                "image_url": final_url,
+                "status": "completed",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+            
+            # Save to database
+            self.data_manager.save_background(background_data)
+            
             if supabase_url:
                 print(f"✅ Image uploaded to Supabase storage: {supabase_url}")
-                return supabase_url
             else:
-                print("⚠️ Supabase storage upload failed, falling back to FAL.ai URL")
-                return fal_image_url
+                print("⚠️ Supabase storage upload failed, using FAL.ai URL")
+            
+            return final_url
             
         except Exception as e:
             print(f"Error in generate_all_backgrounds: {str(e)}")
