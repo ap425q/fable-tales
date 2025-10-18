@@ -629,12 +629,17 @@ class StoryService:
             if not fal_image_url:
                 raise Exception("Failed to generate image from FAL.ai")
             
-            # Download and upload to Supabase storage
+            # Try to upload to Supabase storage, but fall back to FAL.ai URL if it fails
             filename = f"locations/{story_id}_{first_location.locationId}_{str(uuid.uuid4())[:8]}.jpg"
-            supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
-            
-            # Use Supabase URL if available, otherwise use FAL.ai URL
-            final_url = supabase_url if supabase_url else fal_image_url
+            try:
+                supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
+                final_url = supabase_url if supabase_url else fal_image_url
+                if not supabase_url:
+                    print("⚠️ Supabase storage upload failed, using FAL.ai URL as fallback", flush=True)
+            except Exception as e:
+                print(f"⚠️ Supabase storage error: {str(e)}, using FAL.ai URL as fallback", flush=True)
+                final_url = fal_image_url
+                supabase_url = None
             
             # Generate a version ID for this image
             version_id = str(uuid.uuid4())
@@ -656,14 +661,14 @@ class StoryService:
             self.data_manager.update_location_image(location_data)
             
             # Create a version entry for this generated image
-            version_data = {
-                "id": f"bg_version_{first_location.locationId}_{version_id}",
+            version_entry = {
+                "id": str(uuid.uuid4()),  # Use a plain UUID for the primary key
                 "background_id": first_location.locationId,
                 "version_id": version_id,
                 "image_url": final_url,
                 "created_at": datetime.now().isoformat()
             }
-            self.data_manager.supabase.table("background_versions").insert(version_data).execute()
+            self.data_manager.supabase.table("background_versions").insert(version_entry).execute()
             
             if supabase_url:
                 print(f"✅ Image uploaded to Supabase storage: {supabase_url}", flush=True)
@@ -697,41 +702,66 @@ class StoryService:
                     prompt = description if description else location.description
                     
                     # Generate new image using FAL.ai
-                    image_url = self.fal_ai_service.generate_image(
+                    fal_image_url = self.fal_ai_service.generate_image(
                         prompt=prompt,
                         width=1024,
                         height=768
                     )
                     
+                    if not fal_image_url:
+                        raise Exception("Failed to generate image from FAL.ai")
+                    
+                    # Try to upload to Supabase storage, fall back to FAL.ai URL if it fails
+                    filename = f"locations/{story_id}_{location_id}_{str(uuid.uuid4())[:8]}.jpg"
+                    try:
+                        supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
+                        final_url = supabase_url if supabase_url else fal_image_url
+                        if not supabase_url:
+                            print("⚠️ Supabase storage upload failed, using FAL.ai URL as fallback", flush=True)
+                    except Exception as e:
+                        print(f"⚠️ Supabase storage error: {str(e)}, using FAL.ai URL as fallback", flush=True)
+                        final_url = fal_image_url
+                    
                     # Create new version
                     version_id = str(uuid.uuid4())
                     new_version = ImageVersion(
                         versionId=version_id,
-                        imageUrl=image_url,
+                        imageUrl=final_url,
                         createdAt=datetime.now()
                     )
                     
-                    location.versions.append(new_version)
-                    location.imageUrl = image_url
-                    location.status = GenerationStatus.COMPLETED
+                    location.imageVersions.append(new_version)
+                    location.imageUrl = final_url
+                    location.generationStatus = GenerationStatus.COMPLETED
+                    location.selectedVersionId = version_id  # Auto-select the new version
                     
                     # Update description if provided
                     if description:
                         location.description = description
                     
-                    # Save updated location
+                    # Save updated location to database
                     self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
+                    
+                    # Also create a version entry in the database
+                    version_data = {
+                        "id": str(uuid.uuid4()),  # Use a plain UUID for the primary key
+                        "background_id": location_id,
+                        "version_id": version_id,
+                        "image_url": final_url,
+                        "created_at": datetime.now().isoformat()
+                    }
+                    self.data_manager.supabase.table("background_versions").insert(version_data).execute()
                     
                     return {
                         "locationId": location_id,
                         "versionId": version_id,
-                        "imageUrl": image_url,
+                        "imageUrl": final_url,
                         "status": "completed"
                     }
                     
                 except Exception as e:
                     print(f"Error regenerating location {location_id}: {str(e)}", flush=True)
-                    location.status = GenerationStatus.FAILED
+                    location.generationStatus = GenerationStatus.FAILED
                     self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
                     
                     return {
@@ -750,7 +780,7 @@ class StoryService:
         
         for location in locations:
             if location.id == location_id:
-                for version in location.versions:
+                for version in location.imageVersions:
                     if version.versionId == version_id:
                         location.selectedVersionId = version_id
                         location.imageUrl = version.imageUrl
