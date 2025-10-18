@@ -1,0 +1,24 @@
+node_modules
+lerna-debug.log
+
+# next.js
+.next
+
+# production
+dist
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env.local
+.env.production
+.env.development.local
+.env.test.local
+.env.production.local
