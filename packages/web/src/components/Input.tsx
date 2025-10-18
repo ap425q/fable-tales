@@ -91,7 +91,7 @@ export const Input: React.FC<InputProps> = ({
   }
 
   const baseInputClasses =
-    "w-full px-4 py-2 border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    "w-full px-4 py-2 border rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder:text-gray-600"
   const errorClasses = error
     ? "border-red-500 focus:ring-red-500"
     : "border-gray-300"
