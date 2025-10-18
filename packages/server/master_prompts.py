@@ -12,17 +12,76 @@ STORY_GENERATION_SYSTEM_PROMPT = """You are an expert educational story creator 
 Your task is to create branching story trees that teach valuable life lessons through choices and consequences.
 
 When given a lesson, theme, and story format, you should:
-1. Create EXACTLY 8-10 interconnected story nodes that form a complete narrative tree
-2. Include multiple paths leading to different endings (at least 2 good endings and 2 bad endings)
+1. Create EXACTLY 5-7 interconnected story nodes that form a complete narrative tree
+2. Include EXACTLY ONE good ending and two bad endings
 3. Each node should be a complete scene with dialogue, setting, and meaningful choices
 4. Make choices educational and age-appropriate for children
 5. Ensure the story teaches the specified lesson effectively through consequences
-6. Start with a "start" node, have "normal" nodes for progression, and end with "good_ending" or "bad_ending" nodes
+6. Start with a "start" node, use "choice" nodes for branching decisions, "normal" nodes for linear progression, and end with exactly ONE "good_ending" or multiple "bad_ending" nodes
 7. Each choice should lead to meaningful consequences that reinforce the lesson
-8. Normal nodes can have only one child node. Only choice nodes can have multiple child nodes.
-19. Use only human characters. Do not use animal characters or mythical creatures. Just humans.
+8. CRITICAL RULE: Only "choice" type nodes can have multiple children nodes. "normal" and "start" nodes should have exactly one path forward (even if they present choices, there's one correct path).
+9. Use only human characters. Do not use animal characters or mythical creatures. Just humans.
 
-IMPORTANT: Keep the story structure simple but engaging. Maximum 10 nodes total.
+IMPORTANT NODE TYPE RULES:
+- "start" nodes: Beginning of story, should lead to a single choice node
+- "choice" nodes: ONLY these can branch to multiple children (2+ different nextNodeId options)
+- "normal" nodes: Linear progression, should have only one child (one correct choice leading forward)
+- "good_ending" nodes: There must be EXACTLY ONE good ending in the entire tree
+- "bad_ending" nodes: Two bad endings showing consequences of poor choices
+
+IMPORTANT: Keep the story structure simple but engaging. Maximum 7 nodes total.
+
+EXAMPLE STRUCTURE (showing proper node types and branching):
+{
+    "tree": {
+        "nodes": [
+            {
+                "id": "node_1",
+                "type": "start",
+                "choices": [
+                    {"id": "choice-1-1", "text": "Correct path", "nextNodeId": "node_2", "isCorrect": true},
+                    {"id": "choice-1-2", "text": "Wrong path", "nextNodeId": "node_3", "isCorrect": false}
+                ]
+            },
+            {
+                "id": "node_2",
+                "type": "choice",
+                "choices": [
+                    {"id": "choice-2-1", "text": "Help someone", "nextNodeId": "node_4", "isCorrect": true},
+                    {"id": "choice-2-2", "text": "Ignore them", "nextNodeId": "node_5", "isCorrect": false}
+                ]
+            },
+            {
+                "id": "node_3",
+                "type": "choice",
+                "choices": [
+                    {"id": "choice-3-1", "text": "Go back and help", "nextNodeId": "node_2", "isCorrect": true},
+                    {"id": "choice-3-2", "text": "Continue alone", "nextNodeId": "node_6", "isCorrect": false}
+                ]
+            },
+            {
+                "id": "node_4",
+                "type": "normal",
+                "choices": [
+                    {"id": "choice-4-1", "text": "Continue forward", "nextNodeId": "node_7", "isCorrect": true}
+                ]
+            },
+            {"id": "node_5", "type": "bad_ending", "choices": []},
+            {"id": "node_6", "type": "bad_ending", "choices": []},
+            {"id": "node_7", "type": "good_ending", "choices": []}
+        ],
+        "edges": [
+            {"from": "node_1", "to": "node_2", "choiceId": "choice-1-1"},
+            {"from": "node_1", "to": "node_3", "choiceId": "choice-1-2"},
+            {"from": "node_2", "to": "node_4", "choiceId": "choice-2-1"},
+            {"from": "node_2", "to": "node_5", "choiceId": "choice-2-2"},
+            {"from": "node_3", "to": "node_2", "choiceId": "choice-3-1"},
+            {"from": "node_3", "to": "node_6", "choiceId": "choice-3-2"},
+            {"from": "node_4", "to": "node_7", "choiceId": "choice-4-1"}
+        ]
+    }
+}
+Note: "choice" nodes (node_2, node_3) have multiple children. "normal" nodes (node_4) have only one child. There is EXACTLY ONE "good_ending" (node_7).
 
 Format your response as a JSON object with:
 {
@@ -81,11 +140,16 @@ Create a branching story tree that teaches the lesson through meaningful choices
 The story should be a Fable tale with engaging characters, and clear moral lessons.
 
 Requirements:
-- Maximum 14 nodes total and minimum 8 nodes.
-- At least 2 good endings and 2 bad endings
+- Maximum 14 nodes total and minimum 8 nodes
+- EXACTLY ONE good ending (good_ending node type) - there should be only one successful conclusion
+- At least 2-3 bad endings (bad_ending node type) showing consequences of poor choices
+- Only "choice" type nodes can have multiple children nodes (branching paths)
+- "normal" nodes should have only one child node (linear progression)
 - Each choice should have clear consequences
 - Make it age-appropriate for children
 - The lesson should be clearly taught through the story progression
+
+CRITICAL: Ensure there is EXACTLY ONE good_ending node in the entire tree, and only "choice" nodes have multiple children.
 
 Return ONLY the JSON object, no additional text."""
 

@@ -18,11 +18,11 @@ class OpenAIService:
     def __init__(self):
         """Initialize OpenAI service with API key from environment"""
         self.api_key = os.getenv("OPENAI_API_KEY", "placeholder_openai_key")
-        self.model = "gpt-3.5-turbo"  # Using GPT-3.5-turbo for better compatibility
+        self.model = "gpt-5"
         
         # Initialize OpenAI client if API key is available
         if self.api_key != "placeholder_openai_key":
-            self.client = openai.OpenAI(api_key=self.api_key)
+            self.client = openai.OpenAI(api_key=self.api_key, timeout=None)
         else:
             self.client = None
 
@@ -64,8 +64,7 @@ class OpenAIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.8,
-                max_tokens=4000
+                temperature=1,
             )
             
             # Parse the JSON response
@@ -650,8 +649,8 @@ class FALAIService:
                 }
             )
             
-            # Wait for the result and get the image URL
-            result = handler.get()
+            # Wait for the result and get the image URL (no timeout)
+            result = handler.get(timeout=None)
             if result and "images" in result and len(result["images"]) > 0:
                 return result["images"][0]["url"]
             else:
