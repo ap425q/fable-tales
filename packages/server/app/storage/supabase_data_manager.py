@@ -5,14 +5,16 @@ Handles data storage and retrieval using Supabase PostgreSQL database
 
 import os
 import uuid
-from typing import Dict, List, Any, Optional
 from datetime import datetime
-from supabase import create_client, Client
+from typing import Any, Dict, List, Optional
+
 from dotenv import load_dotenv
+from supabase import Client, create_client
 
 # Load environment variables from .env file
 load_dotenv('.env')
-from app.models.schemas import Story, StoryStatus, StoryNode, StoryEdge, StoryTree, CharacterRole, Location, Choice
+from app.models.schemas import (CharacterRole, Choice, Location, Story,
+                                StoryEdge, StoryNode, StoryStatus, StoryTree)
 
 
 class SupabaseDataManager:
@@ -79,6 +81,7 @@ class SupabaseDataManager:
             # Second pass: create all choices with proper UUID references
             for node in story.tree.nodes:
                 node_uuid = node_id_mapping[node.id]
+                print(f"Saving choices for node {node.id} (UUID: {node_uuid}): {len(node.choices)} choices", flush=True)
                 
                 for i, choice in enumerate(node.choices):
                     choice_uuid = choice.id if choice.id and len(choice.id) == 36 and choice.id.count('-') == 4 else str(uuid.uuid4())
@@ -86,6 +89,8 @@ class SupabaseDataManager:
                     
                     # Use mapped UUID for next node
                     next_node_uuid = node_id_mapping.get(choice.nextNodeId) if choice.nextNodeId else None
+                    
+                    print(f"  Saving choice: {choice.text} -> {choice.nextNodeId} (UUID: {next_node_uuid})", flush=True)
                     
                     choice_data = {
                         "id": choice_uuid,
@@ -170,7 +175,10 @@ class SupabaseDataManager:
                 choices_result = self.supabase.table("story_choices").select("*").eq("node_id", node_data["id"]).execute()
                 choices = []
                 
+                print(f"Loading node {node_data['id']}: Found {len(choices_result.data)} choices", flush=True)
+                
                 for choice_data in choices_result.data:
+                    print(f"  Choice: {choice_data['text']} -> {choice_data['next_node_id']}", flush=True)
                     choice = Choice(
                         id=choice_data["id"],
                         text=choice_data["text"],
@@ -417,7 +425,7 @@ class SupabaseDataManager:
         try:
             import json
             import os
-            
+
             # Load preset characters from JSON file
             json_path = os.path.join("data", "characters", "preset_characters.json")
             if not os.path.exists(json_path):
@@ -1020,9 +1028,10 @@ class SupabaseDataManager:
     def upload_image_to_storage(self, image_url: str, filename: str) -> Optional[str]:
         """Download image from URL and upload to Supabase storage"""
         try:
-            import requests
             from io import BytesIO
-            
+
+            import requests
+
             # Download the image from the URL
             print(f"📥 Downloading image from: {image_url}")
             response = requests.get(image_url, timeout=30)

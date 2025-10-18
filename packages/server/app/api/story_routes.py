@@ -3,28 +3,32 @@ Story-based API routes
 Complete implementation of the new story API specification
 """
 
-from fastapi import APIRouter, HTTPException, status, Query, Path
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
+from app.models.schemas import (ERROR_CODES, APIResponse,
+                                CharacterAssignmentRequest,
+                                CharacterAssignmentsResponse,
+                                CharactersResponse,
+                                LocationImageGenerationRequest,
+                                LocationImageGenerationResponse,
+                                LocationImageGenerationStatus,
+                                LocationImageRegenerateRequest,
+                                LocationImageVersionSelectRequest,
+                                LocationUpdateRequest, NodeCreateRequest,
+                                NodeUpdateRequest, PresetCharacter,
+                                ReadingCompletionRequest, ReadingProgress,
+                                ReadingProgressRequest, SceneGenerationStatus,
+                                SceneRegenerateMultipleRequest,
+                                SceneRegenerateRequest,
+                                SceneVersionSelectRequest, ShareLinkRequest,
+                                ShareLinkResponse, Story, StoryCompleteRequest,
+                                StoryEdge, StoryForReading,
+                                StoryGenerateRequest, StoryGenerateResponse,
+                                StoryListItem, StoryListResponse, StoryNode,
+                                StoryTree)
 from app.services.story_service import StoryService
-from app.models.schemas import (
-    StoryGenerateRequest, StoryGenerateResponse,
-    StoryListResponse, StoryListItem,
-    Story, StoryTree, StoryNode, StoryEdge,
-    NodeUpdateRequest, NodeCreateRequest,
-    StoryCompleteRequest,
-    CharacterAssignmentRequest, CharacterAssignmentsResponse, PresetCharacter, CharactersResponse,
-    LocationUpdateRequest, LocationImageGenerationRequest, LocationImageGenerationResponse,
-    LocationImageGenerationStatus, LocationImageRegenerateRequest,
-    LocationImageVersionSelectRequest,
-    SceneGenerationStatus, SceneRegenerateRequest,
-    SceneVersionSelectRequest, SceneRegenerateMultipleRequest,
-    ReadingProgressRequest, ReadingProgress,
-    ReadingCompletionRequest, StoryForReading,
-    ShareLinkRequest, ShareLinkResponse,
-    APIResponse, ERROR_CODES
-)
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
 router = APIRouter(prefix="/api/v1", tags=["stories"])
 story_service = StoryService()
@@ -46,7 +50,7 @@ async def get_stories(
         stories_data = story_service.get_all_stories(limit, offset, status, sort_by)
         return APIResponse(
             success=True,
-            data=stories_data.model_dump()
+            data=stories_data.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -98,7 +102,7 @@ async def get_story_details(story_id: str = Path(..., description="Story ID")):
             )
         return APIResponse(
             success=True,
-            data=story.model_dump()
+            data=story.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -123,7 +127,7 @@ async def update_node(
             )
         return APIResponse(
             success=True,
-            data={"node": updated_node.model_dump()}
+            data={"node": updated_node.model_dump(by_alias=True)}
         )
     except Exception as e:
         return APIResponse(
@@ -147,7 +151,7 @@ async def add_node(
             )
         return APIResponse(
             success=True,
-            data={"node": new_node.model_dump()}
+            data={"node": new_node.model_dump(by_alias=True)}
         )
     except Exception as e:
         return APIResponse(
@@ -301,7 +305,7 @@ async def get_story_locations(story_id: str = Path(..., description="Story ID"))
             )
         return APIResponse(
             success=True,
-            data={"locations": [loc.model_dump() for loc in locations]}
+            data={"locations": [loc.model_dump(by_alias=True) for loc in locations]}
         )
     except Exception as e:
         return APIResponse(
@@ -326,7 +330,7 @@ async def update_location_description(
             )
         return APIResponse(
             success=True,
-            data={"location": location.model_dump()}
+            data={"location": location.model_dump(by_alias=True)}
         )
     except Exception as e:
         return APIResponse(
@@ -389,7 +393,7 @@ async def check_location_image_generation_status(
             )
         return APIResponse(
             success=True,
-            data=status_data.model_dump()
+            data=status_data.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -491,7 +495,7 @@ async def check_scene_image_generation_status(
             )
         return APIResponse(
             success=True,
-            data=status_data.model_dump()
+            data=status_data.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -620,7 +624,7 @@ async def get_story_for_reading(story_id: str = Path(..., description="Story ID"
             )
         return APIResponse(
             success=True,
-            data=story_data.model_dump()
+            data=story_data.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -665,7 +669,7 @@ async def get_reading_progress(story_id: str = Path(..., description="Story ID")
             )
         return APIResponse(
             success=True,
-            data=progress.model_dump()
+            data=progress.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(
@@ -746,7 +750,7 @@ async def generate_share_link(
             )
         return APIResponse(
             success=True,
-            data=share_data.model_dump()
+            data=share_data.model_dump(by_alias=True)
         )
     except Exception as e:
         return APIResponse(

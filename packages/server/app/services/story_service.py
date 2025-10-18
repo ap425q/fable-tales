@@ -3,27 +3,26 @@ Story Service
 Main business logic for story creation, management, and reading workflow
 """
 
-import uuid
 import json
 import os
-from typing import Dict, List, Any, Optional
+import uuid
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
+from app.models.schemas import (CharacterAssignment, CharacterRole,
+                                GenerationStatus, ImageVersion, Location,
+                                LocationImageGenerationStatus, NodeType,
+                                PresetCharacter, ReadingCompletionRequest,
+                                ReadingNode, ReadingProgress,
+                                ReadingProgressRequest, SceneGenerationStatus,
+                                ShareLinkResponse, Story, StoryEdge,
+                                StoryForReading, StoryListItem,
+                                StoryListResponse, StoryNode, StoryStatus,
+                                StoryTree)
 from app.storage.supabase_data_manager import SupabaseDataManager
-from app.models.schemas import (
-    Story, StoryNode, StoryEdge, StoryTree, StoryStatus, NodeType,
-    CharacterRole, Location, PresetCharacter, CharacterAssignment,
-    ImageVersion, GenerationStatus,
-    StoryListItem, StoryListResponse, StoryForReading, ReadingNode,
-    ReadingProgress, ReadingProgressRequest, ReadingCompletionRequest,
-    ShareLinkResponse,
-    SceneGenerationStatus, LocationImageGenerationStatus
-)
-from external_services import OpenAIService, FALAIService
-from master_prompts import (
-    STORY_GENERATION_SYSTEM_PROMPT,
-    STORY_GENERATION_USER_PROMPT_TEMPLATE,
-)
+from external_services import FALAIService, OpenAIService
+from master_prompts import (STORY_GENERATION_SYSTEM_PROMPT,
+                            STORY_GENERATION_USER_PROMPT_TEMPLATE)
 
 
 class StoryService:
@@ -51,10 +50,137 @@ class StoryService:
     # Story Generation and Management
     # ========================================================================
     
+    def _convert_ids_to_uuids(self, story_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert all simple string IDs (node_1, choice_1, etc.) to UUIDs
+        and update all references throughout the story structure
+        """
+        # Create ID mappings
+        node_id_map = {}
+        choice_id_map = {}
+        char_id_map = {}
+        loc_id_map = {}
+        
+        # Generate UUIDs for all nodes
+        for node in story_data["tree"]["nodes"]:
+            node_id_map[node["id"]] = str(uuid.uuid4())
+        
+        # Generate UUIDs for all choices
+        for node in story_data["tree"]["nodes"]:
+            for choice in node.get("choices", []):
+                choice_id_map[choice["id"]] = str(uuid.uuid4())
+        
+        # Generate UUIDs for all characters
+        for char in story_data.get("characters", []):
+            char_id_map[char["id"]] = str(uuid.uuid4())
+        
+        # Generate UUIDs for all locations
+        for loc in story_data.get("locations", []):
+            loc_id_map[loc["id"]] = str(uuid.uuid4())
+        
+        # Update node IDs and choice references
+        for node in story_data["tree"]["nodes"]:
+            # Update node ID
+            node["id"] = node_id_map[node["id"]]
+            
+            # Update choice IDs and nextNodeId references
+            for choice in node.get("choices", []):
+                choice["id"] = choice_id_map[choice["id"]]
+                if choice.get("nextNodeId"):
+                    choice["nextNodeId"] = node_id_map[choice["nextNodeId"]]
+        
+        # Update edge references
+        for edge in story_data["tree"]["edges"]:
+            # Handle both 'from' and 'from_' keys
+            from_key = "from_" if "from_" in edge else "from"
+            edge[from_key] = node_id_map[edge[from_key]]
+            edge["to"] = node_id_map[edge["to"]]
+            edge["choiceId"] = choice_id_map[edge["choiceId"]]
+        
+        # Update character IDs
+        for char in story_data.get("characters", []):
+            char["id"] = char_id_map[char["id"]]
+        
+        # Update location IDs
+        for loc in story_data.get("locations", []):
+            loc["id"] = loc_id_map[loc["id"]]
+        
+        print(f"✓ Converted IDs to UUIDs: {len(node_id_map)} nodes, {len(choice_id_map)} choices", flush=True)
+        
+        return story_data
+    
+    def _validate_tree_connectivity(self, tree_data: Dict[str, Any]) -> None:
+        """
+        Validate that the tree structure is fully connected
+        Expected: 4 nodes, 3 edges
+        
+        Raises:
+            Exception: If tree validation fails
+        """
+        nodes = tree_data.get("nodes", [])
+        edges = tree_data.get("edges", [])
+        
+        validation_errors = []
+        
+        # Check 1: Must have exactly 4 nodes
+        if len(nodes) != 4:
+            validation_errors.append(f"Expected exactly 4 nodes, but got {len(nodes)}")
+        
+        # Check 2: Must have exactly 3 edges
+        if len(edges) != 3:
+            validation_errors.append(f"Expected exactly 3 edges, but got {len(edges)}")
+        
+        # Build a map of node IDs
+        node_ids = {node["id"] for node in nodes}
+        
+        # Collect all choices and their nextNodeIds
+        all_choices = []
+        for node in nodes:
+            for choice in node.get("choices", []):
+                all_choices.append({
+                    "node_id": node["id"],
+                    "choice_id": choice["id"],
+                    "next_node_id": choice.get("nextNodeId")
+                })
+        
+        # Check 3: Must have exactly 3 choices total
+        if len(all_choices) != 3:
+            validation_errors.append(f"Expected exactly 3 choices total, but got {len(all_choices)}")
+        
+        # Validate: Every choice must have a corresponding edge
+        edge_map = {(edge["from"], edge["choiceId"]): edge["to"] for edge in edges}
+        
+        # Check 4: Every choice must have a corresponding edge
+        for choice in all_choices:
+            edge_key = (choice["node_id"], choice["choice_id"])
+            if edge_key not in edge_map:
+                validation_errors.append(
+                    f"Missing edge for choice '{choice['choice_id']}' in node '{choice['node_id']}'"
+                )
+            elif edge_map[edge_key] != choice["next_node_id"]:
+                validation_errors.append(
+                    f"Edge mismatch for choice '{choice['choice_id']}': "
+                    f"choice points to '{choice['next_node_id']}' but edge points to '{edge_map[edge_key]}'"
+                )
+        
+        # Check 5: All nextNodeIds must reference valid nodes
+        for choice in all_choices:
+            if choice["next_node_id"] and choice["next_node_id"] not in node_ids:
+                validation_errors.append(
+                    f"Invalid nextNodeId '{choice['next_node_id']}' in choice '{choice['choice_id']}' - node doesn't exist"
+                )
+        
+        if validation_errors:
+            error_msg = "Tree validation failed:\n" + "\n".join(f"  - {err}" for err in validation_errors)
+            print(f"VALIDATION ERROR:\n{error_msg}", flush=True)
+            raise Exception(error_msg)
+        
+        print(f"✓ Tree validation passed: 4 nodes, 3 edges, 3 choices", flush=True)
+    
     def generate_story(self, lesson: str, theme: str, story_format: str, character_count: int = 4) -> Dict[str, Any]:
         """Generate a new story with AI"""
         story_id = str(uuid.uuid4())
-        
+        print('Generating story...', flush=True)
         try:
             # Generate story content using AI
             user_prompt = STORY_GENERATION_USER_PROMPT_TEMPLATE.format(
@@ -73,10 +199,18 @@ class StoryService:
                 system_prompt=STORY_GENERATION_SYSTEM_PROMPT,
                 user_prompt=user_prompt
             )
+            print(story_data, flush=True)
+            
+            # Validate tree connectivity
+            self._validate_tree_connectivity(story_data["tree"])
+            
+            # Convert all simple IDs to UUIDs and update references
+            story_data = self._convert_ids_to_uuids(story_data)
             
             # Convert the response to our schema objects
-            from app.models.schemas import StoryNode, StoryEdge, StoryTree, CharacterRole, Location, Choice
-            
+            from app.models.schemas import (CharacterRole, Choice, Location,
+                                            StoryEdge, StoryNode, StoryTree)
+
             # Convert nodes
             nodes = []
             for node_data in story_data["tree"]["nodes"]:
@@ -151,9 +285,9 @@ class StoryService:
             
             return {
                 "storyId": story_id,
-                "tree": tree.model_dump(),
-                "characters": [char.model_dump() for char in characters],
-                "locations": [loc.model_dump() for loc in locations]
+                "tree": tree.model_dump(by_alias=True),
+                "characters": [char.model_dump(by_alias=True) for char in characters],
+                "locations": [loc.model_dump(by_alias=True) for loc in locations]
             }
             
         except Exception as e:
@@ -517,14 +651,14 @@ class StoryService:
             self.data_manager.update_location_image(location_data)
             
             if supabase_url:
-                print(f"✅ Image uploaded to Supabase storage: {supabase_url}")
+                print(f"✅ Image uploaded to Supabase storage: {supabase_url}", flush=True)
             else:
-                print("⚠️ Supabase storage upload failed, using FAL.ai URL")
+                print("⚠️ Supabase storage upload failed, using FAL.ai URL", flush=True)
             
             return final_url
             
         except Exception as e:
-            print(f"Error in generate_all_location_images: {str(e)}")
+            print(f"Error in generate_all_location_images: {str(e)}", flush=True)
             raise Exception(f"Location image generation failed: {str(e)}")
     
     def check_location_image_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[LocationImageGenerationStatus]:
@@ -581,7 +715,7 @@ class StoryService:
                     }
                     
                 except Exception as e:
-                    print(f"Error regenerating location {location_id}: {str(e)}")
+                    print(f"Error regenerating location {location_id}: {str(e)}", flush=True)
                     location.status = GenerationStatus.FAILED
                     self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
                     
