@@ -533,14 +533,14 @@ export default function BackgroundSetupPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
             centered
           />
-          <p className="mt-4 text-gray-700 text-lg font-medium">
+          <p className="mt-6 text-xl text-gray-700 font-semibold">
             Loading backgrounds...
           </p>
         </div>
@@ -552,27 +552,32 @@ export default function BackgroundSetupPage({
   const isReady = isAllReady()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-6 shadow-xl">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-4 font-heading">
               Story Backgrounds
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Create stunning backgrounds for your story locations
             </p>
           </div>
 
           {/* Progress Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-amber-200 p-6">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-gray-700">
                   Progress
                 </span>
-                <span className="text-2xl font-bold text-indigo-600">
+                <span className="text-2xl font-bold text-amber-600">
                   {
                     backgrounds.filter(
                       (bg) =>
@@ -585,7 +590,7 @@ export default function BackgroundSetupPage({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${
                       (backgrounds.filter(
@@ -600,7 +605,7 @@ export default function BackgroundSetupPage({
                 />
               </div>
               {isReady && (
-                <div className="mt-3 flex items-center justify-center text-green-600 font-medium">
+                <div className="mt-3 flex items-center justify-center text-green-600 font-bold">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="currentColor"
@@ -644,15 +649,13 @@ export default function BackgroundSetupPage({
 
         {/* Generate All Button */}
         <div className="mb-10 text-center">
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleGenerateAll}
             disabled={isBulkGenerating || generationCount === 0}
-            loading={isBulkGenerating}
+            className="px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-3"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-6 h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -671,7 +674,7 @@ export default function BackgroundSetupPage({
               : `Generate ${generationCount} Background${
                   generationCount !== 1 ? "s" : ""
                 }`}
-          </Button>
+          </button>
         </div>
 
         {/* Background Cards */}
@@ -1005,15 +1008,14 @@ export default function BackgroundSetupPage({
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t border-gray-200">
-          <Button
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Large}
+        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t-2 border-amber-200">
+          <button
             onClick={handleBack}
             disabled={isBulkGenerating}
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1026,17 +1028,16 @@ export default function BackgroundSetupPage({
               />
             </svg>
             Back to Characters
-          </Button>
+          </button>
 
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleNext}
             disabled={!isReady || isBulkGenerating}
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
           >
-            Generate Scene Images
+            <span>Generate Scene Images</span>
             <svg
-              className="w-5 h-5 ml-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1048,7 +1049,7 @@ export default function BackgroundSetupPage({
                 d="M9 5l7 7-7 7"
               />
             </svg>
-          </Button>
+          </button>
         </div>
 
         {/* Help Banner */}

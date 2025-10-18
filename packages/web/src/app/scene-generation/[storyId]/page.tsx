@@ -593,14 +593,14 @@ export default function SceneGenerationPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex items-center justify-center">
         <div className="text-center">
           <LoadingSpinner
             size={SpinnerSize.XLarge}
             color={SpinnerColor.Primary}
             centered
           />
-          <p className="mt-4 text-gray-700 text-lg font-medium">
+          <p className="mt-6 text-xl text-gray-700 font-semibold">
             Loading scenes...
           </p>
         </div>
@@ -613,27 +613,32 @@ export default function SceneGenerationPage({
   const hasSelection = selectedSceneIds.size > 0
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-12">
           <div className="text-center mb-6">
-            <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mb-6 shadow-xl">
+              <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h1 className="text-5xl font-extrabold text-gray-900 mb-4 font-heading">
               Scene Images
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
               Generate and review images for all your story scenes
             </p>
           </div>
 
           {/* Progress Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="bg-white rounded-2xl shadow-xl border-2 border-amber-200 p-6">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-gray-700">
                   Progress
                 </span>
-                <span className="text-2xl font-bold text-purple-600">
+                <span className="text-2xl font-bold text-amber-600">
                   {
                     scenes.filter(
                       (scene) =>
@@ -646,7 +651,7 @@ export default function SceneGenerationPage({
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 h-3 rounded-full transition-all duration-500"
                   style={{
                     width: `${
                       (scenes.filter(
@@ -662,7 +667,7 @@ export default function SceneGenerationPage({
                 />
               </div>
               {isReady && (
-                <div className="mt-3 flex items-center justify-center text-green-600 font-medium">
+                <div className="mt-3 flex items-center justify-center text-green-600 font-bold">
                   <svg
                     className="w-5 h-5 mr-2"
                     fill="currentColor"
@@ -713,18 +718,16 @@ export default function SceneGenerationPage({
         )}
 
         {/* Action Bar */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-white rounded-xl shadow-md p-4">
+        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-center justify-between bg-white rounded-xl shadow-lg border-2 border-amber-200 p-5">
           {/* Generate All Button */}
           <div>
-            <Button
-              variant={ButtonVariant.Primary}
-              size={ButtonSize.Medium}
+            <button
               onClick={handleGenerateAll}
               disabled={isBulkGenerating || isReady}
-              loading={isBulkGenerating}
+              className="px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-2"
             >
               <svg
-                className="w-5 h-5 mr-2 inline"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -741,7 +744,7 @@ export default function SceneGenerationPage({
                 : isReady
                 ? "✓ All Generated"
                 : "Generate All Scene Images"}
-            </Button>
+            </button>
           </div>
 
           {/* Filter and Bulk Actions */}
@@ -1130,15 +1133,14 @@ export default function SceneGenerationPage({
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t border-gray-200">
-          <Button
-            variant={ButtonVariant.Secondary}
-            size={ButtonSize.Large}
+        <div className="flex justify-between items-center max-w-4xl mx-auto pt-8 border-t-2 border-amber-200">
+          <button
             onClick={handleBack}
             disabled={isBulkGenerating}
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
           >
             <svg
-              className="w-5 h-5 mr-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1151,17 +1153,16 @@ export default function SceneGenerationPage({
               />
             </svg>
             Back to Backgrounds
-          </Button>
+          </button>
 
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Large}
+          <button
             onClick={handleCompleteStory}
             disabled={!isReady || isBulkGenerating}
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
           >
-            Complete Story
+            <span>Complete Story</span>
             <svg
-              className="w-5 h-5 ml-2 inline"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -1173,7 +1174,7 @@ export default function SceneGenerationPage({
                 d="M5 13l4 4L19 7"
               />
             </svg>
-          </Button>
+          </button>
         </div>
       </div>
 

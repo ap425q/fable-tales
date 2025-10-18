@@ -33,6 +33,24 @@
   --error: #A65959;
   --info: #7B92A8;
 
+  /* === PARENT MODE COLORS === */
+  /* Warm, creative, and professional palette for parent-facing pages */
+  --parent-primary: #D97706;      /* Warm amber - main actions */
+  --parent-primary-light: #F59E0B;
+  --parent-primary-dark: #B45309;
+  --parent-secondary: #0D9488;    /* Teal - secondary actions */
+  --parent-secondary-light: #14B8A6;
+  --parent-secondary-dark: #0F766E;
+  --parent-success: #059669;      /* Bright green - success states */
+  --parent-success-light: #10B981;
+  --parent-warning: #F59E0B;      /* Warm orange - warnings */
+  --parent-warning-light: #FCD34D;
+  --parent-danger: #DC2626;       /* Soft red - destructive actions */
+  --parent-danger-light: #EF4444;
+  --parent-bg: #FFFBEB;           /* Light warm background */
+  --parent-bg-secondary: #FEF3C7; /* Secondary warm background */
+  --parent-bg-tertiary: #FFF7ED;  /* Tertiary warm background */
+
   /* === TYPOGRAPHY === */
   --font-heading: 'Crimson Text', 'Garamond', 'Georgia', serif;
   --font-body: 'Merriweather', 'Georgia', 'Times New Roman', serif;
@@ -109,6 +127,23 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-info: var(--info);
+  
+  /* Parent Mode */
+  --color-parent-primary: var(--parent-primary);
+  --color-parent-primary-light: var(--parent-primary-light);
+  --color-parent-primary-dark: var(--parent-primary-dark);
+  --color-parent-secondary: var(--parent-secondary);
+  --color-parent-secondary-light: var(--parent-secondary-light);
+  --color-parent-secondary-dark: var(--parent-secondary-dark);
+  --color-parent-success: var(--parent-success);
+  --color-parent-success-light: var(--parent-success-light);
+  --color-parent-warning: var(--parent-warning);
+  --color-parent-warning-light: var(--parent-warning-light);
+  --color-parent-danger: var(--parent-danger);
+  --color-parent-danger-light: var(--parent-danger-light);
+  --color-parent-bg: var(--parent-bg);
+  --color-parent-bg-secondary: var(--parent-bg-secondary);
+  --color-parent-bg-tertiary: var(--parent-bg-tertiary);
 }
 
 /* ============================================================================
