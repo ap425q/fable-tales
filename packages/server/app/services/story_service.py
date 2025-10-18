@@ -918,17 +918,29 @@ Generate a single illustration that captures this scene with the characters desc
                     
                     print(f"🎨 Generating scene {scene_num}...")
                     
-                    # Generate image with Gemini
-                    image_data = self.gemini_service.generate_image(prompt)
+                    # Generate image with Gemini (returns base64 data)
+                    base64_image_data = self.gemini_service.generate_image(prompt)
                     
                     # Create version ID
                     version_id = str(uuid.uuid4())
+                    
+                    # Upload base64 image to Supabase storage
+                    filename = f"scenes/{story_id}/{node.id}_{version_id}.png"
+                    image_url = self.data_manager.upload_base64_image_to_storage(
+                        base64_image_data, 
+                        filename
+                    )
+                    
+                    if not image_url:
+                        # If upload fails, fall back to base64 data
+                        print(f"⚠️ Failed to upload scene {scene_num} to Supabase, using base64 data as fallback")
+                        image_url = base64_image_data
                     
                     # Save scene image data
                     scene_data = {
                         "sceneId": node.id,
                         "sceneNumber": scene_num,
-                        "imageUrl": image_data,
+                        "imageUrl": image_url,
                         "versionId": version_id,
                         "generatedAt": datetime.now().isoformat(),
                         "prompt": prompt[:500]  # Save truncated prompt for reference
@@ -950,6 +962,24 @@ Generate a single illustration that captures this scene with the characters desc
             
             # Create job ID for tracking
             job_id = str(uuid.uuid4())
+            
+            # Save scene images to database
+            for scene in generated_scenes:
+                if "error" not in scene:
+                    try:
+                        # Save scene image version to database
+                        scene_image_data = {
+                            "sceneId": scene["sceneId"],
+                            "currentVersionId": scene["versionId"],
+                            "versions": [{
+                                "versionId": scene["versionId"],
+                                "imageUrl": scene["imageUrl"],
+                                "createdAt": scene["generatedAt"]
+                            }]
+                        }
+                        self.data_manager.save_scene_image_versions(story_id, scene["sceneId"], scene_image_data)
+                    except Exception as e:
+                        print(f"⚠️ Failed to save scene {scene['sceneId']} to database: {str(e)}")
             
             # Save generation job with results
             self.data_manager.create_scene_generation_job(story_id, job_id, scene_ids)

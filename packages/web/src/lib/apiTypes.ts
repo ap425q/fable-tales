@@ -163,12 +163,28 @@ export interface VersionSelectionResponse {
 }
 
 /**
+ * Generated scene data
+ */
+export interface GeneratedScene {
+  sceneId: string
+  sceneNumber: number
+  imageUrl: string
+  versionId: string
+  generatedAt: string
+  prompt?: string
+  error?: string
+  status?: string
+}
+
+/**
  * Scene generation response
  */
 export interface SceneGenerationResponse {
   jobId: string
   message: string
   sceneCount: number
+  scenes: GeneratedScene[]
+  characterDescription?: string
 }
 
 /**

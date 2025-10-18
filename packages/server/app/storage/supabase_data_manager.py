@@ -1107,3 +1107,40 @@ class SupabaseDataManager:
                 print("💡 This appears to be a Row Level Security (RLS) policy issue.")
                 print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
             return None
+    
+    def upload_base64_image_to_storage(self, base64_data: str, filename: str) -> Optional[str]:
+        """Upload base64 encoded image to Supabase storage"""
+        try:
+            import base64
+
+            # Remove data URI prefix if present
+            if base64_data.startswith('data:'):
+                base64_data = base64_data.split(',')[1]
+            
+            # Decode base64 to binary
+            image_bytes = base64.b64decode(base64_data)
+            
+            # Upload to Supabase storage
+            print(f"📤 Uploading base64 image to Supabase storage: {filename}")
+            result = self.supabase.storage.from_("frame-fable").upload(
+                filename,
+                image_bytes,
+                file_options={"content-type": "image/png"}
+            )
+            
+            if result:
+                # Get the public URL
+                public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                print(f"✅ Base64 image uploaded successfully: {public_url}")
+                return public_url
+            else:
+                print("❌ Failed to upload base64 image to Supabase storage")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error uploading base64 image to Supabase storage: {str(e)}")
+            # Check if it's an RLS policy error
+            if "row-level security policy" in str(e).lower():
+                print("💡 This appears to be a Row Level Security (RLS) policy issue.")
+                print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
+            return None

@@ -248,14 +248,55 @@ export default function SceneGenerationPage({
         }))
       )
 
-      // Call API to generate all scene images
-      const result = await api.scenes.generateAll(storyId, {})
+      // Call API to generate all scene images (now returns results immediately)
+      const result = await api.scenes.generateAll(storyId)
       if (result.success && result.data) {
         setJobId(result.data.jobId)
-      }
 
-      // Start polling
-      startPolling()
+        // Process the scene images returned in the response
+        if (result.data.scenes && Array.isArray(result.data.scenes)) {
+          setScenes((prev) =>
+            prev.map((scene) => {
+              // Find the generated scene data for this scene
+              const generatedScene = result.data?.scenes.find(
+                (s) => s.sceneId === scene.id
+              )
+
+              if (
+                generatedScene &&
+                generatedScene.imageUrl &&
+                !generatedScene.error
+              ) {
+                // Create a new image version
+                const newVersion: ImageVersion = {
+                  versionId: generatedScene.versionId,
+                  url: generatedScene.imageUrl,
+                  generatedAt:
+                    generatedScene.generatedAt || new Date().toISOString(),
+                }
+
+                return {
+                  ...scene,
+                  generationStatus: GenerationStatus.COMPLETED,
+                  imageVersions: [...scene.imageVersions, newVersion],
+                  selectedVersionId: newVersion.versionId,
+                }
+              } else if (generatedScene && generatedScene.error) {
+                // Generation failed for this scene
+                return {
+                  ...scene,
+                  generationStatus: GenerationStatus.FAILED,
+                }
+              }
+
+              return scene
+            })
+          )
+        }
+
+        // Close the modal since generation is complete
+        setIsBulkGenerating(false)
+      }
     } catch (err) {
       const apiErr = err as ApiError
       setError(
@@ -294,7 +335,7 @@ export default function SceneGenerationPage({
       )
 
       // Call API to regenerate scene image
-      const result = await api.scenes.regenerate(storyId, sceneId, {})
+      const result = await api.scenes.regenerate(storyId, sceneId)
 
       if (result.success && result.data) {
         const newVersion: ImageVersion = {
@@ -366,7 +407,7 @@ export default function SceneGenerationPage({
       )
 
       // Call API to regenerate multiple scenes
-      const result = await api.scenes.bulkRegenerate(storyId, idsArray)
+      const result = await api.scenes.regenerateMultiple(storyId, idsArray)
       if (result.success && result.data) {
         setJobId(result.data.jobId)
         startPolling()
@@ -532,12 +573,8 @@ export default function SceneGenerationPage({
     }
 
     try {
-      // Update story with title and mark as complete
-      await api.stories.update(storyId, {
-        title: storyTitle,
-        status: "completed",
-        isPublished: true,
-      })
+      // Complete the story with the provided title
+      await api.completeStory(storyId, storyTitle)
 
       setIsCompletionModalOpen(false)
       setShowConfetti(true)
