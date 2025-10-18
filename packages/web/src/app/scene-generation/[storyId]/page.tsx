@@ -67,6 +67,7 @@ export default function SceneGenerationPage({
   const [jobId, setJobId] = useState<string | null>(null)
   const pollCountRef = useRef(0)
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const storyTitleInputRef = useRef<HTMLInputElement>(null)
 
   /**
    * Load scenes on mount
@@ -1435,9 +1436,16 @@ export default function SceneGenerationPage({
               Story Title
             </label>
             <input
+              ref={storyTitleInputRef}
               type="text"
               value={storyTitle}
-              onChange={(e) => setStoryTitle(e.target.value)}
+              onChange={(e) => {
+                setStoryTitle(e.target.value)
+                // Restore focus after state update
+                setTimeout(() => {
+                  storyTitleInputRef.current?.focus()
+                }, 0)
+              }}
               placeholder="Enter a captivating title..."
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all text-gray-700"
               maxLength={100}
