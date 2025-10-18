@@ -6,6 +6,14 @@ An interactive tree visualization page where parents can view and edit the branc
 
 ### 🌳 Tree Visualization
 - Interactive flow diagram built with React Flow
+- **Fixed Node Positions** - Nodes are locked in place (no dragging)
+- **Hover-Based Relationships** - Hover over any node to see:
+  - **Blue highlight** on the current hovered node
+  - **Purple rings** on parent nodes (where you came from)
+  - **Green rings** on child nodes (where you can go)
+  - **Dimmed unrelated nodes** (30% opacity)
+  - **Highlighted edges** (blue, thicker, animated)
+  - **Dimmed unrelated edges** (30% opacity)
 - Visual node types with distinct colors and icons:
   - **Start Node**: Green with play icon
   - **Normal Scene**: Blue with document icon
@@ -14,7 +22,7 @@ An interactive tree visualization page where parents can view and edit the branc
   - **Bad Ending**: Red with X icon
 - Zoom and pan controls
 - Automatic layout algorithm
-- Animated connections between nodes
+- Interactive guidance panel showing hover behavior
 
 ### ✏️ Node Editing
 - Side panel for detailed node editing
@@ -72,6 +80,12 @@ story-tree/
 2. The tree will load and display automatically
 3. Use mouse to pan and zoom
 4. Use controls in bottom-left corner
+5. **Hover over nodes** to see parent-child relationships:
+   - Hovered node gets a **blue ring**
+   - Parent nodes (incoming) get **purple rings**
+   - Child nodes (outgoing) get **green rings**
+   - Unrelated nodes dim to 30% opacity
+   - Connected edges highlight in blue and animate
 
 ### Editing a Node
 1. Click on any node to select it
@@ -124,6 +138,9 @@ For development, the page uses mock data from `story-tree.page.mock.ts` which in
 - Custom node types for different scene types
 - Automatic layout using hierarchical algorithm
 - Controlled state management
+- **Fixed positions** - `nodesDraggable={false}`
+- **Hover interactions** - `onNodeMouseEnter` and `onNodeMouseLeave`
+- **Dynamic styling** - Real-time opacity and ring updates based on relationships
 
 ### State Management
 - React hooks for local state

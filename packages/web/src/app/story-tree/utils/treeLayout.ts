@@ -7,14 +7,15 @@ import { NodePosition } from "../types"
 
 /**
  * Layout configuration
+ * Optimized for clear visual separation and easy navigation
  */
 const LAYOUT_CONFIG = {
   nodeWidth: 250,
-  nodeHeight: 150,
-  horizontalSpacing: 100,
-  verticalSpacing: 150,
+  nodeHeight: 180, // Increased to account for actual node height
+  horizontalSpacing: 180, // Increased from 100 for better horizontal separation
+  verticalSpacing: 220, // Increased from 150 for better vertical separation
   startX: 400,
-  startY: 50,
+  startY: 80, // Increased top margin
 }
 
 /**

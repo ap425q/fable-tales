@@ -47,6 +47,7 @@ function StoryTreeEditor() {
   const [nodes, setNodes, onNodesChange] = useNodesState<any>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<any>([])
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -115,6 +116,17 @@ function StoryTreeEditor() {
     }
   }
 
+  // Get parent and child nodes for hover highlighting
+  const getRelatedNodes = (nodeId: string) => {
+    const parents = edges
+      .filter((e: any) => e.target === nodeId)
+      .map((e: any) => e.source)
+    const children = edges
+      .filter((e: any) => e.source === nodeId)
+      .map((e: any) => e.target)
+    return { parents, children }
+  }
+
   // Convert API data to React Flow format
   const convertToReactFlowData = (data: StoryDetailsResponse) => {
     // Calculate layout
@@ -130,6 +142,7 @@ function StoryTreeEditor() {
         id: node.id,
         type: "custom",
         position,
+        draggable: false, // Disable dragging
         data: {
           id: node.id,
           sceneNumber: node.sceneNumber,
@@ -139,6 +152,9 @@ function StoryTreeEditor() {
           type: node.type,
           choices: node.choices,
           isSelected: false,
+          isHovered: false,
+          isParent: false,
+          isChild: false,
         },
       }
     })
@@ -148,7 +164,7 @@ function StoryTreeEditor() {
       id: `${edge.from}-${edge.to}`,
       source: edge.from,
       target: edge.to,
-      animated: true,
+      animated: false,
       style: { stroke: "#9CA3AF", strokeWidth: 2 },
     }))
 
@@ -175,6 +191,77 @@ function StoryTreeEditor() {
     const result = validateTree(nodeData, edgeData)
     setValidation(result)
   }
+
+  // Handle node hover
+  const onNodeMouseEnter = useCallback(
+    (_event: React.MouseEvent, node: any) => {
+      setHoveredNode(node.id)
+
+      // Get related nodes
+      const { parents, children } = getRelatedNodes(node.id)
+
+      // Update node hover state
+      setNodes((nds: any) =>
+        nds.map((n: any) => ({
+          ...n,
+          data: {
+            ...n.data,
+            isHovered: n.id === node.id,
+            isParent: parents.includes(n.id),
+            isChild: children.includes(n.id),
+          },
+        }))
+      )
+
+      // Update edge styles
+      setEdges((eds: any) =>
+        eds.map((e: any) => {
+          const isRelated = e.source === node.id || e.target === node.id
+          return {
+            ...e,
+            animated: isRelated,
+            style: {
+              stroke: isRelated ? "#3B82F6" : "#D1D5DB",
+              strokeWidth: isRelated ? 3 : 2,
+              opacity: isRelated ? 1 : 0.3,
+            },
+          }
+        })
+      )
+    },
+    [edges, setNodes, setEdges]
+  )
+
+  // Handle node hover leave
+  const onNodeMouseLeave = useCallback(() => {
+    setHoveredNode(null)
+
+    // Reset node hover state
+    setNodes((nds: any) =>
+      nds.map((n: any) => ({
+        ...n,
+        data: {
+          ...n.data,
+          isHovered: false,
+          isParent: false,
+          isChild: false,
+        },
+      }))
+    )
+
+    // Reset edge styles
+    setEdges((eds: any) =>
+      eds.map((e: any) => ({
+        ...e,
+        animated: false,
+        style: {
+          stroke: "#9CA3AF",
+          strokeWidth: 2,
+          opacity: 1,
+        },
+      }))
+    )
+  }, [setNodes, setEdges])
 
   // Handle node click
   const onNodeClick = useCallback(
@@ -500,15 +587,50 @@ function StoryTreeEditor() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeClick={onNodeClick}
+            onNodeMouseEnter={onNodeMouseEnter}
+            onNodeMouseLeave={onNodeMouseLeave}
             nodeTypes={nodeTypes}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={true}
             fitView
             minZoom={0.1}
             maxZoom={1.5}
-            defaultEdgeOptions={{ animated: true }}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
             <Controls />
           </ReactFlow>
+
+          {/* Hover Instructions */}
+          {!hoveredNode && nodes.length > 0 && (
+            <div className="absolute top-4 left-4 pointer-events-none z-10">
+              <Card className="p-4 bg-white/95 backdrop-blur-sm shadow-lg">
+                <h3 className="text-sm font-bold text-gray-900 mb-2">
+                  💡 Interaction Guide
+                </h3>
+                <div className="space-y-1 text-xs text-gray-700">
+                  <p>
+                    • <strong>Hover</strong> over nodes to see connections
+                  </p>
+                  <p>
+                    • <strong>Click</strong> to edit node details
+                  </p>
+                  <p className="mt-2 pt-2 border-t border-gray-200">
+                    <span className="inline-block w-3 h-3 rounded-full bg-purple-400 mr-1"></span>
+                    Purple ring = Parent node
+                  </p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-full bg-green-400 mr-1"></span>
+                    Green ring = Child node
+                  </p>
+                  <p>
+                    <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+                    Blue highlight = Current node
+                  </p>
+                </div>
+              </Card>
+            </div>
+          )}
 
           {/* Helper Text */}
           {nodes.length === 0 && (

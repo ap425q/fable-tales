@@ -124,6 +124,63 @@ const getTypeLabel = (type: NodeType): string => {
 }
 
 /**
+ * Get node styling classes based on hover and selection state
+ */
+const getNodeStateClasses = (data: {
+  isHovered?: boolean
+  isParent?: boolean
+  isChild?: boolean
+}): { opacityClass: string; borderClass: string; shadowClass: string } => {
+  if (data.isHovered) {
+    // Current hovered node - full opacity, highlighted
+    return {
+      opacityClass: "opacity-100",
+      borderClass: "ring-4 ring-blue-500",
+      shadowClass: "shadow-xl",
+    }
+  }
+
+  if (data.isParent) {
+    // Parent node - slightly dimmed with parent indicator
+    return {
+      opacityClass: "opacity-90",
+      borderClass: "ring-2 ring-purple-400",
+      shadowClass: "shadow-lg",
+    }
+  }
+
+  if (data.isChild) {
+    // Child node - slightly dimmed with child indicator
+    return {
+      opacityClass: "opacity-90",
+      borderClass: "ring-2 ring-green-400",
+      shadowClass: "shadow-lg",
+    }
+  }
+
+  if (
+    data.isParent !== undefined &&
+    !data.isParent &&
+    !data.isChild &&
+    !data.isHovered
+  ) {
+    // Not related to hovered node - significantly dimmed
+    return {
+      opacityClass: "opacity-30",
+      borderClass: "",
+      shadowClass: "shadow-md",
+    }
+  }
+
+  // Default state - no hover interactions
+  return {
+    opacityClass: "opacity-100",
+    borderClass: "",
+    shadowClass: "shadow-md",
+  }
+}
+
+/**
  * Custom Tree Node Component
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,11 +194,16 @@ export const CustomTreeNode: React.FC<any> = ({ data, selected }) => {
   const hasOutgoing =
     data.type !== NodeType.GOOD_ENDING && data.type !== NodeType.BAD_ENDING
 
+  // Get styling classes based on hover state
+  const { opacityClass, borderClass, shadowClass } = getNodeStateClasses(data)
+
+  // Selection ring (separate from hover)
+  const selectionClass =
+    selected && !data.isHovered ? "ring-2 ring-blue-400" : ""
+
   return (
     <div
-      className={`px-4 py-3 rounded-lg border-2 shadow-md min-w-[200px] max-w-[250px] transition-all duration-200 ${nodeStyles} ${
-        selected ? "ring-4 ring-blue-400 ring-opacity-50 scale-105" : ""
-      }`}
+      className={`px-4 py-3 rounded-lg border-2 min-w-[200px] max-w-[250px] transition-all duration-200 ${nodeStyles} ${opacityClass} ${borderClass} ${selectionClass} ${shadowClass} cursor-pointer hover:scale-105`}
     >
       {/* Incoming handle (top) */}
       {hasIncoming && (
