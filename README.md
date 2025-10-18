@@ -296,30 +296,6 @@ DELETE /stories/{storyId}/nodes/{nodeId}
 }
 ```
 
-### API 3-5: Finalize Story Structure
-```
-POST /stories/{storyId}/finalize-structure
-```
-
-**Request Body:**
-```json
-{
-  "tree": { /* Final tree structure */ }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "storyId": "story_456",
-    "status": "structure_finalized",
-    "message": "Story structure finalized"
-  }
-}
-```
-
 ---
 
 ## 4️⃣ Character Role Assignment Page
@@ -817,39 +793,7 @@ POST /stories/{storyId}/complete
 
 ## 7️⃣ Child Mode - Story Selection Page
 
-### API 7-1: Retrieve Completed Stories List
-```
-GET /stories/completed
-```
-
-**Query Params:**
-```
-limit: number (optional, default: 10)
-offset: number (optional, default: 0)
-sortBy: string (optional, 'recent' | 'popular')
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "stories": [
-      {
-        "id": "story_123",
-        "title": "The Brave Rabbit's Adventure",
-        "lesson": "You should help your friends",
-        "coverImage": "https://cdn.../cover_123.png",
-        "sceneCount": 18,
-        "readCount": 5,
-        "createdAt": "2025-10-10T10:00:00Z"
-      }
-    ],
-    "total": 15,
-    "hasMore": true
-  }
-}
-```
+Use **API 1-1** (`GET /stories`) with `status=completed` query parameter to retrieve completed stories.
 
 ---
 
@@ -1062,74 +1006,6 @@ DELETE /stories/{storyId}
 }
 ```
 
-### API 9-3: Duplicate Story
-```
-POST /stories/{storyId}/duplicate
-```
-
-**Request Body:**
-```json
-{
-  "newTitle": "The Brave Rabbit's Adventure (Copy)" // optional
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "originalStoryId": "story_456",
-    "newStoryId": "story_789",
-    "title": "The Brave Rabbit's Adventure (Copy)",
-    "message": "Story duplicated successfully"
-  }
-}
-```
-
-### API 9-4: Retrieve Story Statistics
-```
-GET /stories/{storyId}/statistics
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "storyId": "story_456",
-    "totalReads": 8,
-    "uniqueReaders": 3, // Different devices/sessions
-    "averageReadingTime": 420, // seconds
-    "completionRate": 75, // percentage
-    "choiceDistribution": [
-      {
-        "nodeId": "node_1",
-        "choices": [
-          {
-            "choiceId": "choice_1",
-            "text": "Approach the bear and say hello",
-            "selectedCount": 6
-          },
-          {
-            "choiceId": "choice_2",
-            "text": "Run away in fear",
-            "selectedCount": 2
-          }
-        ]
-      }
-    ],
-    "mostVisitedScenes": [
-      {
-        "nodeId": "node_1",
-        "sceneNumber": 1,
-        "visitCount": 8
-      }
-    ]
-  }
-}
-```
-
 ---
 
 ## 🔟 Other Utility APIs
@@ -1209,55 +1085,69 @@ type: string ('character' | 'background')
 Complete Parent Mode Flow:
 
 1. POST /stories/generate
-   → Create story
+   → Create story with AI
 
 2. GET /stories/{storyId}
-   → Retrieve story
+   → Retrieve story details
 
 3. PATCH /stories/{storyId}/nodes/{nodeId}
    → Edit nodes (multiple times)
+   
+3b. POST /stories/{storyId}/nodes
+    → Add new nodes to story tree
 
-4. POST /stories/{storyId}/finalize-structure
-   → Finalize structure
+3c. DELETE /stories/{storyId}/nodes/{nodeId}
+    → Delete nodes from story tree
 
-5. GET /characters
-   → Retrieve character list
+4. GET /characters
+   → Retrieve preset character list
 
-6. POST /stories/{storyId}/character-assignments
-   → Assign characters
+5. POST /stories/{storyId}/character-assignments
+   → Assign characters to story roles
 
-7. GET /stories/{storyId}/backgrounds
+6. GET /stories/{storyId}/backgrounds
    → Retrieve backgrounds list
 
-8. PATCH /stories/{storyId}/backgrounds/{backgroundId}
-   → Modify background descriptions (multiple times)
+7. PATCH /stories/{storyId}/backgrounds/{backgroundId}
+   → Modify background descriptions (as needed)
 
-9. POST /stories/{storyId}/backgrounds/generate-all
-   → Generate all backgrounds
+8. POST /stories/{storyId}/backgrounds/generate-all
+   → Generate all background images
 
-10. GET /stories/{storyId}/backgrounds/generation-status (polling)
-    → Check background generation status
+9. GET /stories/{storyId}/backgrounds/generation-status (polling)
+   → Check background generation status
 
-11. POST /stories/{storyId}/scenes/generate-all-images
-    → Generate all scene images
+10. POST /stories/{storyId}/scenes/generate-all-images
+    → Generate all scene images (character + background composite)
 
-12. GET /stories/{storyId}/scenes/generation-status (polling)
+11. GET /stories/{storyId}/scenes/generation-status (polling)
     → Check scene image generation status
 
-13. POST /stories/{storyId}/complete
-    → Complete story
+12. POST /stories/{storyId}/complete
+    → Mark story as completed
 
 Child Mode Flow:
 
-1. GET /stories/completed
-   → Completed stories list
+1. GET /stories?status=completed
+   → Get completed stories list
 
 2. GET /stories/{storyId}/read
    → Start reading story
 
 3. POST /stories/{storyId}/reading-progress (periodically)
-   → Save progress
+   → Save reading progress
 
 4. POST /stories/{storyId}/reading-complete
-   → Complete reading
+   → Record reading completion
+
+Story Library (Parent) Flow:
+
+1. GET /stories?status=all
+   → Get all stories (completed & drafts)
+
+2. DELETE /stories/{storyId}
+   → Delete story
+
+3. POST /stories/{storyId}/share
+   → Generate shareable link for completed story
 ```

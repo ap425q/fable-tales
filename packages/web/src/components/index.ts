@@ -50,3 +50,19 @@ export type { DropZoneProps } from "./DropZone"
 
 export { Toast } from "./Toast"
 export type { ToastProps } from "./Toast"
+
+export { NoImagePlaceholder } from "./NoImagePlaceholder"
+export type { NoImagePlaceholderProps } from "./NoImagePlaceholder"
+
+// Classic Book Design Components
+export { BookPage } from "./BookPage"
+export type { BookPageProps } from "./BookPage"
+
+export { ChoiceButton, ContinueButton } from "./ChoiceButton"
+export type { ChoiceButtonProps } from "./ChoiceButton"
+
+export { ProgressRibbon, SimpleProgressBar } from "./ProgressRibbon"
+export type { ProgressRibbonProps } from "./ProgressRibbon"
+
+export { LeatherCard, PaperCard } from "./LeatherCard"
+export type { LeatherCardProps } from "./LeatherCard"

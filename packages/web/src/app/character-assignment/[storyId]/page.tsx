@@ -13,7 +13,7 @@ import {
 import { CharacterRole } from "@/lib/apiTypes"
 import { ApiError, PresetCharacter } from "@/types"
 import { useRouter } from "next/navigation"
-import React, { useEffect, useState } from "react"
+import React, { use, useEffect, useState } from "react"
 import {
   mockCharactersResponse,
   mockStoryRoles,
@@ -37,10 +37,10 @@ interface AssignmentMap {
 export default function CharacterAssignmentPage({
   params,
 }: {
-  params: { storyId: string }
+  params: Promise<{ storyId: string }>
 }) {
   const router = useRouter()
-  const { storyId } = params
+  const { storyId } = use(params)
 
   // State management
   const [presetCharacters, setPresetCharacters] = useState<PresetCharacter[]>(
@@ -555,7 +555,7 @@ export default function CharacterAssignmentPage({
                               Remove
                             </Button>
                             <Button
-                              variant={ButtonVariant.Outline}
+                              variant={ButtonVariant.Secondary}
                               size={ButtonSize.Small}
                               onClick={() => {
                                 handleRemoveAssignment(role.id)
@@ -610,7 +610,7 @@ export default function CharacterAssignmentPage({
         {/* Navigation Buttons */}
         <div className="mt-8 flex justify-between items-center max-w-3xl mx-auto">
           <Button
-            variant={ButtonVariant.Outline}
+            variant={ButtonVariant.Secondary}
             size={ButtonSize.Large}
             onClick={handleBack}
             disabled={isSaving}

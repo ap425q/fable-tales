@@ -3,7 +3,6 @@
  */
 
 import { NodeType } from "@/types"
-import { Edge, Node } from "@xyflow/react"
 
 /**
  * Tree validation result
@@ -49,6 +48,12 @@ export interface TreeNodeData {
   type: NodeType
   choices: TreeChoice[]
   isSelected: boolean
+  isHovered: boolean
+  isParent: boolean
+  isChild: boolean
+  isDimmed: boolean
+  onAddNode?: (nodeId: string) => void
+  [key: string]: unknown
 }
 
 /**
@@ -61,15 +66,7 @@ export interface TreeChoice {
   isCorrect: boolean
 }
 
-/**
- * React Flow node with custom data
- */
-export type TreeNode = Node<TreeNodeData>
-
-/**
- * React Flow edge
- */
-export type TreeEdge = Edge
+// Note: TreeNode and TreeEdge types are now defined inline in page.tsx to avoid import issues
 
 /**
  * Node position in the tree

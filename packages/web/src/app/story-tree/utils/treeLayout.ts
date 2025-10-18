@@ -11,9 +11,9 @@ import { NodePosition } from "../types"
  */
 const LAYOUT_CONFIG = {
   nodeWidth: 250,
-  nodeHeight: 180, // Increased to account for actual node height
-  horizontalSpacing: 180, // Increased from 100 for better horizontal separation
-  verticalSpacing: 220, // Increased from 150 for better vertical separation
+  nodeHeight: 200, // Increased to account for actual node height + Add button space
+  horizontalSpacing: 300, // Increased for much better horizontal separation
+  verticalSpacing: 350, // Increased for much better vertical separation and Add button visibility
   startX: 400,
   startY: 80, // Increased top margin
 }

@@ -10,7 +10,6 @@ import axios, { AxiosError, AxiosInstance } from "axios"
 import type {
   BackgroundGenerateItem,
   BackgroundGenerationResponse,
-  BackgroundGenerationStatus,
   BackgroundRegenerateResponse,
   BackgroundsListResponse,
   BackgroundUpdateRequest,
@@ -25,7 +24,6 @@ import type {
   ReadingProgress,
   ReadingProgressRequest,
   SceneGenerationResponse,
-  SceneGenerationStatus,
   SceneRegenerateResponse,
   StoriesListResponse,
   StoryCompletionResponse,
@@ -287,20 +285,6 @@ export const api = {
     },
 
     /**
-     * Check generation status
-     */
-    async getGenerationStatus(
-      storyId: string,
-      jobId?: string
-    ): Promise<ApiResponse<BackgroundGenerationStatus>> {
-      const response = await apiClient.get(
-        `/v1/stories/${storyId}/backgrounds/generation-status`,
-        { params: { jobId } }
-      )
-      return response.data
-    },
-
-    /**
      * Regenerate individual background
      */
     async regenerate(
@@ -345,20 +329,6 @@ export const api = {
       const response = await apiClient.post(
         `/v1/stories/${storyId}/scenes/generate-all-images`,
         { sceneIds }
-      )
-      return response.data
-    },
-
-    /**
-     * Check generation status
-     */
-    async getGenerationStatus(
-      storyId: string,
-      jobId?: string
-    ): Promise<ApiResponse<SceneGenerationStatus>> {
-      const response = await apiClient.get(
-        `/v1/stories/${storyId}/scenes/generation-status`,
-        { params: { jobId } }
       )
       return response.data
     },
