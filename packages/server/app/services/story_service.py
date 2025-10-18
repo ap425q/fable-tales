@@ -64,9 +64,74 @@ class StoryService:
                 character_count=character_count
             )
             
-            # This would call OpenAI to generate the story structure
-            # For now, we'll create a sample structure
-            story_data = self._create_sample_story(lesson, theme, story_format, character_count)
+            # Call OpenAI to generate the story structure
+            story_data = self.openai_service.generate_branched_story(
+                lesson=lesson,
+                theme=theme,
+                story_format=story_format,
+                character_count=character_count,
+                system_prompt=STORY_GENERATION_SYSTEM_PROMPT,
+                user_prompt=user_prompt
+            )
+            
+            # Convert the response to our schema objects
+            from app.models.schemas import StoryNode, StoryEdge, StoryTree, CharacterRole, Location, Choice
+            
+            # Convert nodes
+            nodes = []
+            for node_data in story_data["tree"]["nodes"]:
+                choices = []
+                for choice_data in node_data.get("choices", []):
+                    choice = Choice(
+                        id=choice_data.get("id"),
+                        text=choice_data["text"],
+                        nextNodeId=choice_data.get("nextNodeId"),
+                        isCorrect=choice_data.get("isCorrect", True)
+                    )
+                    choices.append(choice)
+                
+                node = StoryNode(
+                    id=node_data["id"],
+                    sceneNumber=node_data["sceneNumber"],
+                    title=node_data["title"],
+                    text=node_data["text"],
+                    location=node_data["location"],
+                    type=node_data["type"],
+                    choices=choices
+                )
+                nodes.append(node)
+            
+            # Convert edges
+            edges = []
+            for edge_data in story_data["tree"]["edges"]:
+                edge = StoryEdge(
+                    **edge_data  # This will handle the alias correctly
+                )
+                edges.append(edge)
+            
+            # Create tree
+            tree = StoryTree(nodes=nodes, edges=edges)
+            
+            # Convert characters
+            characters = []
+            for char_data in story_data["characters"]:
+                character = CharacterRole(
+                    id=char_data["id"],
+                    role=char_data["role"],
+                    description=char_data["description"]
+                )
+                characters.append(character)
+            
+            # Convert locations
+            locations = []
+            for loc_data in story_data["locations"]:
+                location = Location(
+                    id=loc_data["id"],
+                    name=loc_data["name"],
+                    sceneNumbers=loc_data["sceneNumbers"],
+                    description=loc_data["description"]
+                )
+                locations.append(location)
             
             # Save story
             story = Story(
@@ -75,9 +140,9 @@ class StoryService:
                 theme=theme,
                 storyFormat=story_format,
                 status=StoryStatus.DRAFT,
-                tree=story_data["tree"],
-                characters=story_data["characters"],
-                locations=story_data["locations"],
+                tree=tree,
+                characters=characters,
+                locations=locations,
                 createdAt=datetime.now(),
                 updatedAt=datetime.now()
             )
@@ -86,9 +151,9 @@ class StoryService:
             
             return {
                 "storyId": story_id,
-                "tree": story_data["tree"],
-                "characters": story_data["characters"],
-                "locations": story_data["locations"]
+                "tree": tree.model_dump(),
+                "characters": [char.model_dump() for char in characters],
+                "locations": [loc.model_dump() for loc in locations]
             }
             
         except Exception as e:
