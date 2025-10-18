@@ -258,7 +258,6 @@ function StoryTreeEditor() {
   const [validation, setValidation] = useState<TreeValidation | null>(null)
   const [showValidation, setShowValidation] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
-  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false)
   const [showAddNodeModal, setShowAddNodeModal] = useState(false)
   const [parentNodeIdForAdd, setParentNodeIdForAdd] = useState<string | null>(
     null
@@ -834,41 +833,16 @@ function StoryTreeEditor() {
     }
   }
 
-  // Handle finalize
-  const handleFinalize = async () => {
+  // Handle continue to character selection
+  const handleContinue = () => {
     if (!validation?.isValid) {
       setShowValidation(true)
       return
     }
 
-    try {
-      setIsSaving(true)
-
-      // Finalize story structure via API
-      await api.stories.finalizeStructure(storyId, {
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          sceneNumber: n.data.sceneNumber,
-          title: n.data.title,
-          text: n.data.text,
-          location: n.data.location,
-          type: n.data.type,
-          choices: n.data.choices,
-        })),
-        edges: edges.map((e) => ({
-          from: e.source,
-          to: e.target,
-        })),
-      })
-
-      // Navigate to character assignment
-      router.push(`/character-assignment/${storyId}`)
-    } catch (error) {
-      console.error("Failed to finalize:", error)
-    } finally {
-      setIsSaving(false)
-      setShowFinalizeConfirm(false)
-    }
+    // All changes are already saved via individual node updates
+    // Navigate directly to character assignment
+    router.push(`/character-assignment/${storyId}`)
   }
 
   // Get current node data for editing
@@ -1077,11 +1051,11 @@ function StoryTreeEditor() {
             </button>
 
             <button
-              onClick={() => setShowFinalizeConfirm(true)}
+              onClick={handleContinue}
               disabled={!validation?.isValid}
               className="px-6 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
             >
-              Finalize Structure
+              Select Characters
               <svg
                 className="w-4 h-4"
                 fill="none"
@@ -1321,49 +1295,12 @@ function StoryTreeEditor() {
                   Your story structure is valid!
                 </p>
                 <p className="text-sm text-gray-600 mt-2">
-                  Ready to proceed to character assignment
+                  Ready to select characters
                 </p>
               </div>
             )}
           </div>
         )}
-      </Modal>
-
-      {/* Finalize Confirmation Modal */}
-      <Modal
-        isOpen={showFinalizeConfirm}
-        onClose={() => setShowFinalizeConfirm(false)}
-        title="Finalize Story Structure"
-        footer={
-          <>
-            <Button
-              variant={ButtonVariant.Secondary}
-              onClick={() => setShowFinalizeConfirm(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant={ButtonVariant.Success}
-              onClick={handleFinalize}
-              loading={isSaving}
-            >
-              Yes, Finalize
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            Are you ready to finalize the story structure? After this step, you
-            will proceed to assign characters to roles.
-          </p>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> You can still come back and edit the story
-              structure later if needed.
-            </p>
-          </div>
-        </div>
       </Modal>
 
       {/* Add Node Modal */}

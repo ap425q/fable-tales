@@ -460,22 +460,6 @@ export const mockNodeDeleteResponse: ApiResponse<{
 }
 
 /**
- * Mock finalize structure response
- */
-export const mockFinalizeResponse: ApiResponse<{
-  storyId: string
-  status: string
-  message: string
-}> = {
-  success: true,
-  data: {
-    storyId: "story-456",
-    status: "structure_finalized",
-    message: "Story structure finalized successfully",
-  },
-}
-
-/**
  * Simulate API delay for realistic testing
  */
 export const simulateDelay = (ms: number = 800): Promise<void> => {

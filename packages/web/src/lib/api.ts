@@ -184,22 +184,6 @@ export const api = {
       )
       return response.data
     },
-
-    /**
-     * Finalize story structure
-     */
-    async finalizeStructure(
-      storyId: string,
-      tree: unknown
-    ): Promise<
-      ApiResponse<{ storyId: string; status: string; message: string }>
-    > {
-      const response = await apiClient.post(
-        `/v1/stories/${storyId}/finalize-structure`,
-        { tree }
-      )
-      return response.data
-    },
   },
 
   /**
