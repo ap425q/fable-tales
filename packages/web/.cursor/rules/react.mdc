@@ -1,0 +1,158 @@
+---
+globs: .ts, .tsx
+alwaysApply: false
+---
+description: Frontend development standards and restrictions for the Interactive Storybook Creator project.
+globs: 
+alwaysApply: true
+---
+
+# Interactive Storybook Creator - Frontend Rules
+
+## Overview
+
+This document defines the **strict frontend code generation and implementation standards** for the Interactive Storybook Creator project.  
+All AI-generated code **must** comply with these conventions to ensure maintainability, type safety, and consistent component structure.
+
+## 🚨 CRITICAL INSTRUCTIONS FOR AI LANGUAGE MODELS 🚨
+
+As an AI language model, you MUST follow all requirements below.  
+**ANY violation of these rules will BREAK the project.**
+
+---
+
+### ❌ NEVER GENERATE THESE CODE PATTERNS
+
+```typescript
+// ❌ DO NOT USE `var` - it causes scope and hoisting issues
+var counter = 0
+
+// ❌ DO NOT USE union types - use enums instead
+type ButtonType = "primary" | "secondary" // ❌ BREAKS PROJECT
+
+// ❌ DO NOT DEFINE TYPES LOCALLY
+type StoryPage = {
+  id: string
+  title: string
+} // ❌ BREAKS PROJECT
+````
+
+---
+
+### ✅ ALWAYS GENERATE CODE LIKE THIS
+
+```typescript
+// ✅ Use const for all variables
+const counter = 0
+
+// ✅ Use let ONLY when mutation is unavoidable
+let pageIndex = 0
+
+// ✅ Define all types in `src/types.ts`
+import type { StoryPage, ButtonVariant } from '@/types'
+
+// ✅ Use enums instead of union types
+enum ButtonVariant {
+  Primary = 'primary',
+  Secondary = 'secondary',
+}
+```
+
+---
+
+## ABSOLUTE REQUIREMENTS FOR AI CODE GENERATION
+
+1. You MUST use **`const`** for all variable declarations.
+2. You MAY use **`let`** only if mutation is absolutely necessary.
+3. You MUST NEVER use **`var`**.
+4. You MUST define all **types and enums** in `src/types.ts`.
+5. You MUST import all types from the shared file — never redefine them locally.
+6. You MUST use **functional React components** with hooks only.
+7. You MUST create and reuse components under `src/components/`.
+8. You MUST use **Tailwind CSS** for styling.
+9. You MUST NOT duplicate logic across components — extract reusable logic.
+
+---
+
+## CORRECT COMPONENT IMPLEMENTATION
+
+```typescript
+import type { StoryPage } from '@/types'
+import { Button } from '@/components/Button'
+
+export function StoryCard({ page }: { page: StoryPage }) {
+  return (
+    <div className="p-4 rounded-2xl shadow bg-white">
+      <h2 className="text-xl font-bold">{page.title}</h2>
+      <p className="text-gray-600">{page.content}</p>
+      <Button variant="Primary">Next</Button>
+    </div>
+  )
+}
+```
+
+---
+
+## CORRECT ENUM USAGE EXAMPLE
+
+```typescript
+// src/types.ts
+export enum PageStatus {
+  Draft = 'draft',
+  Published = 'published',
+  Archived = 'archived',
+}
+
+// Usage in components
+import { PageStatus } from '@/types'
+
+const status = PageStatus.Published
+```
+
+---
+
+## AI MODEL VERIFICATION STEPS
+
+Before generating or modifying any code, you MUST verify:
+
+1. Are **all variables** declared using `const` (or `let` only when needed)?
+2. Are **all types and enums** imported from `src/types.ts`?
+3. Are **no union types** used?
+4. Are **no duplicated components** created?
+5. Are **only functional components** used (no classes)?
+6. Is **Tailwind CSS** used for all styling?
+
+---
+
+## CONSEQUENCES OF INCORRECT IMPLEMENTATION
+
+If you generate code that violates these rules:
+
+1. Type safety will break across components.
+2. Duplicate logic will increase technical debt.
+3. The project’s shared type system will desynchronize.
+4. Styling will become inconsistent and unmaintainable.
+
+---
+
+## AI MODEL RESPONSE TEMPLATE
+
+When asked to generate or modify frontend code for this project, you MUST:
+
+1. ALWAYS use `const` or `let` (never `var`)
+2. ALWAYS import types from `src/types.ts`
+3. ALWAYS use enums for fixed sets of values
+4. ALWAYS use functional React components
+5. ALWAYS use Tailwind CSS for styling
+6. NEVER duplicate existing logic or components
+7. VERIFY your response against this guide before returning it
+
+Remember:
+**There are NO EXCEPTIONS to these rules.**
+
+```
+
+---
+
+Would you like me to add a **section for mock API data** (as you mentioned in your earlier message), similar to how the Supabase guide includes example implementation sections?
+```
