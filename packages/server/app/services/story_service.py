@@ -118,8 +118,8 @@ class StoryService:
     
     def _validate_tree_connectivity(self, tree_data: Dict[str, Any]) -> None:
         """
-        Validate that the tree structure is fully connected
-        Expected: 4 nodes, 3 edges
+        Validate that the tree structure is properly formed
+        Expected: 5-10 nodes with exactly 1 start, 1 good_ending, and multiple normal/choice/bad_ending nodes
         
         Raises:
             Exception: If tree validation fails
@@ -129,16 +129,33 @@ class StoryService:
         
         validation_errors = []
         
-        # Check 1: Must have exactly 4 nodes
-        if len(nodes) != 4:
-            validation_errors.append(f"Expected exactly 4 nodes, but got {len(nodes)}")
-        
-        # Check 2: Must have exactly 3 edges
-        if len(edges) != 3:
-            validation_errors.append(f"Expected exactly 3 edges, but got {len(edges)}")
+        # Check 1: Must have 5-10 nodes
+        if len(nodes) < 5 or len(nodes) > 10:
+            validation_errors.append(f"Expected 5-10 nodes, but got {len(nodes)}")
         
         # Build a map of node IDs
         node_ids = {node["id"] for node in nodes}
+        
+        # Count node types
+        node_type_counts = {}
+        for node in nodes:
+            node_type = node.get("type", "unknown")
+            node_type_counts[node_type] = node_type_counts.get(node_type, 0) + 1
+        
+        # Check 2: Must have exactly 1 start node
+        if node_type_counts.get("start", 0) != 1:
+            validation_errors.append(f"Expected exactly 1 'start' node, but got {node_type_counts.get('start', 0)}")
+        
+        # Check 3: Must have exactly 1 good_ending node
+        if node_type_counts.get("good_ending", 0) != 1:
+            validation_errors.append(f"Expected exactly 1 'good_ending' node, but got {node_type_counts.get('good_ending', 0)}")
+        
+        # Check 4: Ending nodes should have no choices
+        for node in nodes:
+            node_type = node.get("type", "")
+            choices = node.get("choices", [])
+            if node_type in ["bad_ending", "good_ending"] and len(choices) > 0:
+                validation_errors.append(f"Ending node '{node['id']}' should not have choices, but has {len(choices)}")
         
         # Collect all choices and their nextNodeIds
         all_choices = []
@@ -150,14 +167,14 @@ class StoryService:
                     "next_node_id": choice.get("nextNodeId")
                 })
         
-        # Check 3: Must have exactly 3 choices total
-        if len(all_choices) != 3:
-            validation_errors.append(f"Expected exactly 3 choices total, but got {len(all_choices)}")
+        # Check 5: Number of edges must match number of choices
+        if len(edges) != len(all_choices):
+            validation_errors.append(f"Expected {len(all_choices)} edges to match {len(all_choices)} choices, but got {len(edges)} edges")
         
         # Validate: Every choice must have a corresponding edge
         edge_map = {(edge["from"], edge["choiceId"]): edge["to"] for edge in edges}
         
-        # Check 4: Every choice must have a corresponding edge
+        # Check 6: Every choice must have a corresponding edge
         for choice in all_choices:
             edge_key = (choice["node_id"], choice["choice_id"])
             if edge_key not in edge_map:
@@ -170,7 +187,7 @@ class StoryService:
                     f"choice points to '{choice['next_node_id']}' but edge points to '{edge_map[edge_key]}'"
                 )
         
-        # Check 5: All nextNodeIds must reference valid nodes
+        # Check 7: All nextNodeIds must reference valid nodes
         for choice in all_choices:
             if choice["next_node_id"] and choice["next_node_id"] not in node_ids:
                 validation_errors.append(
@@ -182,7 +199,8 @@ class StoryService:
             print(f"VALIDATION ERROR:\n{error_msg}", flush=True)
             raise Exception(error_msg)
         
-        print(f"✓ Tree validation passed: 4 nodes, 3 edges, 3 choices", flush=True)
+        print(f"✓ Tree validation passed: {len(nodes)} nodes, {len(edges)} edges, {len(all_choices)} choices", flush=True)
+        print(f"  Node types: {node_type_counts}", flush=True)
     
     def generate_story(self, lesson: str, theme: str, story_format: str, character_count: int = 4) -> Dict[str, Any]:
         """Generate a new story with AI"""
