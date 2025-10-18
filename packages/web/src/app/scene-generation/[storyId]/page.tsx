@@ -727,7 +727,7 @@ export default function SceneGenerationPage({
                 <p className="text-red-800 font-medium">{error}</p>
                 <button
                   onClick={() => setError("")}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium cursor-pointer"
                 >
                   Dismiss
                 </button>
@@ -743,7 +743,7 @@ export default function SceneGenerationPage({
             <button
               onClick={handleGenerateAll}
               disabled={isBulkGenerating || isReady}
-              className="px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-2"
+              className="px-6 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-2 cursor-pointer"
             >
               <svg
                 className="w-5 h-5"
@@ -812,7 +812,7 @@ export default function SceneGenerationPage({
                 </Button>
                 <button
                   onClick={handleDeselectAll}
-                  className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                  className="text-sm text-gray-600 hover:text-gray-800 font-medium cursor-pointer"
                 >
                   Clear
                 </button>
@@ -820,7 +820,7 @@ export default function SceneGenerationPage({
             ) : (
               <button
                 onClick={handleSelectAll}
-                className="text-sm text-purple-600 hover:text-purple-800 font-medium"
+                className="text-sm text-purple-600 hover:text-purple-800 font-medium cursor-pointer"
               >
                 Select All
               </button>
@@ -1076,7 +1076,7 @@ export default function SceneGenerationPage({
                           handleRegenerate(scene.id)
                         }}
                         disabled={isRegenerating || isGenerating}
-                        className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                        className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer"
                       >
                         <svg
                           className="w-4 h-4 mr-2"
@@ -1101,7 +1101,7 @@ export default function SceneGenerationPage({
                             e.stopPropagation()
                             handleRegenerate(scene.id)
                           }}
-                          className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors"
+                          className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors cursor-pointer"
                         >
                           <svg
                             className="w-4 h-4 mr-2"
@@ -1126,7 +1126,7 @@ export default function SceneGenerationPage({
                           e.stopPropagation()
                           handleRegenerate(scene.id)
                         }}
-                        className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                        className="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
                       >
                         <svg
                           className="w-4 h-4 mr-2"
@@ -1156,7 +1156,7 @@ export default function SceneGenerationPage({
           <button
             onClick={handleBack}
             disabled={isBulkGenerating}
-            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 cursor-pointer"
           >
             <svg
               className="w-5 h-5"
@@ -1177,7 +1177,7 @@ export default function SceneGenerationPage({
           <button
             onClick={handleCompleteStory}
             disabled={!isReady || isBulkGenerating}
-            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 cursor-pointer"
           >
             <span>Complete Story</span>
             <svg
@@ -1338,7 +1338,7 @@ export default function SceneGenerationPage({
                       onClick={() =>
                         handleSelectVersion(selectedScene.id, version.versionId)
                       }
-                      className={`flex-shrink-0 relative rounded-lg overflow-hidden transition-all ${
+                      className={`flex-shrink-0 relative rounded-lg overflow-hidden transition-all cursor-pointer ${
                         version.versionId === selectedScene.selectedVersionId
                           ? "border-4 border-purple-500 ring-4 ring-purple-200 scale-105"
                           : "border-3 border-gray-300 hover:border-purple-300 opacity-70 hover:opacity-100"
