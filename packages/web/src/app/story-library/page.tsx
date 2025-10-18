@@ -11,19 +11,11 @@ import { LeatherCard } from "@/components/LeatherCard"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { SpinnerColor, SpinnerSize } from "@/components/types"
 import { api } from "@/lib/api"
-import { SortOption, Story, StoryStatus } from "@/types"
+import { Story, StoryStatus } from "@/types"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { mockAllStories } from "./StoryLibrary.page.mock"
-
-const STATUS_FILTERS = {
-  ALL: "all",
-  COMPLETED: "completed",
-  DRAFTS: "drafts",
-} as const
-
-type StatusFilter = (typeof STATUS_FILTERS)[keyof typeof STATUS_FILTERS]
 
 export default function StoryLibraryPage() {
   const router = useRouter()
@@ -31,23 +23,7 @@ export default function StoryLibraryPage() {
   // State
   const [stories, setStories] = useState<Story[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
-    STATUS_FILTERS.ALL
-  )
-  const [sortBy, setSortBy] = useState<string>(SortOption.RECENT)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [useMockData] = useState(true)
-
-  /**
-   * Debounce search input
-   */
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
 
   /**
    * Fetch stories
@@ -74,49 +50,6 @@ export default function StoryLibraryPage() {
   useEffect(() => {
     fetchStories()
   }, [fetchStories])
-
-  /**
-   * Filter and sort stories
-   */
-  const filteredStories = useMemo(() => {
-    let result = [...stories]
-
-    // Apply status filter
-    if (statusFilter === STATUS_FILTERS.COMPLETED) {
-      result = result.filter((s) => s.status === StoryStatus.COMPLETED)
-    } else if (statusFilter === STATUS_FILTERS.DRAFTS) {
-      result = result.filter((s) => s.status !== StoryStatus.COMPLETED)
-    }
-
-    // Apply search filter
-    if (debouncedSearch) {
-      const query = debouncedSearch.toLowerCase()
-      result = result.filter(
-        (s) =>
-          s.title.toLowerCase().includes(query) ||
-          s.lesson.toLowerCase().includes(query) ||
-          s.theme.toLowerCase().includes(query)
-      )
-    }
-
-    // Apply sorting
-    switch (sortBy) {
-      case SortOption.RECENT:
-        result.sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        )
-        break
-      case SortOption.TITLE:
-        result.sort((a, b) => a.title.localeCompare(b.title))
-        break
-      case SortOption.READ_COUNT:
-        result.sort((a, b) => b.readCount - a.readCount)
-        break
-    }
-
-    return result
-  }, [stories, statusFilter, debouncedSearch, sortBy])
 
   /**
    * Get book spine color based on theme
@@ -195,51 +128,6 @@ export default function StoryLibraryPage() {
               <span>Create New Story</span>
             </motion.button>
           </div>
-
-          {/* Filters and Search */}
-          <div className="mt-6 flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search stories by title, lesson, or theme..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg paper-texture text-text-primary text-body border-2 border-leather focus:border-gold focus:outline-none transition-colors"
-                style={{
-                  background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
-                }}
-              />
-            </div>
-
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="px-4 py-3 rounded-lg paper-texture text-text-primary text-ui border-2 border-leather focus:border-gold focus:outline-none transition-colors font-semibold"
-              style={{
-                background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
-              }}
-            >
-              <option value={STATUS_FILTERS.ALL}>All Stories</option>
-              <option value={STATUS_FILTERS.COMPLETED}>Completed</option>
-              <option value={STATUS_FILTERS.DRAFTS}>Drafts</option>
-            </select>
-
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-3 rounded-lg paper-texture text-text-primary text-ui border-2 border-leather focus:border-gold focus:outline-none transition-colors font-semibold"
-              style={{
-                background: "linear-gradient(to bottom, #F5F1E8, #EDE4D5)",
-              }}
-            >
-              <option value={SortOption.RECENT}>Recently Updated</option>
-              <option value={SortOption.TITLE}>Title (A-Z)</option>
-              <option value={SortOption.READ_COUNT}>Most Read</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -247,18 +135,18 @@ export default function StoryLibraryPage() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Story Count */}
         <div className="mb-6 text-text-secondary text-body">
-          {filteredStories.length === 0 ? (
+          {stories.length === 0 ? (
             <span>No stories found</span>
           ) : (
             <span>
-              Showing {filteredStories.length}{" "}
-              {filteredStories.length === 1 ? "story" : "stories"}
+              Showing {stories.length}{" "}
+              {stories.length === 1 ? "story" : "stories"}
             </span>
           )}
         </div>
 
         {/* Empty State */}
-        {filteredStories.length === 0 && !searchQuery && (
+        {stories.length === 0 && (
           <motion.div
             className="paper-texture page-shadow rounded-2xl p-12 text-center"
             initial={{ opacity: 0, y: 20 }}
@@ -289,7 +177,7 @@ export default function StoryLibraryPage() {
         )}
 
         {/* Bookshelf - Grid of Book Spines */}
-        {filteredStories.length > 0 && (
+        {stories.length > 0 && (
           <div className="space-y-8">
             {/* Wooden Bookshelf */}
             <div
@@ -300,7 +188,7 @@ export default function StoryLibraryPage() {
               }}
             >
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {filteredStories.map((story, index) => {
+                {stories.map((story, index) => {
                   const bookColor = getBookColor(story.theme, index)
                   const isCompleted = story.status === StoryStatus.COMPLETED
 
@@ -439,7 +327,7 @@ export default function StoryLibraryPage() {
                 Recent Stories
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredStories.slice(0, 6).map((story, index) => {
+                {stories.slice(0, 6).map((story, index) => {
                   const isCompleted = story.status === StoryStatus.COMPLETED
 
                   return (
