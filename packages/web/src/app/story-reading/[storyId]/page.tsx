@@ -23,6 +23,7 @@ import type { ChoiceMade, ReadingNode, StoryForReading } from "@/lib/apiTypes"
 import { getSceneImageUrl } from "@/lib/imageUtils"
 import { NodeType } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
+import Image from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
@@ -513,26 +514,30 @@ export default function StoryReadingPage() {
             showSpine={true}
             leftContent={
               // Left Page: Illustration
-              <div className="h-full flex flex-col items-center justify-center">
+              <div className="h-full flex flex-col items-center justify-center relative">
                 {imageLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center z-10">
                     <LoadingSpinner
                       size={SpinnerSize.Large}
                       color={SpinnerColor.Primary}
                     />
                   </div>
                 )}
-                <img
-                  src={getSceneImageUrl(currentNode.imageUrl)}
-                  alt={currentNode.title}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                  style={{
-                    maxHeight: "550px",
-                    filter: "drop-shadow(0 4px 8px rgba(44, 36, 22, 0.2))",
-                  }}
-                  onLoad={() => setImageLoading(false)}
-                  onError={() => setImageLoading(false)}
-                />
+                <div className="relative w-full h-full max-h-[550px]">
+                  <Image
+                    src={getSceneImageUrl(currentNode.imageUrl)}
+                    alt={currentNode.title}
+                    fill
+                    className="object-contain rounded-lg"
+                    style={{
+                      filter: "drop-shadow(0 4px 8px rgba(44, 36, 22, 0.2))",
+                    }}
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => setImageLoading(false)}
+                    priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                </div>
               </div>
             }
             rightContent={

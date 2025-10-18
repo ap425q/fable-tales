@@ -32,17 +32,10 @@ export function getSupabaseImageUrl(pathOrUuid: string): string {
     return pathOrUuid
   }
 
-  // If it's already pointing to our Supabase bucket, return as-is
-  if (pathOrUuid.includes(SUPABASE_STORAGE_URL)) {
-    return pathOrUuid
-  }
-
-  // If it's a full URL (e.g., from cdn.example.com), extract just the filename
+  // If it's already a full URL (including Supabase storage), return as-is
+  // This preserves the directory structure (scenes/, backgrounds/, locations/, etc.)
   if (isFullUrl(pathOrUuid)) {
-    // Extract the filename from the URL
-    const urlParts = pathOrUuid.split("/")
-    const filename = urlParts[urlParts.length - 1]
-    return `${SUPABASE_STORAGE_URL}/${STORAGE_BUCKET}/${filename}`
+    return pathOrUuid
   }
 
   // Remove leading slash if present
