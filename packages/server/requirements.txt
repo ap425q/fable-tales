@@ -8,3 +8,4 @@ python-multipart==0.0.6
 requests==2.31.0
 supabase==2.22.0
 fal-client==0.8.1
+google-genai==1.4.0
