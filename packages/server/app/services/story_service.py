@@ -476,17 +476,89 @@ class StoryService:
         return None
     
     def generate_all_backgrounds(self, story_id: str, backgrounds: List[Dict[str, str]]) -> Optional[Dict[str, Any]]:
-        """Generate all background images"""
+        """Generate all background images using AI"""
         job_id = str(uuid.uuid4())
         
-        # Start background generation job
-        self.data_manager.create_background_generation_job(story_id, job_id, backgrounds)
-        
-        return {
-            "jobId": job_id,
-            "message": "Background generation started",
-            "backgroundIds": [bg["backgroundId"] for bg in backgrounds]
-        }
+        try:
+            # Get the story to extract node information
+            story = self.data_manager.get_story(story_id)
+            if not story:
+                raise Exception("Story not found")
+            
+            # Generate background descriptions using OpenAI
+            story_nodes = []
+            for node in story.tree.nodes:
+                story_nodes.append({
+                    "sceneNumber": node.sceneNumber,
+                    "title": node.title,
+                    "location": node.location,
+                    "text": node.text
+                })
+            
+            # Generate background descriptions
+            background_descriptions = self.openai_service.generate_background_descriptions(story_nodes)
+            
+            # Create background objects and generate images
+            generated_backgrounds = []
+            for bg_desc in background_descriptions:
+                try:
+                    # Generate image using FAL.ai
+                    image_url = self.fal_ai_service.generate_image(
+                        prompt=bg_desc["description"],
+                        width=1024,
+                        height=768
+                    )
+                    
+                    # Create background object with proper UUID
+                    background = Background(
+                        id=str(uuid.uuid4()),
+                        locationId=str(uuid.uuid4()),  # Use UUID instead of location name
+                        name=bg_desc["locationName"],
+                        description=bg_desc["description"],
+                        sceneNumbers=bg_desc["sceneNumbers"],
+                        imageUrl=image_url,
+                        status=GenerationStatus.COMPLETED,
+                        versions=[
+                            BackgroundVersion(
+                                versionId=str(uuid.uuid4()),
+                                imageUrl=image_url,
+                                createdAt=datetime.now()
+                            )
+                        ],
+                        selectedVersionId=None
+                    )
+                    
+                    generated_backgrounds.append(background)
+                    
+                except Exception as e:
+                    print(f"Error generating background for {bg_desc['locationName']}: {str(e)}")
+                    # Create background with error status
+                    background = Background(
+                        id=str(uuid.uuid4()),
+                        locationId=str(uuid.uuid4()),  # Use UUID instead of location name
+                        name=bg_desc["locationName"],
+                        description=bg_desc["description"],
+                        sceneNumbers=bg_desc["sceneNumbers"],
+                        imageUrl=None,
+                        status=GenerationStatus.FAILED,
+                        versions=[],
+                        selectedVersionId=None
+                    )
+                    generated_backgrounds.append(background)
+            
+            # Save backgrounds to storage
+            self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in generated_backgrounds])
+            
+            return {
+                "jobId": job_id,
+                "message": "Background generation completed",
+                "backgroundIds": [bg.id for bg in generated_backgrounds],
+                "backgrounds": [bg.model_dump() for bg in generated_backgrounds]
+            }
+            
+        except Exception as e:
+            print(f"Error in generate_all_backgrounds: {str(e)}")
+            raise Exception(f"Background generation failed: {str(e)}")
     
     def check_background_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[BackgroundGenerationStatus]:
         """Check background generation status"""
@@ -497,34 +569,60 @@ class StoryService:
         return BackgroundGenerationStatus(**status_data)
     
     def regenerate_individual_background(self, story_id: str, background_id: str, description: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Regenerate individual background"""
+        """Regenerate individual background using FAL.ai"""
         backgrounds = self.get_story_backgrounds(story_id)
         if not backgrounds:
             return None
         
         for background in backgrounds:
             if background.id == background_id:
-                # Generate new version
-                version_id = str(uuid.uuid4())
-                new_version = BackgroundVersion(
-                    versionId=version_id,
-                    imageUrl=f"https://cdn.example.com/bg_{background_id}_v{len(background.versions) + 1}.png",
-                    createdAt=datetime.now()
-                )
-                
-                background.versions.append(new_version)
-                background.imageUrl = new_version.imageUrl
-                background.status = GenerationStatus.COMPLETED
-                
-                # Save updated background
-                self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
-                
-                return {
-                    "backgroundId": background_id,
-                    "versionId": version_id,
-                    "imageUrl": new_version.imageUrl,
-                    "status": "completed"
-                }
+                try:
+                    # Use provided description or existing description
+                    prompt = description if description else background.description
+                    
+                    # Generate new image using FAL.ai
+                    image_url = self.fal_ai_service.generate_image(
+                        prompt=prompt,
+                        width=1024,
+                        height=768
+                    )
+                    
+                    # Create new version
+                    version_id = str(uuid.uuid4())
+                    new_version = BackgroundVersion(
+                        versionId=version_id,
+                        imageUrl=image_url,
+                        createdAt=datetime.now()
+                    )
+                    
+                    background.versions.append(new_version)
+                    background.imageUrl = image_url
+                    background.status = GenerationStatus.COMPLETED
+                    
+                    # Update description if provided
+                    if description:
+                        background.description = description
+                    
+                    # Save updated background
+                    self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
+                    
+                    return {
+                        "backgroundId": background_id,
+                        "versionId": version_id,
+                        "imageUrl": image_url,
+                        "status": "completed"
+                    }
+                    
+                except Exception as e:
+                    print(f"Error regenerating background {background_id}: {str(e)}")
+                    background.status = GenerationStatus.FAILED
+                    self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
+                    
+                    return {
+                        "backgroundId": background_id,
+                        "error": str(e),
+                        "status": "failed"
+                    }
         
         return None
     

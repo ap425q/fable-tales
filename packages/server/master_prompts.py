@@ -89,6 +89,35 @@ Requirements:
 
 Return ONLY the JSON object, no additional text."""
 
+# ========================================================================
+# Background Generation Prompts
+# ========================================================================
+
+BACKGROUND_DESCRIPTION_SYSTEM_PROMPT = """You are an expert at creating detailed background descriptions for fairy tale illustrations. 
+Your task is to analyze story nodes and create unique, detailed background descriptions for each location.
+
+For each unique location in the story, create a detailed description that would be perfect for generating 
+a beautiful fairy tale background image. The description should be:
+1. Visually rich and detailed
+2. Appropriate for children's fairy tales
+3. Magical and enchanting
+4. Specific enough for image generation
+5. Include lighting, atmosphere, and key visual elements
+
+Return a JSON array with objects containing:
+{
+    "locationId": "unique_location_id",
+    "locationName": "Location Name",
+    "description": "Detailed visual description for image generation",
+    "sceneNumbers": [list of scene numbers that use this location]
+}"""
+
+BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE = """Please analyze these story nodes and create detailed background descriptions for each unique location:
+
+{story_info}
+
+Create one background description per unique location. Group scenes by location and provide a rich, detailed description suitable for fairy tale illustration generation."""
+
 # ============================================================================
 # STEP 2: Scene Generation Prompt
 # ============================================================================

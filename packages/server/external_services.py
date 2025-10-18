@@ -180,6 +180,72 @@ class OpenAIService:
             print(f"Error in refine_scenes: {str(e)}")
             raise Exception(f"OpenAI API call failed: {str(e)}")
 
+    def generate_background_descriptions(self, story_nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Generate background descriptions for story nodes using OpenAI
+        
+        Args:
+            story_nodes: List of story nodes with location information
+            
+        Returns:
+            List of background descriptions with location mapping
+            
+        Raises:
+            Exception: If OpenAI API key is not configured
+        """
+        # Check if OpenAI API key is configured
+        if self.api_key == "placeholder_openai_key" or not self.api_key:
+            raise Exception("OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.")
+        
+        try:
+            # Import prompts from master_prompts
+            from master_prompts import BACKGROUND_DESCRIPTION_SYSTEM_PROMPT, BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE
+            
+            # Create user prompt with story information
+            story_info = []
+            for node in story_nodes:
+                story_info.append({
+                    "sceneNumber": node.get("sceneNumber", 0),
+                    "title": node.get("title", ""),
+                    "location": node.get("location", ""),
+                    "text": node.get("text", "")
+                })
+            
+            user_prompt = BACKGROUND_DESCRIPTION_USER_PROMPT_TEMPLATE.format(
+                story_info=json.dumps(story_info, indent=2)
+            )
+            
+            # Make API call to OpenAI
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": BACKGROUND_DESCRIPTION_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000
+            )
+            
+            # Parse the JSON response
+            content = response.choices[0].message.content.strip()
+            print(f"OpenAI Response: {content}")  # Debug output
+            
+            # Try to extract JSON from the response if it's wrapped in markdown
+            if content.startswith("```json"):
+                content = content[7:]  # Remove ```json
+            if content.endswith("```"):
+                content = content[:-3]  # Remove ```
+            
+            background_descriptions = json.loads(content)
+            return background_descriptions
+            
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON response: {str(e)}")
+            raise Exception(f"Failed to parse OpenAI response: {str(e)}")
+        except Exception as e:
+            print(f"Error in generate_background_descriptions: {str(e)}")
+            raise Exception(f"OpenAI API call failed: {str(e)}")
+
     def generate_image_prompt(
         self,
         scene_description: str,
@@ -542,12 +608,20 @@ class FALAIService:
 
     def __init__(self):
         """Initialize FAL.ai service with API key from environment"""
-        self.api_key = os.getenv("FAL_AI_API_KEY", "placeholder_fal_ai_key")
-        self.model = "flux-pro"  # FAL.ai model for high-quality image generation
+        self.api_key = os.getenv("FAL_KEY", "placeholder_fal_ai_key")
+        self.model = "fal-ai/flux/dev"  # FAL.ai model for high-quality image generation
+        
+        # Initialize FAL client if API key is available
+        if self.api_key != "placeholder_fal_ai_key":
+            import fal_client
+            fal_client.api_key = self.api_key
+            self.client = fal_client
+        else:
+            self.client = None
 
     def generate_image(self, prompt: str, width: int = 768, height: int = 512) -> Optional[str]:
         """
-        Generate comic panel image using FAL.ai
+        Generate background image using FAL.ai
         
         Args:
             prompt: Detailed image generation prompt
@@ -558,27 +632,31 @@ class FALAIService:
             URL to generated image or None if failed
         """
         try:
-            # PLACEHOLDER: This would call actual FAL.ai API in production
-            if self.api_key == "placeholder_fal_ai_key":
-                # Return mock URL for development
-                import hashlib
-                prompt_hash = hashlib.md5(prompt.encode()).hexdigest()
-                return f"https://placeholder-fal.ai/image/{prompt_hash}.png"
+            # Check if FAL.ai API key is configured
+            if self.api_key == "placeholder_fal_ai_key" or not self.api_key:
+                raise Exception("FAL.ai API key is not configured. Please set FAL_KEY environment variable.")
             
-            # This would be the actual API call in production:
-            # import fal_client
-            # result = fal_client.submit(
-            #     "fal-ai/flux-pro",
-            #     arguments={
-            #         "prompt": prompt,
-            #         "image_size": {"width": width, "height": height}
-            #     }
-            # )
-            # return result.get("image").get("url")
+            # Make actual API call to FAL.ai using the correct format
+            handler = self.client.submit(
+                "fal-ai/flux/dev",  # Use the correct model name
+                arguments={
+                    "prompt": prompt,
+                    "image_size": {"width": width, "height": height},
+                    "num_inference_steps": 28,
+                    "guidance_scale": 3.5
+                }
+            )
+            
+            # Wait for the result and get the image URL
+            result = handler.get()
+            if result and "images" in result and len(result["images"]) > 0:
+                return result["images"][0]["url"]
+            else:
+                raise Exception("No image generated from FAL.ai")
             
         except Exception as e:
             print(f"Error in generate_image: {str(e)}")
-            return None
+            raise Exception(f"FAL.ai image generation failed: {str(e)}")
 
     def generate_batch_images(
         self,
