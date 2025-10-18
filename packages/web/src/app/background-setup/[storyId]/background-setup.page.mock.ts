@@ -22,21 +22,8 @@ export const mockBackgrounds: Location[] = [
     description:
       "A magical forest filled with tall ancient trees, glowing mushrooms, and sparkling fireflies dancing between the branches.",
     sceneNumbers: [1, 3, 5, 8],
-    imageVersions: [
-      {
-        versionId: "v1-bg1",
-        url: "https://picsum.photos/seed/forest1/800/600",
-        generatedAt: new Date(Date.now() - 3600000).toISOString(),
-        prompt: "magical forest with ancient trees",
-      },
-      {
-        versionId: "v2-bg1",
-        url: "https://picsum.photos/seed/forest2/800/600",
-        generatedAt: new Date(Date.now() - 1800000).toISOString(),
-        prompt: "enchanted forest with glowing elements",
-      },
-    ],
-    generationStatus: GenerationStatus.COMPLETED,
+    imageVersions: [],
+    generationStatus: GenerationStatus.PENDING,
   },
   {
     id: "bg-2",
@@ -46,7 +33,7 @@ export const mockBackgrounds: Location[] = [
       "A grand castle with tall towers, stone walls, and colorful banners waving in the wind.",
     sceneNumbers: [2, 6, 9],
     imageVersions: [],
-    generationStatus: GenerationStatus.GENERATING,
+    generationStatus: GenerationStatus.PENDING,
   },
   {
     id: "bg-3",
@@ -55,21 +42,15 @@ export const mockBackgrounds: Location[] = [
     description:
       "A peaceful village by a sparkling river with small cottages, a wooden bridge, and boats gently floating.",
     sceneNumbers: [4, 7],
-    imageVersions: [
-      {
-        versionId: "v1-bg3",
-        url: "https://picsum.photos/seed/village1/800/600",
-        generatedAt: new Date(Date.now() - 7200000).toISOString(),
-        prompt: "peaceful riverside village",
-      },
-    ],
-    generationStatus: GenerationStatus.COMPLETED,
+    imageVersions: [],
+    generationStatus: GenerationStatus.PENDING,
   },
   {
     id: "bg-4",
     storyId: "story-123",
     name: "Dark Cave",
-    description: "",
+    description:
+      "A mysterious dark cave with stalactites and stalagmites, illuminated by glowing crystals.",
     sceneNumbers: [10, 11],
     imageVersions: [],
     generationStatus: GenerationStatus.PENDING,
