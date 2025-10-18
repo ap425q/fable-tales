@@ -47,7 +47,7 @@ class SupabaseDataManager:
                 "theme": story.theme,
                 "story_format": story.storyFormat,
                 "status": story.status.value,
-                "title": f"{story.lesson} Story",
+                "title": story.title if story.title else f"{story.lesson} Story",
                 "created_at": story.createdAt.isoformat(),
                 "updated_at": story.updatedAt.isoformat()
             }

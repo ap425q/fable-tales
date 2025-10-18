@@ -34,7 +34,7 @@ export default function StorySelectionPage() {
           status: "completed",
         })
         if (response.success && response.data) {
-          setStories(response.data.stories.filter((s) => s.isPublished))
+          setStories(response.data.stories)
         }
       } catch (err) {
         console.error("Error fetching stories:", err)

@@ -1074,6 +1074,7 @@ Generate a single illustration that captures this scene with the characters desc
         if not story:
             return None
         
+        story.title = title
         story.status = StoryStatus.COMPLETED
         story.updatedAt = datetime.now()
         self.data_manager.save_story(story)

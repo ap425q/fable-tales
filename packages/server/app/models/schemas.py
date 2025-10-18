@@ -105,6 +105,7 @@ class Location(BaseModel):
 class Story(BaseModel):
     """Complete story data"""
     id: str
+    title: Optional[str] = None
     lesson: str
     theme: str
     storyFormat: str

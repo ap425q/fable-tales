@@ -103,7 +103,7 @@ export interface Story {
   /** Number of times the story has been read */
   readCount: number
   /** Whether the story is published for children to read */
-  isPublished: boolean
+  isPublished?: boolean
   /** ID of the user who created the story */
   authorId: string
   /** Optional cover image URL */
