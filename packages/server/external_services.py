@@ -649,8 +649,8 @@ class FALAIService:
                 }
             )
             
-            # Wait for the result and get the image URL (no timeout)
-            result = handler.get(timeout=None)
+            # Wait for the result and get the image URL
+            result = handler.get()
             if result and "images" in result and len(result["images"]) > 0:
                 return result["images"][0]["url"]
             else:
