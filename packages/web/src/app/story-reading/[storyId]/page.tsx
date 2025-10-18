@@ -131,6 +131,15 @@ export default function StoryReadingPage() {
   }
 
   /**
+   * Reset image loading state when current node changes
+   */
+  useEffect(() => {
+    if (currentNode) {
+      setImageLoading(true)
+    }
+  }, [currentNode?.id])
+
+  /**
    * Preload images for smoother transitions
    */
   useEffect(() => {
@@ -275,7 +284,6 @@ export default function StoryReadingPage() {
     } else {
       // Normal transition
       setCurrentNode(nextNode)
-      setImageLoading(true)
     }
   }
 
@@ -294,7 +302,6 @@ export default function StoryReadingPage() {
       if (previousNode) {
         setTransitionDirection("backward")
         setCurrentNode(previousNode)
-        setImageLoading(true)
 
         // Remove the bad choice from history
         const lastChoiceIndex = choicesMade.findLastIndex(
@@ -344,8 +351,6 @@ export default function StoryReadingPage() {
         setVisitedNodes(visitedNodes.slice(0, -1))
       }
 
-      setImageLoading(true)
-
       // Remove last choice
       if (choicesMade.length > 0) {
         setChoicesMade(choicesMade.slice(0, -1))
@@ -389,6 +394,9 @@ export default function StoryReadingPage() {
   }
 
   const progress = calculateProgress()
+
+  // Calculate current scene number based on actual position in reading path
+  const currentSceneNumber = visitedNodes.length + 1
 
   // Loading state
   if (isLoading) {
@@ -509,12 +517,15 @@ export default function StoryReadingPage() {
             key={currentNode.id}
             pageKey={currentNode.id}
             transitionDirection={transitionDirection}
-            leftPageNumber={currentNode.sceneNumber * 2 - 1}
-            rightPageNumber={currentNode.sceneNumber * 2}
+            leftPageNumber={currentSceneNumber * 2 - 1}
+            rightPageNumber={currentSceneNumber * 2}
             showSpine={true}
             leftContent={
               // Left Page: Illustration
-              <div className="h-full flex flex-col items-center justify-center relative">
+              <div
+                className="h-full flex flex-col items-center justify-center relative"
+                key={currentNode.id}
+              >
                 {imageLoading && (
                   <div className="absolute inset-0 flex items-center justify-center z-10">
                     <LoadingSpinner
@@ -525,6 +536,7 @@ export default function StoryReadingPage() {
                 )}
                 <div className="relative w-full h-full max-h-[550px]">
                   <NextImage
+                    key={currentNode.id}
                     src={getSceneImageUrl(currentNode.imageUrl)}
                     alt={currentNode.title}
                     fill
@@ -542,9 +554,10 @@ export default function StoryReadingPage() {
             }
             rightContent={
               // Right Page: Text and Choices
-              <div className="h-full flex flex-col">
+              <div className="h-full flex flex-col" key={currentNode.id}>
                 {/* Scene Badge */}
                 <motion.div
+                  key={`badge-${currentNode.id}`}
                   className="inline-flex items-center gap-2 self-start mb-4 px-4 py-2 rounded-full text-sm font-bold"
                   style={{
                     background: "linear-gradient(135deg, #8B3A3A, #CD5C5C)",
@@ -555,13 +568,12 @@ export default function StoryReadingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <span className="text-ui">
-                    Scene {currentNode.sceneNumber}
-                  </span>
+                  <span className="text-ui">Scene {currentSceneNumber}</span>
                 </motion.div>
 
                 {/* Title */}
                 <motion.h2
+                  key={`title-${currentNode.id}`}
                   className="text-3xl lg:text-4xl font-bold text-text-primary mb-6 text-heading"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -572,6 +584,7 @@ export default function StoryReadingPage() {
 
                 {/* Story Text */}
                 <motion.div
+                  key={`text-${currentNode.id}`}
                   className="flex-1 mb-6 overflow-y-auto custom-scrollbar"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -590,6 +603,7 @@ export default function StoryReadingPage() {
 
                 {/* Choices Section */}
                 <motion.div
+                  key={`choices-${currentNode.id}`}
                   className="space-y-3 mt-auto"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -600,6 +614,7 @@ export default function StoryReadingPage() {
                     <div className="text-center py-6">
                       {currentNode.type === NodeType.GOOD_ENDING ? (
                         <motion.div
+                          key={`ending-${currentNode.id}`}
                           className="text-6xl"
                           animate={{
                             scale: [1, 1.2, 1],
@@ -620,6 +635,7 @@ export default function StoryReadingPage() {
                   ) : currentNode.choices.length === 1 ? (
                     // Single choice - Continue button
                     <ContinueButton
+                      key={`continue-${currentNode.id}`}
                       onClick={() =>
                         handleChoiceSelect(
                           currentNode.choices[0].id!,
