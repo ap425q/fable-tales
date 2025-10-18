@@ -39,7 +39,7 @@ export interface ValidationWarning {
 /**
  * Extended node data for React Flow
  */
-export interface TreeNodeData extends Record<string, unknown> {
+export interface TreeNodeData {
   id: string
   sceneNumber: number
   title: string
@@ -51,7 +51,9 @@ export interface TreeNodeData extends Record<string, unknown> {
   isHovered: boolean
   isParent: boolean
   isChild: boolean
+  isDimmed: boolean
   onAddNode?: (nodeId: string) => void
+  [key: string]: unknown
 }
 
 /**

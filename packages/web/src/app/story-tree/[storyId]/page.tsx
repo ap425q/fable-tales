@@ -127,7 +127,7 @@ function AddNodeModal({
               { type: NodeType.NORMAL, label: "Normal Scene", icon: "📄" },
               { type: NodeType.CHOICE, label: "Choice Point", icon: "🔀" },
               { type: NodeType.GOOD_ENDING, label: "Good Ending", icon: "⭐" },
-              { type: NodeType.BAD_ENDING, label: "Bad Ending", icon: "❌" },
+              { type: NodeType.BAD_ENDING, label: "Bad Ending", icon: "🙅" },
             ].map((option) => (
               <button
                 key={option.type}
@@ -409,6 +409,7 @@ function StoryTreeEditor() {
           isHovered: false,
           isParent: false,
           isChild: false,
+          isDimmed: false,
           onAddNode: handleAddNodeRequest,
         },
       }
@@ -458,6 +459,9 @@ function StoryTreeEditor() {
       // Get related nodes
       const { parents, children } = getRelatedNodes(node.id)
 
+      // Create set of related node IDs for quick lookup
+      const relatedNodeIds = new Set([node.id, ...parents, ...children])
+
       // Update node hover state
       setNodes((nds) =>
         nds.map((n) => ({
@@ -467,6 +471,7 @@ function StoryTreeEditor() {
             isHovered: n.id === node.id,
             isParent: parents.includes(n.id),
             isChild: children.includes(n.id),
+            isDimmed: !relatedNodeIds.has(n.id), // Dim nodes that are not related
           },
         }))
       )
@@ -503,6 +508,7 @@ function StoryTreeEditor() {
           isHovered: false,
           isParent: false,
           isChild: false,
+          isDimmed: false, // Make all nodes clear again
         },
       }))
     )
@@ -681,6 +687,7 @@ function StoryTreeEditor() {
           isHovered: false,
           isParent: false,
           isChild: false,
+          isDimmed: false,
           onAddNode: handleAddNodeRequest,
         },
       }

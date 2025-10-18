@@ -48,7 +48,7 @@ const getNodeStyles = (
         bg: "linear-gradient(145deg, #A65959, #8B3A3A)",
         border: "#7B2A2A",
         text: "#FFF",
-        icon: "✕",
+        icon: "🙅",
       }
     default:
       return {
@@ -83,10 +83,11 @@ const getTypeLabel = (type: NodeType): string => {
 /**
  * Custom Tree Node Component - Medallion/Seal Style
  */
-export const CustomTreeNode: React.FC<NodeProps<TreeNodeData>> = ({
-  data,
-  selected,
-}) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function CustomTreeNode(props: NodeProps<any>) {
+  const data = props.data as TreeNodeData
+  const selected = props.selected
+
   const nodeStyle = getNodeStyles(data.type)
   const typeLabel = getTypeLabel(data.type)
   const [showAddButton, setShowAddButton] = React.useState(false)
@@ -104,19 +105,9 @@ export const CustomTreeNode: React.FC<NodeProps<TreeNodeData>> = ({
     }
   }
 
-  // Opacity based on hover state - always show nodes clearly when nothing is hovered
-  const getOpacity = () => {
-    // If this node is hovered, show at full opacity
-    if (data.isHovered) return 1
-    // If this node is a parent or child of hovered node, show clearly
-    if (data.isParent || data.isChild) return 1
-    // If any node is hovered (but this isn't related), dim slightly
-    if (data.isParent === false && data.isChild === false && !data.isHovered) {
-      // Check if we're in a hover state by looking at isParent/isChild being explicitly false
-      return 0.4
-    }
-    // Default: show at full opacity when nothing is hovered
-    return 1
+  // Opacity based on hover state - dim unrelated nodes when hovering
+  const getOpacity = (): number => {
+    return data.isDimmed ? 0.3 : 1
   }
 
   const opacity = getOpacity()
