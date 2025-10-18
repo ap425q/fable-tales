@@ -50,3 +50,6 @@ export type { DropZoneProps } from "./DropZone"
 
 export { Toast } from "./Toast"
 export type { ToastProps } from "./Toast"
+
+export { NoImagePlaceholder } from "./NoImagePlaceholder"
+export type { NoImagePlaceholderProps } from "./NoImagePlaceholder"

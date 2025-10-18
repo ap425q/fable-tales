@@ -11,6 +11,7 @@ import { Button } from "@/components/Button"
 import { Card } from "@/components/Card"
 import { LoadingSpinner } from "@/components/LoadingSpinner"
 import { Modal } from "@/components/Modal"
+import { NoImagePlaceholder } from "@/components/NoImagePlaceholder"
 import { Toast } from "@/components/Toast"
 import {
   ButtonSize,
@@ -528,13 +529,16 @@ export default function StoryLibraryPage() {
         </div>
 
         <Card
-          image={story.coverImageUrl}
-          imageAlt={`Cover for ${story.title}`}
+          image={story.coverImageUrl || undefined}
+          imageAlt={story.coverImageUrl ? `Cover for ${story.title}` : ""}
           padding={CardPadding.None}
           hoverable
           selected={isSelected}
           className="h-full"
         >
+          {/* No image placeholder */}
+          {!story.coverImageUrl && <NoImagePlaceholder />}
+
           <div className="p-5">
             {/* Header with status */}
             <div className="flex items-start justify-between mb-3">
