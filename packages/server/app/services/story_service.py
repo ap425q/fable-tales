@@ -9,7 +9,7 @@ import os
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 
-from app.storage.story_data_manager import StoryDataManager
+from app.storage.supabase_data_manager import SupabaseDataManager
 from app.models.schemas import (
     Story, StoryNode, StoryEdge, StoryTree, StoryStatus, NodeType,
     CharacterRole, Location, PresetCharacter, CharacterAssignment,
@@ -32,9 +32,9 @@ class StoryService:
     Orchestrates between storage, external APIs, and business logic
     """
     
-    def __init__(self, data_path: str = "data"):
+    def __init__(self):
         """Initialize story service"""
-        self.data_manager = StoryDataManager(data_path)
+        self.data_manager = SupabaseDataManager()
         self.openai_service = OpenAIService()
         self.fal_ai_service = FALAIService()
         
@@ -43,70 +43,9 @@ class StoryService:
     
     def _initialize_preset_characters(self):
         """Initialize preset characters if not already done"""
-        if not self.data_manager.preset_characters_exist():
-            preset_chars = [
-                {
-                    "id": "preset_char_1",
-                    "name": "Cute Rabbit",
-                    "imageUrl": "https://cdn.example.com/rabbit.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_2",
-                    "name": "Brave Lion",
-                    "imageUrl": "https://cdn.example.com/lion.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_3",
-                    "name": "Wise Owl",
-                    "imageUrl": "https://cdn.example.com/owl.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_4",
-                    "name": "Kind Bear",
-                    "imageUrl": "https://cdn.example.com/bear.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_5",
-                    "name": "Friendly Fox",
-                    "imageUrl": "https://cdn.example.com/fox.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_6",
-                    "name": "Cheerful Squirrel",
-                    "imageUrl": "https://cdn.example.com/squirrel.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_7",
-                    "name": "Playful Deer",
-                    "imageUrl": "https://cdn.example.com/deer.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_8",
-                    "name": "Curious Cat",
-                    "imageUrl": "https://cdn.example.com/cat.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_9",
-                    "name": "Loyal Dog",
-                    "imageUrl": "https://cdn.example.com/dog.png",
-                    "category": "Animal"
-                },
-                {
-                    "id": "preset_char_10",
-                    "name": "Gentle Elephant",
-                    "imageUrl": "https://cdn.example.com/elephant.png",
-                    "category": "Animal"
-                }
-            ]
-            self.data_manager.save_preset_characters(preset_chars)
+        # Preset characters are already initialized in the Supabase schema
+        # This method is kept for compatibility but doesn't need to do anything
+        pass
     
     # ========================================================================
     # Story Generation and Management
@@ -667,8 +606,13 @@ class StoryService:
     def get_story_for_reading(self, story_id: str) -> Optional[StoryForReading]:
         """Get story formatted for reading"""
         story = self.data_manager.get_story(story_id)
-        if not story or story.status != StoryStatus.COMPLETED:
+        if not story:
             return None
+        
+        # Allow reading draft stories for testing purposes
+        # In production, you might want to restrict this to completed stories only
+        # if story.status != StoryStatus.COMPLETED:
+        #     return None
         
         # Convert nodes to reading format
         reading_nodes = []

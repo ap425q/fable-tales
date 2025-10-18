@@ -9,8 +9,8 @@ from fastapi.responses import JSONResponse
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from .env file
+load_dotenv('.env')
 
 # Import routes from organized structure
 from app.api import router

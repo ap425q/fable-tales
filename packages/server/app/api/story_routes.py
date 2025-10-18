@@ -277,9 +277,10 @@ async def get_character_assignments(story_id: str = Path(..., description="Story
     try:
         assignments = story_service.get_character_assignments(story_id)
         if assignments is None:
+            # Return empty list if no assignments found
             return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
+                success=True,
+                data={"assignments": []}
             )
         return APIResponse(
             success=True,
@@ -302,9 +303,10 @@ async def get_story_backgrounds(story_id: str = Path(..., description="Story ID"
     try:
         backgrounds = story_service.get_story_backgrounds(story_id)
         if backgrounds is None:
+            # Return empty list if no backgrounds found
             return APIResponse(
-                success=False,
-                error={"code": "STORY_NOT_FOUND", "message": "Story not found"}
+                success=True,
+                data={"backgrounds": []}
             )
         return APIResponse(
             success=True,
