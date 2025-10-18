@@ -64,7 +64,7 @@ export const BookPage: React.FC<BookPageProps> = ({
         >
           {/* Left Page - Static */}
           <motion.div
-            className="flex-1 md:w-1/2 relative"
+            className="flex-1 md:w-1/2 relative z-40"
             initial={{ opacity: transitionDirection === "backward" ? 0 : 1 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}

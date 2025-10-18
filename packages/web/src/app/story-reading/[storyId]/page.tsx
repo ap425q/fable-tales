@@ -425,7 +425,7 @@ export default function StoryReadingPage() {
           </p>
           <button
             onClick={() => router.push("/")}
-            className="px-8 py-4 bg-leather text-cream rounded-xl font-semibold text-lg hover:bg-dark-leather transition-all duration-200 shadow-lg hover:shadow-xl text-ui"
+            className="px-8 py-4 bg-leather text-cream rounded-xl font-semibold text-lg hover:bg-dark-leather transition-all duration-200 shadow-lg hover:shadow-xl text-ui cursor-pointer"
           >
             ← Back to Library
           </button>
@@ -450,7 +450,7 @@ export default function StoryReadingPage() {
             <div className="flex items-center gap-4 min-w-0">
               <button
                 onClick={() => router.push("/")}
-                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 shadow-md hover:shadow-lg flex-shrink-0 text-ui font-semibold"
+                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper transition-all duration-200 shadow-md hover:shadow-lg flex-shrink-0 text-ui font-semibold cursor-pointer"
                 aria-label="Exit story"
               >
                 <span className="text-xl">←</span>
@@ -481,7 +481,7 @@ export default function StoryReadingPage() {
                   (currentNode.id === story?.startNodeId &&
                     visitedNodes.length === 0)
                 }
-                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-ui font-bold"
+                className="flex items-center gap-2 px-4 py-2 bg-parchment text-text-primary rounded-lg hover:bg-aged-paper disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-md hover:shadow-lg text-ui font-bold cursor-pointer"
                 aria-label="Go back one page"
                 title="Previous page"
               >
@@ -702,7 +702,7 @@ export default function StoryReadingPage() {
 
                 <button
                   onClick={handleTryAgain}
-                  className="w-full px-8 py-5 rounded-xl font-bold text-xl transition-all duration-200 text-ui flex items-center justify-center gap-3"
+                  className="w-full px-8 py-5 rounded-xl font-bold text-xl transition-all duration-200 text-ui flex items-center justify-center gap-3 cursor-pointer"
                   style={{
                     background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
                     color: "#FFF",
@@ -814,7 +814,7 @@ export default function StoryReadingPage() {
                       setShowCelebration(false)
                       loadStory(true) // Restart story from beginning
                     }}
-                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2"
+                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2 cursor-pointer"
                     style={{
                       background: "linear-gradient(145deg, #8B7355, #6B5744)",
                       color: "#FFF",
@@ -827,7 +827,7 @@ export default function StoryReadingPage() {
 
                   <button
                     onClick={() => router.push("/")}
-                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2"
+                    className="px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 text-ui flex items-center justify-center gap-2 cursor-pointer"
                     style={{
                       background: "linear-gradient(145deg, #6B8E6B, #4A6741)",
                       color: "#FFF",
