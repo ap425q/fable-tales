@@ -517,8 +517,6 @@ export default function StoryReadingPage() {
             key={currentNode.id}
             pageKey={currentNode.id}
             transitionDirection={transitionDirection}
-            leftPageNumber={currentSceneNumber * 2 - 1}
-            rightPageNumber={currentSceneNumber * 2}
             showSpine={true}
             leftContent={
               // Left Page: Illustration
@@ -604,7 +602,7 @@ export default function StoryReadingPage() {
                 {/* Choices Section */}
                 <motion.div
                   key={`choices-${currentNode.id}`}
-                  className="space-y-3 mt-auto"
+                  className="space-y-8 mt-auto"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 }}
@@ -650,19 +648,21 @@ export default function StoryReadingPage() {
                   ) : (
                     // Multiple choices
                     <div key={`multi-choices-${currentNode.id}`}>
-                      <div className="text-center text-lg font-semibold text-text-primary mb-3 text-heading">
+                      <div className="text-center text-lg font-semibold text-text-primary mb-6 text-heading">
                         What should happen next?
                       </div>
-                      {currentNode.choices.map((choice, index) => (
-                        <ChoiceButton
-                          key={choice.id}
-                          text={choice.text}
-                          index={index}
-                          onClick={() =>
-                            handleChoiceSelect(choice.id!, choice.nextNodeId!)
-                          }
-                        />
-                      ))}
+                      <div className="space-y-6">
+                        {currentNode.choices.map((choice, index) => (
+                          <ChoiceButton
+                            key={choice.id}
+                            text={choice.text}
+                            index={index}
+                            onClick={() =>
+                              handleChoiceSelect(choice.id!, choice.nextNodeId!)
+                            }
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                 </motion.div>
