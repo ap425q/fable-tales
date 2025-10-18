@@ -13,11 +13,11 @@ from app.storage.supabase_data_manager import SupabaseDataManager
 from app.models.schemas import (
     Story, StoryNode, StoryEdge, StoryTree, StoryStatus, NodeType,
     CharacterRole, Location, PresetCharacter, CharacterAssignment,
-    Background, BackgroundVersion, GenerationStatus,
+    ImageVersion, GenerationStatus,
     StoryListItem, StoryListResponse, StoryForReading, ReadingNode,
     ReadingProgress, ReadingProgressRequest, ReadingCompletionRequest,
     ShareLinkResponse,
-    SceneGenerationStatus, BackgroundGenerationStatus
+    SceneGenerationStatus, LocationImageGenerationStatus
 )
 from external_services import OpenAIService, FALAIService
 from master_prompts import (
@@ -440,50 +440,50 @@ class StoryService:
         return [CharacterAssignment(**assignment) for assignment in assignments_data]
     
     # ========================================================================
-    # Background Management
+    # Location Image Management
     # ========================================================================
     
-    def get_story_backgrounds(self, story_id: str) -> Optional[List[Background]]:
-        """Get backgrounds for a story"""
-        backgrounds_data = self.data_manager.get_story_backgrounds(story_id)
-        if backgrounds_data is None:
+    def get_story_locations(self, story_id: str) -> Optional[List[Location]]:
+        """Get locations for a story"""
+        locations_data = self.data_manager.get_story_locations(story_id)
+        if locations_data is None:
             return None
         
-        return [Background(**bg) for bg in backgrounds_data]
+        return [Location(**loc) for loc in locations_data]
     
-    def update_background_description(self, story_id: str, background_id: str, request) -> Optional[Background]:
-        """Update background description"""
-        backgrounds = self.get_story_backgrounds(story_id)
-        if not backgrounds:
+    def update_location_description(self, story_id: str, location_id: str, request) -> Optional[Location]:
+        """Update location description"""
+        locations = self.get_story_locations(story_id)
+        if not locations:
             return None
         
-        for background in backgrounds:
-            if background.id == background_id:
+        for location in locations:
+            if location.id == location_id:
                 if request.name:
-                    background.name = request.name
+                    location.name = request.name
                 if request.description:
-                    background.description = request.description
+                    location.description = request.description
                 
-                # Save updated background
-                self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
-                return background
+                # Save updated location
+                self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
+                return location
         
         return None
     
-    def generate_all_backgrounds(self, story_id: str, backgrounds) -> Optional[str]:
-        """Generate background image using FAL.ai and return URL"""
+    def generate_all_location_images(self, story_id: str, locations) -> Optional[str]:
+        """Generate location background image using FAL.ai and return URL"""
         try:
             story = self.data_manager.get_story(story_id)
             if not story:
                 raise Exception("Story not found")
             
-            # For now, we'll generate the first background's image
-            # In the future, you might want to handle multiple backgrounds
-            if not backgrounds or len(backgrounds) == 0:
-                raise Exception("No backgrounds provided")
+            # For now, we'll generate the first location's image
+            # In the future, you might want to handle multiple locations
+            if not locations or len(locations) == 0:
+                raise Exception("No locations provided")
             
-            first_background = backgrounds[0]
-            description = first_background.description
+            first_location = locations[0]
+            description = first_location.description
             
             # Generate image using FAL.ai
             fal_image_url = self.fal_ai_service.generate_image(
@@ -496,43 +496,25 @@ class StoryService:
                 raise Exception("Failed to generate image from FAL.ai")
             
             # Download and upload to Supabase storage
-            filename = f"backgrounds/{story_id}_{first_background.backgroundId}_{str(uuid.uuid4())[:8]}.jpg"
+            filename = f"locations/{story_id}_{first_location.locationId}_{str(uuid.uuid4())[:8]}.jpg"
             supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
             
             # Use Supabase URL if available, otherwise use FAL.ai URL
             final_url = supabase_url if supabase_url else fal_image_url
             
-            # Get the first available location for this story
-            location_id = None
-            if story.locations and len(story.locations) > 0:
-                location_id = story.locations[0].id
-            else:
-                # If no locations exist, create a default one
-                location_id = str(uuid.uuid4())
-                location_data = {
-                    "id": location_id,
-                    "story_id": story_id,
-                    "name": "Generated Location",
-                    "description": "Auto-generated location for background",
-                    "created_at": datetime.now().isoformat()
-                }
-                self.data_manager.save_location(location_data)
-            
-            # Save the background to the database
-            background_data = {
-                "id": str(uuid.uuid4()),
+            # Update the location with the generated image
+            location_data = {
+                "id": first_location.locationId,
                 "story_id": story_id,
-                "location_id": location_id,
-                "name": f"Background for {first_background.backgroundId}",
+                "name": f"Location {first_location.locationId}",
                 "description": description,
                 "image_url": final_url,
                 "status": "completed",
-                "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat()
             }
             
             # Save to database
-            self.data_manager.save_background(background_data)
+            self.data_manager.update_location_image(location_data)
             
             if supabase_url:
                 print(f"✅ Image uploaded to Supabase storage: {supabase_url}")
@@ -542,28 +524,28 @@ class StoryService:
             return final_url
             
         except Exception as e:
-            print(f"Error in generate_all_backgrounds: {str(e)}")
-            raise Exception(f"Background generation failed: {str(e)}")
+            print(f"Error in generate_all_location_images: {str(e)}")
+            raise Exception(f"Location image generation failed: {str(e)}")
     
-    def check_background_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[BackgroundGenerationStatus]:
-        """Check background generation status"""
-        status_data = self.data_manager.get_background_generation_status(story_id, job_id)
+    def check_location_image_generation_status(self, story_id: str, job_id: Optional[str] = None) -> Optional[LocationImageGenerationStatus]:
+        """Check location image generation status"""
+        status_data = self.data_manager.get_location_image_generation_status(story_id, job_id)
         if not status_data:
             return None
         
-        return BackgroundGenerationStatus(**status_data)
+        return LocationImageGenerationStatus(**status_data)
     
-    def regenerate_individual_background(self, story_id: str, background_id: str, description: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Regenerate individual background using FAL.ai"""
-        backgrounds = self.get_story_backgrounds(story_id)
-        if not backgrounds:
+    def regenerate_individual_location_image(self, story_id: str, location_id: str, description: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Regenerate individual location image using FAL.ai"""
+        locations = self.get_story_locations(story_id)
+        if not locations:
             return None
         
-        for background in backgrounds:
-            if background.id == background_id:
+        for location in locations:
+            if location.id == location_id:
                 try:
                     # Use provided description or existing description
-                    prompt = description if description else background.description
+                    prompt = description if description else location.description
                     
                     # Generate new image using FAL.ai
                     image_url = self.fal_ai_service.generate_image(
@@ -574,61 +556,61 @@ class StoryService:
                     
                     # Create new version
                     version_id = str(uuid.uuid4())
-                    new_version = BackgroundVersion(
+                    new_version = ImageVersion(
                         versionId=version_id,
                         imageUrl=image_url,
                         createdAt=datetime.now()
                     )
                     
-                    background.versions.append(new_version)
-                    background.imageUrl = image_url
-                    background.status = GenerationStatus.COMPLETED
+                    location.versions.append(new_version)
+                    location.imageUrl = image_url
+                    location.status = GenerationStatus.COMPLETED
                     
                     # Update description if provided
                     if description:
-                        background.description = description
+                        location.description = description
                     
-                    # Save updated background
-                    self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
+                    # Save updated location
+                    self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
                     
                     return {
-                        "backgroundId": background_id,
+                        "locationId": location_id,
                         "versionId": version_id,
                         "imageUrl": image_url,
                         "status": "completed"
                     }
                     
                 except Exception as e:
-                    print(f"Error regenerating background {background_id}: {str(e)}")
-                    background.status = GenerationStatus.FAILED
-                    self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
+                    print(f"Error regenerating location {location_id}: {str(e)}")
+                    location.status = GenerationStatus.FAILED
+                    self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
                     
                     return {
-                        "backgroundId": background_id,
+                        "locationId": location_id,
                         "error": str(e),
                         "status": "failed"
                     }
         
         return None
     
-    def select_background_version(self, story_id: str, background_id: str, version_id: str) -> Optional[Dict[str, Any]]:
-        """Select background version"""
-        backgrounds = self.get_story_backgrounds(story_id)
-        if not backgrounds:
+    def select_location_image_version(self, story_id: str, location_id: str, version_id: str) -> Optional[Dict[str, Any]]:
+        """Select location image version"""
+        locations = self.get_story_locations(story_id)
+        if not locations:
             return None
         
-        for background in backgrounds:
-            if background.id == background_id:
-                for version in background.versions:
+        for location in locations:
+            if location.id == location_id:
+                for version in location.versions:
                     if version.versionId == version_id:
-                        background.selectedVersionId = version_id
-                        background.imageUrl = version.imageUrl
+                        location.selectedVersionId = version_id
+                        location.imageUrl = version.imageUrl
                         
-                        # Save updated background
-                        self.data_manager.save_story_backgrounds(story_id, [bg.model_dump() for bg in backgrounds])
+                        # Save updated location
+                        self.data_manager.save_story_locations(story_id, [loc.model_dump() for loc in locations])
                         
                         return {
-                            "backgroundId": background_id,
+                            "locationId": location_id,
                             "selectedVersionId": version_id,
                             "imageUrl": version.imageUrl
                         }

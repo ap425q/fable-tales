@@ -72,9 +72,9 @@ export default function BackgroundSetupPage({
         setError("")
 
         // TODO: Replace with actual API call
-        // const result = await api.backgrounds.getAll(storyId)
+        // const result = await api.locations.getAll(storyId)
         // if (result.success && result.data) {
-        //   setBackgrounds(result.data.backgrounds)
+        //   setBackgrounds(result.data.locations)
         // }
 
         // MOCK: Using mock data
@@ -155,7 +155,7 @@ export default function BackgroundSetupPage({
   const pollGenerationStatus = useCallback(async () => {
     try {
       // TODO: Replace with actual API call
-      // const result = await api.backgrounds.getGenerationStatus(storyId, jobId || undefined)
+      // const result = await api.locations.getGenerationStatus(storyId, jobId || undefined)
       // if (!result.success || !result.data) return
 
       // MOCK: Simulate polling
@@ -266,7 +266,7 @@ export default function BackgroundSetupPage({
   ) => {
     try {
       // TODO: Replace with actual API call
-      // await api.backgrounds.update(storyId, backgroundId, { description: newDescription })
+      // await api.locations.update(storyId, backgroundId, { description: newDescription })
 
       // MOCK: Update local state
       setBackgrounds((prev) =>
@@ -299,7 +299,7 @@ export default function BackgroundSetupPage({
       )
 
       // TODO: Replace with actual API call
-      // const result = await api.backgrounds.generateAll(
+      // const result = await api.locations.generateAll(
       //   storyId,
       //   backgrounds.map(bg => ({
       //     backgroundId: bg.id,
@@ -354,7 +354,7 @@ export default function BackgroundSetupPage({
       )
 
       // TODO: Replace with actual API call
-      // const result = await api.backgrounds.regenerate(storyId, backgroundId, description)
+      // const result = await api.locations.regenerate(storyId, backgroundId, description)
       // if (result.success && result.data) {
       //   // Add new version
       //   setBackgrounds(prev => prev.map(bg => {
@@ -442,7 +442,7 @@ export default function BackgroundSetupPage({
       }))
 
       // TODO: Replace with actual API call
-      // await api.backgrounds.selectVersion(storyId, backgroundId, versionId)
+      // await api.locations.selectVersion(storyId, backgroundId, versionId)
 
       // MOCK: Log selection (in production, this would be saved to backend)
       console.log(

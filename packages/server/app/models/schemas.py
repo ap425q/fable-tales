@@ -79,12 +79,22 @@ class CharacterRole(BaseModel):
     role: str  # Protagonist, Friend, Helper, Antagonist
     description: str
 
+class ImageVersion(BaseModel):
+    """Image version for location or scene"""
+    versionId: str
+    imageUrl: str
+    createdAt: datetime
+
 class Location(BaseModel):
-    """Location in story"""
+    """Location in story with background image"""
     id: str
     name: str
     sceneNumbers: List[int]
     description: str
+    imageUrl: Optional[str] = None
+    status: GenerationStatus = GenerationStatus.PENDING
+    versions: List['ImageVersion'] = []
+    selectedVersionId: Optional[str] = None
 
 class Story(BaseModel):
     """Complete story data"""
@@ -136,58 +146,40 @@ class CharacterAssignmentsResponse(BaseModel):
     assignments: List[CharacterAssignment]
 
 # ============================================================================
-# Background Models
+# Location Image Models (replacing Background Models)
 # ============================================================================
 
-class BackgroundVersion(BaseModel):
-    """Background image version"""
-    versionId: str
-    imageUrl: str
-    createdAt: datetime
-
-class Background(BaseModel):
-    """Background for a location"""
-    id: str
-    locationId: str
-    name: str
-    description: str
-    sceneNumbers: List[int]
-    imageUrl: Optional[str] = None
-    status: GenerationStatus = GenerationStatus.PENDING
-    versions: List[BackgroundVersion] = []
-    selectedVersionId: Optional[str] = None
-
-class BackgroundUpdateRequest(BaseModel):
-    """Request to update background description"""
+class LocationUpdateRequest(BaseModel):
+    """Request to update location description"""
     name: Optional[str] = None
     description: Optional[str] = None
 
-class BackgroundItem(BaseModel):
-    """Individual background item"""
-    backgroundId: str
+class LocationImageItem(BaseModel):
+    """Individual location for image generation"""
+    locationId: str
     description: str
 
-class BackgroundGenerationRequest(BaseModel):
-    """Request to generate backgrounds"""
-    backgrounds: List[BackgroundItem]
+class LocationImageGenerationRequest(BaseModel):
+    """Request to generate location images"""
+    locations: List[LocationImageItem]
 
-class BackgroundGenerationResponse(BaseModel):
-    """Response for background generation"""
+class LocationImageGenerationResponse(BaseModel):
+    """Response for location image generation"""
     success: bool
     url: str
 
-class BackgroundGenerationStatus(BaseModel):
-    """Background generation status response"""
+class LocationImageGenerationStatus(BaseModel):
+    """Location image generation status response"""
     status: GenerationStatus
-    backgrounds: List[Dict[str, Any]]
+    locations: List[Dict[str, Any]]
     progress: Dict[str, int]
 
-class BackgroundRegenerateRequest(BaseModel):
-    """Request to regenerate background"""
+class LocationImageRegenerateRequest(BaseModel):
+    """Request to regenerate location image"""
     description: Optional[str] = None
 
-class BackgroundVersionSelectRequest(BaseModel):
-    """Request to select background version"""
+class LocationImageVersionSelectRequest(BaseModel):
+    """Request to select location image version"""
     versionId: str
 
 # ============================================================================
@@ -402,7 +394,7 @@ class ErrorResponse(BaseModel):
 ERROR_CODES = {
     "STORY_NOT_FOUND": "Story not found",
     "NODE_NOT_FOUND": "Node not found",
-    "BACKGROUND_NOT_FOUND": "Background not found",
+    "LOCATION_NOT_FOUND": "Location not found",
     "INVALID_TREE_STRUCTURE": "Invalid tree structure",
     "GENERATION_FAILED": "Generation failed",
     "GENERATION_IN_PROGRESS": "Generation in progress",
