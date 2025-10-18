@@ -23,7 +23,7 @@ import type { ChoiceMade, ReadingNode, StoryForReading } from "@/lib/apiTypes"
 import { getSceneImageUrl } from "@/lib/imageUtils"
 import { NodeType } from "@/types"
 import { AnimatePresence, motion } from "framer-motion"
-import Image from "next/image"
+import NextImage from "next/image"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
@@ -524,7 +524,7 @@ export default function StoryReadingPage() {
                   </div>
                 )}
                 <div className="relative w-full h-full max-h-[550px]">
-                  <Image
+                  <NextImage
                     src={getSceneImageUrl(currentNode.imageUrl)}
                     alt={currentNode.title}
                     fill
