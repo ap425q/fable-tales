@@ -1,0 +1,62 @@
+[
+  {
+    "id": "preset_char_1",
+    "name": "Cute Rabbit",
+    "imageUrl": "https://cdn.example.com/rabbit.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_2",
+    "name": "Brave Lion",
+    "imageUrl": "https://cdn.example.com/lion.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_3",
+    "name": "Wise Owl",
+    "imageUrl": "https://cdn.example.com/owl.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_4",
+    "name": "Kind Bear",
+    "imageUrl": "https://cdn.example.com/bear.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_5",
+    "name": "Friendly Fox",
+    "imageUrl": "https://cdn.example.com/fox.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_6",
+    "name": "Cheerful Squirrel",
+    "imageUrl": "https://cdn.example.com/squirrel.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_7",
+    "name": "Playful Deer",
+    "imageUrl": "https://cdn.example.com/deer.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_8",
+    "name": "Curious Cat",
+    "imageUrl": "https://cdn.example.com/cat.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_9",
+    "name": "Loyal Dog",
+    "imageUrl": "https://cdn.example.com/dog.png",
+    "category": "Animal"
+  },
+  {
+    "id": "preset_char_10",
+    "name": "Gentle Elephant",
+    "imageUrl": "https://cdn.example.com/elephant.png",
+    "category": "Animal"
+  }
+]

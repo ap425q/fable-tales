@@ -2,6 +2,6 @@
 Services package
 """
 
-from .comic_service import ComicService
+from .story_service import StoryService
 
-__all__ = ["ComicService"]
+__all__ = ["StoryService"]

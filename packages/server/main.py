@@ -1,5 +1,5 @@
 """
-Updated main FastAPI application with new folder structure
+Updated main FastAPI application with new story-based API structure
 Uses app package for organized code structure
 """
 
@@ -17,9 +17,9 @@ from app.api import router
 
 # Create FastAPI app
 app = FastAPI(
-    title="Fable Tales - Comic Generation API v2.0",
-    description="Educational comic generation with organized data storage",
-    version="2.0.0",
+    title="Fable Tales - Story Generation API v1.0",
+    description="Interactive story creation and reading platform with AI generation",
+    version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -44,12 +44,12 @@ app.include_router(router)
 async def root():
     """Root endpoint"""
     return {
-        "name": "Fable Tales - Comic Generation API",
-        "version": "2.0.0",
-        "structure": "Reorganized with app package and data folder",
+        "name": "Fable Tales - Story Generation API",
+        "version": "1.0.0",
+        "description": "Interactive story creation and reading platform",
         "documentation": "/docs",
         "health": "/api/v1/health",
-        "storage_stats": "/api/v1/storage/stats"
+        "api_base": "/api/v1"
     }
 
 
@@ -78,7 +78,7 @@ async def general_exception_handler(request, exc):
 async def startup_event():
     """Initialize on startup"""
     print("=" * 60)
-    print("Fable Tales - Comic Generation API")
+    print("Fable Tales - Story Generation API")
     print("=" * 60)
     print(f"Environment: {os.getenv('ENV', 'development')}")
     print(f"OpenAI API Key: {'configured' if os.getenv('OPENAI_API_KEY') != 'placeholder_openai_key' else 'placeholder'}")
@@ -89,7 +89,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    print("Fable Tales API shutting down...")
+    print("Fable Tales Story API shutting down...")
 
 
 # ============================================================================

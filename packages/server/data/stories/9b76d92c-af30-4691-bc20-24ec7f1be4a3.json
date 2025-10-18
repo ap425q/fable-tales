@@ -1,0 +1,116 @@
+{
+  "id": "9b76d92c-af30-4691-bc20-24ec7f1be4a3",
+  "lesson": "Sharing is caring",
+  "theme": "Friendship and sharing",
+  "storyFormat": "Good choices lead to happiness",
+  "status": "draft",
+  "tree": {
+    "nodes": [
+      {
+        "id": "node_1",
+        "sceneNumber": 1,
+        "title": "The Beginning",
+        "text": "Once upon a time in a friendship and sharing, there was a brave little character who learned that sharing is caring.",
+        "location": "Magical Forest",
+        "type": "start",
+        "choices": [
+          {
+            "id": "choice_1",
+            "text": "Help a friend in need",
+            "nextNodeId": "node_2",
+            "isCorrect": true
+          },
+          {
+            "id": "choice_2",
+            "text": "Ignore the friend",
+            "nextNodeId": "node_3",
+            "isCorrect": false
+          }
+        ]
+      },
+      {
+        "id": "node_2",
+        "sceneNumber": 2,
+        "title": "A Good Choice",
+        "text": "The character helped their friend and felt proud of their decision.",
+        "location": "Magical Forest",
+        "type": "normal",
+        "choices": [
+          {
+            "id": "choice_3",
+            "text": "Continue the adventure",
+            "nextNodeId": "node_4",
+            "isCorrect": true
+          }
+        ]
+      },
+      {
+        "id": "node_3",
+        "sceneNumber": 3,
+        "title": "A Missed Opportunity",
+        "text": "The character ignored their friend and later felt sad about their choice.",
+        "location": "Magical Forest",
+        "type": "bad_ending",
+        "choices": []
+      },
+      {
+        "id": "node_4",
+        "sceneNumber": 4,
+        "title": "The Happy Ending",
+        "text": "The character learned the importance of helping others and lived happily ever after.",
+        "location": "Magical Forest",
+        "type": "good_ending",
+        "choices": []
+      }
+    ],
+    "edges": [
+      {
+        "from_": "node_1",
+        "to": "node_2",
+        "choiceId": "choice_1"
+      },
+      {
+        "from_": "node_1",
+        "to": "node_3",
+        "choiceId": "choice_2"
+      },
+      {
+        "from_": "node_2",
+        "to": "node_4",
+        "choiceId": "choice_3"
+      }
+    ]
+  },
+  "characters": [
+    {
+      "id": "char_1",
+      "role": "Protagonist",
+      "description": "Main character"
+    },
+    {
+      "id": "char_2",
+      "role": "Friend",
+      "description": "Supporting character"
+    },
+    {
+      "id": "char_3",
+      "role": "Helper",
+      "description": "Wise guide"
+    }
+  ],
+  "locations": [
+    {
+      "id": "loc_1",
+      "name": "Magical Forest",
+      "sceneNumbers": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "description": "A beautiful forest where the story takes place"
+    }
+  ],
+  "createdAt": "2025-10-18 14:08:07.955442",
+  "updatedAt": "2025-10-18 14:08:07.955461"
+}
