@@ -313,7 +313,7 @@ async def get_story_locations(story_id: str = Path(..., description="Story ID"))
             )
         return APIResponse(
             success=True,
-            data={"locations": [loc.model_dump(by_alias=True) for loc in locations]}
+            data={"locations": [loc.model_dump(by_alias=False) for loc in locations]}
         )
     except Exception as e:
         return APIResponse(

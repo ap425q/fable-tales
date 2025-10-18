@@ -3,11 +3,11 @@ Pydantic models for request/response validation
 Updated for new story-based API specification
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any, Union
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
+from pydantic import BaseModel, Field
 
 # ============================================================================
 # Enums
@@ -82,8 +82,11 @@ class CharacterRole(BaseModel):
 class ImageVersion(BaseModel):
     """Image version for location or scene"""
     versionId: str
-    imageUrl: str
-    createdAt: datetime
+    url: str = Field(alias="imageUrl")  # Support both url and imageUrl
+    generatedAt: datetime = Field(alias="createdAt")  # Support both generatedAt and createdAt
+
+    class Config:
+        populate_by_name = True  # Allow both field name and alias
 
 class Location(BaseModel):
     """Location in story with background image"""
@@ -92,9 +95,12 @@ class Location(BaseModel):
     sceneNumbers: List[int]
     description: str
     imageUrl: Optional[str] = None
-    status: GenerationStatus = GenerationStatus.PENDING
-    versions: List['ImageVersion'] = []
+    generationStatus: GenerationStatus = Field(default=GenerationStatus.PENDING, alias="status")
+    imageVersions: List['ImageVersion'] = Field(default=[], alias="versions")
     selectedVersionId: Optional[str] = None
+
+    class Config:
+        populate_by_name = True  # Allow both field name and alias
 
 class Story(BaseModel):
     """Complete story data"""

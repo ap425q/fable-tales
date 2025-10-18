@@ -565,15 +565,15 @@ class SupabaseDataManager:
                 # Get scene numbers
                 scene_numbers = [sn["scene_number"] for sn in loc_data["background_scene_numbers"]]
                 
-                # Get versions
-                versions = []
+                # Get versions (map to imageVersions for frontend compatibility)
+                image_versions = []
                 for version in loc_data["background_versions"]:
                     version_data = {
                         "versionId": version["version_id"],
-                        "imageUrl": version["image_url"],
-                        "createdAt": version["created_at"]
+                        "url": version["image_url"],  # Map imageUrl to url
+                        "generatedAt": version["created_at"]  # Map createdAt to generatedAt
                     }
-                    versions.append(version_data)
+                    image_versions.append(version_data)
                 
                 location = {
                     "id": loc_data["id"],
@@ -581,8 +581,8 @@ class SupabaseDataManager:
                     "description": loc_data["description"],
                     "sceneNumbers": scene_numbers,
                     "imageUrl": loc_data["image_url"],
-                    "status": loc_data["status"],
-                    "versions": versions,
+                    "generationStatus": loc_data["status"],  # Map status to generationStatus
+                    "imageVersions": image_versions,  # Use imageVersions instead of versions
                     "selectedVersionId": loc_data.get("selected_version_id")
                 }
                 locations.append(location)
