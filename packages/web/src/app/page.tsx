@@ -20,7 +20,7 @@ export default function Home() {
         {/* Mode Selection Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Parent Mode Card */}
-          <Link href="/story-setup">
+          <Link href="/story-library">
             <div className="bg-white rounded-xl shadow-xl p-8 hover:shadow-2xl transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-400">
               <div className="text-6xl mb-4">👨‍👩‍👧‍👦</div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">
@@ -37,7 +37,7 @@ export default function Home() {
           </Link>
 
           {/* Child Mode Card */}
-          <Link href="/story-reading/e9780360-5bdc-4c10-92a7-0a303cd7eae1">
+          <Link href="/story-selection">
             <div className="bg-white rounded-xl shadow-xl p-8 hover:shadow-2xl transition-shadow cursor-pointer border-2 border-transparent hover:border-purple-400">
               <div className="text-6xl mb-4">📚</div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">
