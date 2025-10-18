@@ -3,11 +3,12 @@ Updated main FastAPI application with new story-based API structure
 Uses app package for organized code structure
 """
 
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import os
-from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv('.env')
@@ -104,5 +105,6 @@ if __name__ == "__main__":
         host=os.getenv("HOST", "0.0.0.0"),
         port=int(os.getenv("PORT", 8000)),
         reload=os.getenv("ENV", "development") == "development",
-        log_level=os.getenv("LOG_LEVEL", "info")
+        log_level=os.getenv("LOG_LEVEL", "info"),
+        timeout_keep_alive=300  # Keep connections alive for 5 minutes
     )
