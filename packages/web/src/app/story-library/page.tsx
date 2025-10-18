@@ -24,12 +24,7 @@ import { api } from "@/lib/api"
 import { SortOption, Story, StoryStatus } from "@/types"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import {
-  mockAllStories,
-  mockEmptyStates,
-  mockStatistics,
-  StoryStatistics,
-} from "./StoryLibrary.page.mock"
+import { mockAllStories, mockEmptyStates } from "./StoryLibrary.page.mock"
 
 /**
  * Status filter options
@@ -87,18 +82,13 @@ export default function StoryLibraryPage() {
   // Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [storyToDelete, setStoryToDelete] = useState<Story | null>(null)
-  const [statisticsModalOpen, setStatisticsModalOpen] = useState(false)
-  const [statisticsData, setStatisticsData] = useState<StoryStatistics | null>(
-    null
-  )
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [shareUrl, setShareUrl] = useState("")
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
 
   // Operation state
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isDuplicating, setIsDuplicating] = useState(false)
-  const [isLoadingStats, setIsLoadingStats] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
 
   // Toast state
   const [toast, setToast] = useState<{
@@ -279,51 +269,6 @@ export default function StoryLibraryPage() {
   }
 
   /**
-   * Handle duplicate story
-   */
-  const handleDuplicateStory = async (story: Story) => {
-    try {
-      setIsDuplicating(true)
-
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 800))
-        const duplicatedStory: Story = {
-          ...story,
-          id: `story-${Date.now()}`,
-          title: `${story.title} (Copy)`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          readCount: 0,
-          isPublished: false,
-          status: StoryStatus.DRAFT,
-        }
-        setStories((prev) => [duplicatedStory, ...prev])
-        showToast(
-          `"${story.title}" duplicated successfully!`,
-          ToastVariant.Success
-        )
-      } else {
-        // Real API call
-        const response = await fetch(`/api/v1/stories/${story.id}/duplicate`, {
-          method: "POST",
-        })
-        if (response.ok) {
-          await fetchStories()
-          showToast("Story duplicated successfully!", ToastVariant.Success)
-        }
-      }
-    } catch (err) {
-      console.error("Error duplicating story:", err)
-      showToast(
-        "Failed to duplicate story. Please try again.",
-        ToastVariant.Error
-      )
-    } finally {
-      setIsDuplicating(false)
-    }
-  }
-
-  /**
    * Handle delete story
    */
   const handleDeleteStory = async () => {
@@ -398,34 +343,6 @@ export default function StoryLibraryPage() {
   }
 
   /**
-   * Handle view statistics
-   */
-  const handleViewStatistics = async (story: Story) => {
-    try {
-      setIsLoadingStats(true)
-      setStatisticsModalOpen(true)
-
-      if (useMockData) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setStatisticsData({ ...mockStatistics, storyId: story.id })
-      } else {
-        // Real API call
-        const response = await fetch(`/api/v1/stories/${story.id}/statistics`)
-        if (response.ok) {
-          const data = await response.json()
-          setStatisticsData(data)
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching statistics:", err)
-      showToast("Failed to load statistics.", ToastVariant.Error)
-      setStatisticsModalOpen(false)
-    } finally {
-      setIsLoadingStats(false)
-    }
-  }
-
-  /**
    * Handle share story
    */
   const handleShareStory = async (story: Story) => {
@@ -435,7 +352,10 @@ export default function StoryLibraryPage() {
     }
 
     try {
+      setIsSharing(true)
+
       if (useMockData) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
         const url = `${window.location.origin}/story-reading/${story.id}`
         setShareUrl(url)
         setShareModalOpen(true)
@@ -443,16 +363,31 @@ export default function StoryLibraryPage() {
         // Real API call
         const response = await fetch(`/api/v1/stories/${story.id}/share`, {
           method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            expiresIn: 2592000, // 30 days in seconds
+          }),
         })
+
         if (response.ok) {
-          const data = await response.json()
-          setShareUrl(data.shareUrl)
-          setShareModalOpen(true)
+          const result = await response.json()
+          if (result.success && result.data) {
+            setShareUrl(result.data.shareUrl)
+            setShareModalOpen(true)
+          } else {
+            throw new Error("Invalid response format")
+          }
+        } else {
+          throw new Error("Failed to generate share link")
         }
       }
     } catch (err) {
       console.error("Error generating share link:", err)
       showToast("Failed to generate share link.", ToastVariant.Error)
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -667,37 +602,19 @@ export default function StoryLibraryPage() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-2 mt-2">
-              <Button
-                variant={ButtonVariant.Secondary}
-                size={ButtonSize.Small}
-                onClick={() => handleDuplicateStory(story)}
-                disabled={isDuplicating}
-                className="flex-1"
-              >
-                Duplicate
-              </Button>
-              {story.status === StoryStatus.COMPLETED && (
-                <>
-                  <Button
-                    variant={ButtonVariant.Secondary}
-                    size={ButtonSize.Small}
-                    onClick={() => handleViewStatistics(story)}
-                    className="flex-1"
-                  >
-                    Stats
-                  </Button>
-                  <Button
-                    variant={ButtonVariant.Secondary}
-                    size={ButtonSize.Small}
-                    onClick={() => handleShareStory(story)}
-                    className="flex-1"
-                  >
-                    Share
-                  </Button>
-                </>
-              )}
-            </div>
+            {story.status === StoryStatus.COMPLETED && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Button
+                  variant={ButtonVariant.Secondary}
+                  size={ButtonSize.Small}
+                  onClick={() => handleShareStory(story)}
+                  disabled={isSharing}
+                  className="flex-1"
+                >
+                  Share
+                </Button>
+              </div>
+            )}
 
             <div className="mt-2">
               <Button
@@ -1074,131 +991,6 @@ export default function StoryLibraryPage() {
           {selectedStories.size === 1 ? "story" : "stories"}? This action cannot
           be undone.
         </p>
-      </Modal>
-
-      {/* Statistics Modal */}
-      <Modal
-        isOpen={statisticsModalOpen}
-        onClose={() => {
-          setStatisticsModalOpen(false)
-          setStatisticsData(null)
-        }}
-        title="Story Statistics"
-        size={ModalSize.XLarge}
-        footer={
-          <Button
-            variant={ButtonVariant.Primary}
-            size={ButtonSize.Medium}
-            onClick={() => {
-              setStatisticsModalOpen(false)
-              setStatisticsData(null)
-            }}
-          >
-            Close
-          </Button>
-        }
-      >
-        {isLoadingStats ? (
-          <div className="flex justify-center py-12">
-            <LoadingSpinner size={SpinnerSize.Large} />
-          </div>
-        ) : statisticsData ? (
-          <div className="space-y-6">
-            {/* Overview Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-blue-600">
-                  {statisticsData.totalReads}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Total Reads</div>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-green-600">
-                  {statisticsData.averageReadingTime.toFixed(1)} min
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Avg. Reading Time
-                </div>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-purple-600">
-                  {statisticsData.completionRate.toFixed(1)}%
-                </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  Completion Rate
-                </div>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-lg text-center">
-                <div className="text-3xl font-bold text-orange-600">
-                  {statisticsData.lastRead
-                    ? formatDate(statisticsData.lastRead)
-                    : "Never"}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Last Read</div>
-              </div>
-            </div>
-
-            {/* Choice Distribution */}
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">
-                Choice Distribution
-              </h3>
-              <div className="space-y-3">
-                {statisticsData.choiceDistribution.map((choice, index) => (
-                  <div key={index}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm text-gray-700">
-                        Scene {choice.sceneNumber}: {choice.choiceText}
-                      </span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {choice.percentage.toFixed(1)}% ({choice.selectionCount}
-                        )
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{ width: `${choice.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Most Visited Scenes */}
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">
-                Most Visited Scenes
-              </h3>
-              <div className="space-y-2">
-                {statisticsData.sceneVisits
-                  .sort((a, b) => b.visitCount - a.visitCount)
-                  .slice(0, 10)
-                  .map((scene, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                    >
-                      <span className="text-sm text-gray-700">
-                        Scene {scene.sceneNumber}: {scene.sceneTitle}
-                      </span>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">
-                          {scene.visitCount} visits
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {scene.percentage.toFixed(1)}%
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <p className="text-gray-600">No statistics available.</p>
-        )}
       </Modal>
 
       {/* Share Modal */}
