@@ -49,11 +49,8 @@ class GeminiService:
             # Extract image data from response
             for part in response.candidates[0].content.parts:
                 if getattr(part, "inline_data", None):
-                    # Decode the base64 image data
-                    image_data = base64.b64decode(part.inline_data.data)
-                    
-                    # Convert to base64 string for easy storage/transmission
-                    base64_string = base64.b64encode(image_data).decode('utf-8')
+                    # The data is already base64 encoded, no need to decode/re-encode
+                    base64_string = part.inline_data.data
                     
                     print("✅ Image generated successfully with Gemini")
                     return f"data:image/png;base64,{base64_string}"

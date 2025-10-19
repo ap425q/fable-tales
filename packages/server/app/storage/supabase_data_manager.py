@@ -1117,8 +1117,10 @@ class SupabaseDataManager:
             )
             
             if result:
-                # Get the public URL
+                # Get the public URL and remove trailing query parameters
                 public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                # Remove trailing '?' if present
+                public_url = public_url.rstrip('?')
                 print(f"✅ Image uploaded successfully: {public_url}")
                 return public_url
             else:
@@ -1157,8 +1159,10 @@ class SupabaseDataManager:
             )
             
             if result:
-                # Get the public URL
+                # Get the public URL and remove trailing query parameters
                 public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                # Remove trailing '?' if present
+                public_url = public_url.rstrip('?')
                 print(f"✅ Base64 image uploaded successfully: {public_url}")
                 return public_url
             else:
@@ -1185,8 +1189,10 @@ class SupabaseDataManager:
             )
             
             if result:
-                # Get the public URL
+                # Get the public URL and remove trailing query parameters
                 public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                # Remove trailing '?' if present
+                public_url = public_url.rstrip('?')
                 print(f"✅ Audio uploaded successfully: {public_url}")
                 return public_url
             else:
