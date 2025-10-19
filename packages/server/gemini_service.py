@@ -49,11 +49,15 @@ class GeminiService:
             # Extract image data from response
             for part in response.candidates[0].content.parts:
                 if getattr(part, "inline_data", None):
-                    # The data is already base64 encoded, no need to decode/re-encode
-                    base64_string = part.inline_data.data
+                    # Get the raw base64 data from Gemini (already encoded)
+                    base64_data = part.inline_data.data
                     
+                    # Gemini returns clean base64 - just return it with data URI prefix
                     print("✅ Image generated successfully with Gemini")
-                    return f"data:image/png;base64,{base64_string}"
+                    print(f"   Base64 data length: {len(base64_data)}", flush=True)
+                    
+                    # Return the base64 string directly (Gemini provides valid base64)
+                    return base64_data
             
             raise Exception("No image data found in Gemini response")
             

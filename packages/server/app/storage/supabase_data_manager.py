@@ -1138,17 +1138,23 @@ class SupabaseDataManager:
                 print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
             return None
     
-    def upload_base64_image_to_storage(self, base64_data: str, filename: str) -> Optional[str]:
+    def upload_base64_image_to_storage(self, base64_data, filename: str) -> Optional[str]:
         """Upload base64 encoded image to Supabase storage"""
         try:
             import base64
 
-            # Remove data URI prefix if present
-            if base64_data.startswith('data:'):
-                base64_data = base64_data.split(',')[1]
-            
-            # Decode base64 to binary
-            image_bytes = base64.b64decode(base64_data)
+            # Check if base64_data is already bytes (from Gemini) or string
+            if isinstance(base64_data, bytes):
+                # Gemini returns bytes - decode directly
+                print(f"   Decoding base64 bytes (length: {len(base64_data)})", flush=True)
+                image_bytes = base64.b64decode(base64_data)
+            else:
+                # It's a string - handle data URI prefix if present
+                if base64_data.startswith('data:'):
+                    base64_data = base64_data.split(',')[1]
+                
+                print(f"   Decoding base64 string (length: {len(base64_data)})", flush=True)
+                image_bytes = base64.b64decode(base64_data)
             
             # Upload to Supabase storage
             print(f"📤 Uploading base64 image to Supabase storage: {filename}")
