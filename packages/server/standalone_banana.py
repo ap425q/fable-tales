@@ -1,9 +1,10 @@
+import base64
+from io import BytesIO
+
+import dotenv
 from google import genai
 from google.genai import types
 from PIL import Image
-from io import BytesIO
-import dotenv
-import base64
 
 client = genai.Client(api_key=dotenv.get_key('.env', 'GOOGLE_API_KEY'))
 
@@ -21,8 +22,8 @@ for part in response.candidates[0].content.parts:
     if getattr(part, "text", None):
         print(part.text)
     elif getattr(part, "inline_data", None):
-        # Decode the base64 image data
-        image_data = base64.b64decode(part.inline_data.data)
-        image = Image.open(BytesIO(image_data))
+        # Gemini returns RAW IMAGE BYTES (not base64!)
+        # No need to decode - it's already PNG/JPEG bytes
+        image = Image.open(BytesIO(part.inline_data.data))
         image.save("generated_image.png")
         print("✅ Image saved as generated_image.png")

@@ -1138,23 +1138,29 @@ class SupabaseDataManager:
                 print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
             return None
     
-    def upload_base64_image_to_storage(self, base64_data, filename: str) -> Optional[str]:
-        """Upload base64 encoded image to Supabase storage"""
+    def upload_base64_image_to_storage(self, image_data, filename: str) -> Optional[str]:
+        """Upload image data to Supabase storage (handles both raw bytes and base64)"""
         try:
             import base64
 
-            # Check if base64_data is already bytes (from Gemini) or string
-            if isinstance(base64_data, bytes):
-                # Gemini returns bytes - decode directly
-                print(f"   Decoding base64 bytes (length: {len(base64_data)})", flush=True)
-                image_bytes = base64.b64decode(base64_data)
+            # Check if image_data is already raw bytes (from Gemini) or base64 string
+            if isinstance(image_data, bytes):
+                # Check if it's a PNG/JPEG file (raw bytes)
+                if image_data.startswith(b'\x89PNG') or image_data.startswith(b'\xff\xd8\xff'):
+                    # Already raw image bytes - use directly!
+                    print(f"   Using raw image bytes (size: {len(image_data)} bytes)", flush=True)
+                    image_bytes = image_data
+                else:
+                    # It's base64 bytes - decode it
+                    print(f"   Decoding base64 bytes (length: {len(image_data)})", flush=True)
+                    image_bytes = base64.b64decode(image_data)
             else:
                 # It's a string - handle data URI prefix if present
-                if base64_data.startswith('data:'):
-                    base64_data = base64_data.split(',')[1]
+                if image_data.startswith('data:'):
+                    image_data = image_data.split(',')[1]
                 
-                print(f"   Decoding base64 string (length: {len(base64_data)})", flush=True)
-                image_bytes = base64.b64decode(base64_data)
+                print(f"   Decoding base64 string (length: {len(image_data)})", flush=True)
+                image_bytes = base64.b64decode(image_data)
             
             # Upload to Supabase storage
             print(f"📤 Uploading base64 image to Supabase storage: {filename}")
