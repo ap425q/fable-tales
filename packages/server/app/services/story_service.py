@@ -21,7 +21,7 @@ from app.models.schemas import (CharacterAssignment, CharacterRole,
                                 StoryListResponse, StoryNode, StoryStatus,
                                 StoryTree)
 from app.storage.supabase_data_manager import SupabaseDataManager
-from external_services import FALAIService, OpenAIService
+from external_services import ElevenLabsService, FALAIService, OpenAIService
 from gemini_service import GeminiService
 from master_prompts import (STORY_GENERATION_SYSTEM_PROMPT,
                             STORY_GENERATION_USER_PROMPT_TEMPLATE)
@@ -39,6 +39,7 @@ class StoryService:
         self.openai_service = OpenAIService()
         self.fal_ai_service = FALAIService()
         self.gemini_service = GeminiService()
+        self.elevenlabs_service = ElevenLabsService()
         
         # Get frontend URL from config (use first CORS origin)
         cors_origins = config.CORS_ORIGINS
@@ -630,77 +631,99 @@ class StoryService:
         return None
     
     def generate_all_location_images(self, story_id: str, locations) -> Optional[str]:
-        """Generate location background image using FAL.ai and return URL"""
+        """Generate location background images for all locations using FAL.ai"""
         try:
             story = self.data_manager.get_story(story_id)
             if not story:
                 raise Exception("Story not found")
             
-            # For now, we'll generate the first location's image
-            # In the future, you might want to handle multiple locations
             if not locations or len(locations) == 0:
                 raise Exception("No locations provided")
             
-            first_location = locations[0]
-            description = first_location.description
+            print(f"🎨 Starting generation for {len(locations)} location(s)", flush=True)
             
-            # Generate image using FAL.ai
-            fal_image_url = self.fal_ai_service.generate_image(
-                prompt=description,
-                width=1024,
-                height=768
-            )
+            # Generate images for all locations
+            generated_count = 0
+            failed_count = 0
+            last_generated_url = None
             
-            if not fal_image_url:
-                raise Exception("Failed to generate image from FAL.ai")
+            for location in locations:
+                try:
+                    print(f"🎨 Generating image for location {location.locationId}", flush=True)
+                    description = location.description
+                    
+                    # Generate image using FAL.ai
+                    fal_image_url = self.fal_ai_service.generate_image(
+                        prompt=description,
+                        width=1024,
+                        height=768
+                    )
+                    
+                    if not fal_image_url:
+                        print(f"❌ Failed to generate image for location {location.locationId}", flush=True)
+                        failed_count += 1
+                        continue
+                    
+                    # Try to upload to Supabase storage, but fall back to FAL.ai URL if it fails
+                    filename = f"locations/{story_id}_{location.locationId}_{str(uuid.uuid4())[:8]}.jpg"
+                    try:
+                        supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
+                        final_url = supabase_url if supabase_url else fal_image_url
+                        if not supabase_url:
+                            print(f"⚠️ Supabase storage upload failed for location {location.locationId}, using FAL.ai URL as fallback", flush=True)
+                    except Exception as e:
+                        print(f"⚠️ Supabase storage error for location {location.locationId}: {str(e)}, using FAL.ai URL as fallback", flush=True)
+                        final_url = fal_image_url
+                        supabase_url = None
+                    
+                    # Generate a version ID for this image
+                    version_id = str(uuid.uuid4())
+                    
+                    # Update the location with the generated image
+                    location_data = {
+                        "id": location.locationId,
+                        "story_id": story_id,
+                        "location_id": location.locationId,
+                        "name": f"Location {location.locationId}",
+                        "description": description,
+                        "image_url": final_url,
+                        "status": "completed",
+                        "selected_version_id": version_id,
+                        "updated_at": datetime.now().isoformat()
+                    }
+                    
+                    # Save to database
+                    self.data_manager.update_location_image(location_data)
+                    
+                    # Create a version entry for this generated image
+                    version_entry = {
+                        "id": str(uuid.uuid4()),
+                        "background_id": location.locationId,
+                        "version_id": version_id,
+                        "image_url": final_url,
+                        "created_at": datetime.now().isoformat()
+                    }
+                    self.data_manager.supabase.table("background_versions").insert(version_entry).execute()
+                    
+                    last_generated_url = final_url
+                    generated_count += 1
+                    
+                    if supabase_url:
+                        print(f"✅ Image uploaded to Supabase storage for location {location.locationId}: {supabase_url}", flush=True)
+                    else:
+                        print(f"⚠️ Using FAL.ai URL for location {location.locationId}", flush=True)
+                        
+                except Exception as e:
+                    print(f"❌ Error generating image for location {location.locationId}: {str(e)}", flush=True)
+                    failed_count += 1
+                    continue
             
-            # Try to upload to Supabase storage, but fall back to FAL.ai URL if it fails
-            filename = f"locations/{story_id}_{first_location.locationId}_{str(uuid.uuid4())[:8]}.jpg"
-            try:
-                supabase_url = self.data_manager.upload_image_to_storage(fal_image_url, filename)
-                final_url = supabase_url if supabase_url else fal_image_url
-                if not supabase_url:
-                    print("⚠️ Supabase storage upload failed, using FAL.ai URL as fallback", flush=True)
-            except Exception as e:
-                print(f"⚠️ Supabase storage error: {str(e)}, using FAL.ai URL as fallback", flush=True)
-                final_url = fal_image_url
-                supabase_url = None
+            print(f"✅ Generation complete: {generated_count} succeeded, {failed_count} failed", flush=True)
             
-            # Generate a version ID for this image
-            version_id = str(uuid.uuid4())
+            if generated_count == 0:
+                raise Exception("Failed to generate any location images")
             
-            # Update the location with the generated image
-            location_data = {
-                "id": first_location.locationId,
-                "story_id": story_id,
-                "location_id": first_location.locationId,
-                "name": f"Location {first_location.locationId}",
-                "description": description,
-                "image_url": final_url,
-                "status": "completed",
-                "selected_version_id": version_id,  # Set the new version as selected
-                "updated_at": datetime.now().isoformat()
-            }
-            
-            # Save to database
-            self.data_manager.update_location_image(location_data)
-            
-            # Create a version entry for this generated image
-            version_entry = {
-                "id": str(uuid.uuid4()),  # Use a plain UUID for the primary key
-                "background_id": first_location.locationId,
-                "version_id": version_id,
-                "image_url": final_url,
-                "created_at": datetime.now().isoformat()
-            }
-            self.data_manager.supabase.table("background_versions").insert(version_entry).execute()
-            
-            if supabase_url:
-                print(f"✅ Image uploaded to Supabase storage: {supabase_url}", flush=True)
-            else:
-                print("⚠️ Supabase storage upload failed, using FAL.ai URL", flush=True)
-            
-            return final_url
+            return last_generated_url
             
         except Exception as e:
             print(f"Error in generate_all_location_images: {str(e)}", flush=True)
@@ -954,11 +977,33 @@ Generate a single illustration that captures this scene with the characters desc
                         print(f"⚠️ Failed to upload scene {scene_num} to Supabase, using base64 data as fallback")
                         image_url = base64_image_data
                     
+                    # Generate audio for the scene
+                    audio_url = None
+                    try:
+                        print(f"🎙️ Generating audio for scene {scene_num}...")
+                        # Combine title and text for audio narration
+                        narration_text = f"{node.title}. {node.text}"
+                        audio_bytes = self.elevenlabs_service.generate_audio(narration_text)
+                        
+                        if audio_bytes:
+                            # Upload audio to Supabase storage
+                            audio_filename = f"audio/{node.id}_{version_id}.mp3"
+                            audio_url = self.data_manager.upload_audio_to_storage(audio_bytes, audio_filename)
+                            
+                            if audio_url:
+                                print(f"✅ Audio generated and uploaded for scene {scene_num}")
+                            else:
+                                print(f"⚠️ Failed to upload audio for scene {scene_num}")
+                    except Exception as audio_error:
+                        print(f"⚠️ Error generating audio for scene {scene_num}: {str(audio_error)}")
+                        # Continue without audio - it's not critical
+                    
                     # Save scene image data
                     scene_data = {
                         "sceneId": node.id,
                         "sceneNumber": scene_num,
                         "imageUrl": image_url,
+                        "audioUrl": audio_url,  # Add audio URL
                         "versionId": version_id,
                         "generatedAt": datetime.now().isoformat(),
                         "prompt": prompt[:500]  # Save truncated prompt for reference
@@ -993,11 +1038,14 @@ Generate a single illustration that captures this scene with the characters desc
                             "versions": [{
                                 "versionId": scene["versionId"],
                                 "imageUrl": scene["imageUrl"],
+                                "audioUrl": scene.get("audioUrl"),  # Include audio URL
                                 "createdAt": scene["generatedAt"]
                             }]
                         }
                         print(f"   Saving scene {scene['sceneId']} with version {scene['versionId']}", flush=True)
                         print(f"   Image URL: {scene['imageUrl']}", flush=True)
+                        if scene.get("audioUrl"):
+                            print(f"   Audio URL: {scene['audioUrl']}", flush=True)
                         self.data_manager.save_scene_image_versions(story_id, scene["sceneId"], scene_image_data)
                         print(f"   ✅ Scene saved successfully", flush=True)
                     except Exception as e:
@@ -1138,6 +1186,7 @@ Generate a single illustration that captures this scene with the characters desc
             print(f"📖 Loading scene {node.id} for reading:", flush=True)
             print(f"   Scene versions found: {scene_versions}", flush=True)
             
+            audio_url = None
             if scene_versions and scene_versions.get("versions"):
                 # Get the selected version or the latest version
                 selected_version_id = scene_versions.get("currentVersionId")
@@ -1146,13 +1195,20 @@ Generate a single illustration that captures this scene with the characters desc
                     for version in scene_versions["versions"]:
                         if version["versionId"] == selected_version_id:
                             image_url = version["imageUrl"]
+                            audio_url = version.get("audioUrl")
                             print(f"   Using selected version: {image_url}", flush=True)
+                            if audio_url:
+                                print(f"   Audio URL: {audio_url}", flush=True)
                             break
                 
                 # If no selected version found, use the latest version
                 if not image_url and scene_versions["versions"]:
-                    image_url = scene_versions["versions"][-1]["imageUrl"]
+                    latest_version = scene_versions["versions"][-1]
+                    image_url = latest_version["imageUrl"]
+                    audio_url = latest_version.get("audioUrl")
                     print(f"   Using latest version: {image_url}", flush=True)
+                    if audio_url:
+                        print(f"   Audio URL: {audio_url}", flush=True)
             
             # Fallback to placeholder if no image found
             if not image_url:
@@ -1165,6 +1221,7 @@ Generate a single illustration that captures this scene with the characters desc
                 title=node.title,
                 text=node.text,
                 imageUrl=image_url,
+                audioUrl=audio_url,  # Include audio URL
                 type=node.type,
                 choices=node.choices,
                 lessonMessage=node.text if node.type in ["good_ending", "bad_ending"] else None,

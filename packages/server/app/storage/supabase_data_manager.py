@@ -838,6 +838,7 @@ class SupabaseDataManager:
                     "scene_id": scene_id,
                     "version_id": version["versionId"],
                     "image_url": version["imageUrl"],
+                    "audio_url": version.get("audioUrl"),  # Add audio URL support
                     "is_current": version["versionId"] == versions.get("currentVersionId"),
                     "created_at": version["createdAt"]
                 }
@@ -869,10 +870,13 @@ class SupabaseDataManager:
                 version = {
                     "versionId": version_data["version_id"],
                     "imageUrl": version_data["image_url"],
+                    "audioUrl": version_data.get("audio_url"),  # Add audio URL support
                     "createdAt": version_data["created_at"]
                 }
                 versions.append(version)
                 print(f"   Found version: {version_data['version_id']} - {version_data['image_url']}", flush=True)
+                if version_data.get("audio_url"):
+                    print(f"   Audio URL: {version_data['audio_url']}", flush=True)
                 
                 if version_data["is_current"]:
                     current_version_id = version_data["version_id"]
@@ -1154,6 +1158,34 @@ class SupabaseDataManager:
                 
         except Exception as e:
             print(f"❌ Error uploading base64 image to Supabase storage: {str(e)}")
+            # Check if it's an RLS policy error
+            if "row-level security policy" in str(e).lower():
+                print("💡 This appears to be a Row Level Security (RLS) policy issue.")
+                print("💡 You may need to configure RLS policies for the 'frame-fable' storage bucket.")
+            return None
+    
+    def upload_audio_to_storage(self, audio_bytes: bytes, filename: str) -> Optional[str]:
+        """Upload audio bytes to Supabase storage"""
+        try:
+            # Upload to Supabase storage
+            print(f"📤 Uploading audio to Supabase storage: {filename}")
+            result = self.supabase.storage.from_("frame-fable").upload(
+                filename,
+                audio_bytes,
+                file_options={"content-type": "audio/mpeg"}
+            )
+            
+            if result:
+                # Get the public URL
+                public_url = self.supabase.storage.from_("frame-fable").get_public_url(filename)
+                print(f"✅ Audio uploaded successfully: {public_url}")
+                return public_url
+            else:
+                print("❌ Failed to upload audio to Supabase storage")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error uploading audio to Supabase storage: {str(e)}")
             # Check if it's an RLS policy error
             if "row-level security policy" in str(e).lower():
                 print("💡 This appears to be a Row Level Security (RLS) policy issue.")

@@ -62,6 +62,10 @@ export default function StoryReadingPage() {
     soundEffects: true,
   })
 
+  // Audio playback state
+  const [isPlaying, setIsPlaying] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
   // Auto-save timer ref
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null)
   const progressNeedsSaveRef = useRef(false)
@@ -137,6 +141,18 @@ export default function StoryReadingPage() {
     if (currentNode) {
       setImageLoading(true)
     }
+  }, [currentNode?.id])
+
+  /**
+   * Stop audio when changing nodes
+   */
+  useEffect(() => {
+    // Stop and reset audio when node changes
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    setIsPlaying(false)
   }, [currentNode?.id])
 
   /**
@@ -381,6 +397,28 @@ export default function StoryReadingPage() {
   }
 
   /**
+   * Toggle audio playback
+   */
+  const toggleAudioPlayback = () => {
+    if (!currentNode?.audioUrl) return
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(currentNode.audioUrl)
+      audioRef.current.addEventListener("ended", () => {
+        setIsPlaying(false)
+      })
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause()
+      setIsPlaying(false)
+    } else {
+      audioRef.current.play()
+      setIsPlaying(true)
+    }
+  }
+
+  /**
    * Calculate progress
    */
   const calculateProgress = () => {
@@ -553,21 +591,53 @@ export default function StoryReadingPage() {
             rightContent={
               // Right Page: Text and Choices
               <div className="h-full flex flex-col" key={currentNode.id}>
-                {/* Scene Badge */}
-                <motion.div
-                  key={`badge-${currentNode.id}`}
-                  className="inline-flex items-center gap-2 self-start mb-4 px-4 py-2 rounded-full text-sm font-bold"
-                  style={{
-                    background: "linear-gradient(135deg, #8B3A3A, #CD5C5C)",
-                    color: "#FFF",
-                    boxShadow: "0 2px 6px rgba(139, 58, 58, 0.4)",
-                  }}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <span className="text-ui">Scene {currentSceneNumber}</span>
-                </motion.div>
+                {/* Scene Badge and Audio Control */}
+                <div className="flex items-center justify-between mb-4">
+                  <motion.div
+                    key={`badge-${currentNode.id}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold"
+                    style={{
+                      background: "linear-gradient(135deg, #8B3A3A, #CD5C5C)",
+                      color: "#FFF",
+                      boxShadow: "0 2px 6px rgba(139, 58, 58, 0.4)",
+                    }}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <span className="text-ui">Scene {currentSceneNumber}</span>
+                  </motion.div>
+
+                  {/* Audio Play/Pause Button */}
+                  {currentNode.audioUrl && (
+                    <motion.button
+                      key={`audio-${currentNode.id}`}
+                      onClick={toggleAudioPlayback}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all duration-200 hover:scale-105 cursor-pointer"
+                      style={{
+                        background: isPlaying
+                          ? "linear-gradient(135deg, #6B8E6B, #4A6741)"
+                          : "linear-gradient(135deg, #8B7355, #6B5744)",
+                        color: "#FFF",
+                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.3)",
+                      }}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      aria-label={
+                        isPlaying ? "Pause narration" : "Play narration"
+                      }
+                      title={isPlaying ? "Pause narration" : "Play narration"}
+                    >
+                      <span className="text-xl">{isPlaying ? "⏸️" : "▶️"}</span>
+                      <span className="hidden sm:inline text-ui">
+                        {isPlaying ? "Pause" : "Listen"}
+                      </span>
+                    </motion.button>
+                  )}
+                </div>
 
                 {/* Title */}
                 <motion.h2

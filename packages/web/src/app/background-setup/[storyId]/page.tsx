@@ -130,13 +130,40 @@ export default function BackgroundSetupPage({
   }, [])
 
   /**
+   * Monitor backgrounds completion and stop polling if already complete
+   */
+  useEffect(() => {
+    if (isBulkGenerating && backgrounds.length > 0) {
+      const allCompleted = backgrounds.every(
+        (bg) =>
+          bg.generationStatus === GenerationStatus.COMPLETED &&
+          bg.imageVersions &&
+          bg.imageVersions.length > 0
+      )
+
+      if (allCompleted) {
+        console.log("All backgrounds completed, stopping bulk generation")
+        setIsBulkGenerating(false)
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current)
+          pollIntervalRef.current = null
+        }
+        pollCountRef.current = 0
+      }
+    }
+  }, [backgrounds, isBulkGenerating])
+
+  /**
    * Poll generation status
    */
   const pollGenerationStatus = useCallback(async () => {
     try {
       // Fetch updated location data to check generation status
       const result = await api.locations.getAll(storyId)
-      if (!result.success || !result.data) return
+      if (!result.success || !result.data) {
+        console.error("Failed to fetch locations during polling")
+        return
+      }
 
       const locationData = result.data.locations
 
@@ -155,7 +182,7 @@ export default function BackgroundSetupPage({
         }
       })
 
-      // Check if all completed
+      // Check if all completed or if any failed
       const allCompleted = locationData.every(
         (loc) =>
           loc.generationStatus === GenerationStatus.COMPLETED &&
@@ -163,7 +190,18 @@ export default function BackgroundSetupPage({
           loc.imageVersions.length > 0
       )
 
-      if (allCompleted) {
+      const anyFailed = locationData.some(
+        (loc) => loc.generationStatus === GenerationStatus.FAILED
+      )
+
+      // Stop polling if all completed or any failed
+      if (allCompleted || anyFailed) {
+        console.log(
+          "Stopping polling - all completed:",
+          allCompleted,
+          "any failed:",
+          anyFailed
+        )
         setIsBulkGenerating(false)
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current)
@@ -173,6 +211,12 @@ export default function BackgroundSetupPage({
       }
     } catch (err) {
       console.error("Error polling generation status:", err)
+      // Stop polling on error
+      setIsBulkGenerating(false)
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current)
+        pollIntervalRef.current = null
+      }
     }
   }, [storyId])
 
@@ -597,7 +641,7 @@ export default function BackgroundSetupPage({
           <button
             onClick={handleGenerateAll}
             disabled={isBulkGenerating || generationCount === 0}
-            className="px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all inline-flex items-center gap-3"
+            className="px-8 py-4 text-lg font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all inline-flex items-center gap-3"
           >
             <svg
               className="w-6 h-6"
@@ -727,7 +771,7 @@ export default function BackgroundSetupPage({
                                   version.versionId
                                 )
                               }
-                              className={`flex-shrink-0 relative w-20 h-20 rounded-lg overflow-hidden transition-all ${
+                              className={`flex-shrink-0 relative w-20 h-20 rounded-lg overflow-hidden transition-all cursor-pointer ${
                                 version.versionId === currentVersionId
                                   ? "border-3 border-indigo-500 ring-4 ring-indigo-200 scale-105"
                                   : "border-2 border-gray-300 hover:border-indigo-300 opacity-70 hover:opacity-100"
@@ -902,7 +946,7 @@ export default function BackgroundSetupPage({
                         <button
                           onClick={() => handleRegenerate(background.id)}
                           disabled={isRegenerating || isGenerating}
-                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                          className="inline-flex items-center px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer rounded-lg transition-colors"
                         >
                           <svg
                             className="w-4 h-4 mr-2"
@@ -957,7 +1001,7 @@ export default function BackgroundSetupPage({
           <button
             onClick={handleBack}
             disabled={isBulkGenerating}
-            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+            className="px-6 py-3 text-base font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-amber-400 hover:text-amber-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -978,7 +1022,7 @@ export default function BackgroundSetupPage({
           <button
             onClick={handleNext}
             disabled={!isReady || isBulkGenerating}
-            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3"
+            className="px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl hover:from-amber-600 hover:to-orange-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-3"
           >
             <span>Generate Scene Images</span>
             <svg

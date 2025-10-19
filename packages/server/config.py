@@ -62,6 +62,14 @@ IMAGE_HEIGHT = 512
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fable_tales.db")
 
 # ============================================================================
+# Eleven Labs Configuration
+# ============================================================================
+
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "placeholder_elevenlabs_key")
+# Default voice for narration (Rachel - warm, friendly voice perfect for children's stories)
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
+
+# ============================================================================
 # Processing Defaults
 # ============================================================================
 

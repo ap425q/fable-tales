@@ -352,6 +352,7 @@ class ReadingNode(BaseModel):
     title: str
     text: str
     imageUrl: str
+    audioUrl: Optional[str] = None  # Audio narration URL
     type: NodeType
     choices: List[Choice]
     lessonMessage: Optional[str] = None

@@ -657,6 +657,69 @@ educational and engaging for children. High quality art with clear panel composi
             raise Exception(f"OpenAI Vision API failed: {str(e)}")
 
 
+class ElevenLabsService:
+    """Service for Eleven Labs text-to-speech API"""
+
+    def __init__(self):
+        """Initialize Eleven Labs service with API key from environment"""
+        self.api_key = os.getenv("ELEVENLABS_API_KEY", "placeholder_elevenlabs_key")
+        self.voice_id = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")  # Rachel voice
+        
+        # Initialize Eleven Labs client if API key is available
+        if self.api_key != "placeholder_elevenlabs_key":
+            try:
+                from elevenlabs import ElevenLabs
+                self.client = ElevenLabs(api_key=self.api_key)
+            except ImportError:
+                print("⚠️ elevenlabs package not installed. Please run: pip install elevenlabs")
+                self.client = None
+        else:
+            self.client = None
+
+    def generate_audio(self, text: str, voice_id: Optional[str] = None) -> Optional[bytes]:
+        """
+        Generate audio from text using Eleven Labs
+        
+        Args:
+            text: Text to convert to speech
+            voice_id: Voice ID to use (defaults to configured voice)
+            
+        Returns:
+            Audio data as bytes or None if failed
+        """
+        try:
+            # Check if Eleven Labs API key is configured
+            if self.api_key == "placeholder_elevenlabs_key" or not self.api_key:
+                raise Exception("Eleven Labs API key is not configured. Please set ELEVENLABS_API_KEY environment variable.")
+            
+            if not self.client:
+                raise Exception("Eleven Labs client is not initialized")
+            
+            # Use provided voice_id or default
+            voice = voice_id if voice_id else self.voice_id
+            
+            print(f"🎙️ Generating audio with Eleven Labs (voice: {voice})...")
+            
+            # Generate audio using the Eleven Labs SDK
+            audio_generator = self.client.text_to_speech.convert(
+                voice_id=voice,
+                text=text,
+                model_id="eleven_turbo_v2_5",  # Fast, high-quality model
+                output_format="mp3_44100_128"  # Standard MP3 quality
+            )
+            
+            # Collect audio bytes from the generator
+            audio_bytes = b''.join(audio_generator)
+            
+            print(f"✅ Audio generated successfully ({len(audio_bytes)} bytes)")
+            
+            return audio_bytes
+            
+        except Exception as e:
+            print(f"❌ Error generating audio: {str(e)}")
+            raise Exception(f"Eleven Labs audio generation failed: {str(e)}")
+
+
 class FALAIService:
     """Service for FAL.ai image generation API"""
 

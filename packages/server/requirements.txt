@@ -3,10 +3,11 @@ uvicorn==0.24.0
 python-dotenv==1.0.0
 openai==1.54.4
 httpx==0.27.2
-pydantic==2.5.0
+pydantic==2.9.0
 python-multipart==0.0.6
 requests==2.31.0
 supabase==2.22.0
 fal-client==0.8.1
 google-genai==1.2.0
 Pillow==10.4.0
+elevenlabs==2.18.0

@@ -287,6 +287,7 @@ export interface ReadingNode {
   title: string
   text: string
   imageUrl: string
+  audioUrl?: string // Audio narration URL
   type: string
   choices: ChoiceData[]
   lessonMessage?: string
