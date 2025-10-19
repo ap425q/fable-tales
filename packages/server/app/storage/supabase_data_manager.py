@@ -832,8 +832,10 @@ class SupabaseDataManager:
             print(f"   versions: {versions}", flush=True)
             
             for version in versions.get("versions", []):
+                # First, check if this version already exists
+                existing = self.supabase.table("scene_image_versions").select("id").eq("story_id", story_id).eq("scene_id", scene_id).eq("version_id", version["versionId"]).execute()
+                
                 version_data = {
-                    "id": str(uuid.uuid4()),  # Generate a proper UUID
                     "story_id": story_id,
                     "scene_id": scene_id,
                     "version_id": version["versionId"],
@@ -843,9 +845,16 @@ class SupabaseDataManager:
                     "created_at": version["createdAt"]
                 }
                 
-                print(f"   Upserting version data: {version_data}", flush=True)
-                result = self.supabase.table("scene_image_versions").upsert(version_data).execute()
-                print(f"   ✅ Upsert result: {result}", flush=True)
+                if existing.data and len(existing.data) > 0:
+                    # Update existing record
+                    print(f"   Updating existing version: {version['versionId']}", flush=True)
+                    result = self.supabase.table("scene_image_versions").update(version_data).eq("story_id", story_id).eq("scene_id", scene_id).eq("version_id", version["versionId"]).execute()
+                else:
+                    # Insert new record (with auto-generated id from database)
+                    print(f"   Inserting new version: {version['versionId']}", flush=True)
+                    result = self.supabase.table("scene_image_versions").insert(version_data).execute()
+                
+                print(f"   ✅ Save result: {len(result.data) if result.data else 0} rows affected", flush=True)
                 
         except Exception as e:
             print(f"❌ Error saving scene image versions to Supabase: {str(e)}", flush=True)
